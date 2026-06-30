@@ -1,0 +1,863 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Activity, 
+  Database, 
+  Cpu, 
+  Terminal, 
+  Send, 
+  HelpCircle, 
+  CheckCircle, 
+  AlertTriangle, 
+  XCircle, 
+  Play, 
+  RefreshCw, 
+  FileText,
+  Copy,
+  ChevronRight
+} from 'lucide-react';
+
+const API_BASE = "http://localhost:8000";
+
+// Componente para desenhar o Sparkline em SVG
+const Sparkline = ({ data, color }) => {
+  if (!data || data.length < 2) return null;
+  const width = 120;
+  const height = 30;
+  
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min === 0 ? 1 : max - min;
+  
+  const points = data.map((val, index) => {
+    const x = (index / (data.length - 1)) * width;
+    const y = height - ((val - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        points={points}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="filter drop-shadow-[0_0_3px_rgba(0,229,163,0.5)]"
+      />
+    </svg>
+  );
+};
+
+export default function App() {
+  // Estados da Aplicação
+  const [selectedLot, setSelectedLot] = useState("SA-025");
+  const [lots, setLots] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [audits, setAudits] = useState([]);
+  const [messages, setMessages] = useState([
+    { 
+      role: 'assistant', 
+      content: 'Olá! Sou o assistente clínico EcoSanguis. Pergunte-me sobre o estado de qualquer lote (Ex: "Como está o lote SA-025 agora?" ou "Por que o Lote SA-024 está em risco?") ou escolha uma das perguntas rápidas abaixo!',
+      explicabilidade: null
+    }
+  ]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard ou tecnico
+  const [copiedScript, setCopiedScript] = useState(false);
+  const [packetCount, setPacketCount] = useState(128);
+
+  const messagesEndRef = useRef(null);
+
+  // Inicialização e Polling
+  useEffect(() => {
+    fetchLots();
+    fetchHistory();
+    fetchAudits();
+    
+    // Polling a cada 2 segundos para atualizar dados do Arduino
+    const interval = setInterval(() => {
+      fetchLots();
+      fetchHistory();
+      fetchAudits();
+      setPacketCount(prev => prev + Math.floor(Math.random() * 2));
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [selectedLot]);
+
+  useEffect(() => {
+    // Scroll para a última mensagem do chat
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
+  // Carrega lotes cadastrados
+  const fetchLots = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/lots`);
+      if (res.ok) {
+        const data = await res.json();
+        setLots(data);
+      }
+    } catch (err) {
+      console.log("Erro ao carregar lotes:", err);
+    }
+  };
+
+  // Carrega histórico do lote selecionado
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data);
+      }
+    } catch (err) {
+      console.log("Erro ao carregar histórico:", err);
+    }
+  };
+
+  // Carrega logs de auditoria
+  const fetchAudits = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/audits`);
+      if (res.ok) {
+        const data = await res.json();
+        setAudits(data);
+      }
+    } catch (err) {
+      console.log("Erro ao carregar auditoria:", err);
+    }
+  };
+
+  // Envio de pergunta
+  const handleSendMessage = async (text) => {
+    if (!text.trim()) return;
+    
+    // Adiciona pergunta do usuário
+    const userMsg = { role: 'user', content: text };
+    setMessages(prev => [...prev, userMsg]);
+    setInputValue('');
+    setIsTyping(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pergunta: text })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        // Simular um leve tempo de processamento para mostrar a onda senoidal biomédica
+        setTimeout(() => {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: data.resposta, 
+            explicabilidade: data.explicabilidade 
+          }]);
+          setIsTyping(false);
+          
+          // Se na resposta citar um lote, muda o lote selecionado no painel lateral
+          const match = text.toUpperCase().match(/SA-\d{3}/);
+          if (match) {
+            setSelectedLot(match[0]);
+          }
+        }, 1200);
+      } else {
+        setIsTyping(false);
+      }
+    } catch (err) {
+      console.log("Erro no chat:", err);
+      setIsTyping(false);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico. Verifique se o servidor backend FastAPI está rodando na porta 8000.'
+      }]);
+    }
+  };
+
+  // Cadastra novo lote de simulação
+  const handleCreateLot = async () => {
+    const nextNum = lots.length + 23; // SA-023, 24, 25...
+    const name = `SA-0${nextNum}`;
+    try {
+      const res = await fetch(`${API_BASE}/api/lots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: name, 
+          composicao: "Composto Sintético de Segunda Geração Baseado em PFC",
+          status_inicial: "ESTÁVEL"
+        })
+      });
+      if (res.ok) {
+        setSelectedLot(name);
+        fetchLots();
+      }
+    } catch (err) {
+      alert("Erro ao criar novo lote.");
+    }
+  };
+
+  // Valores de exibição atuais (último do histórico ou simulados se vazio)
+  const currentReading = history.length > 0 ? history[history.length - 1] : {
+    oxigenacao_limpa: 0.95,
+    temperatura_c: 36.5,
+    vazao_l_min: 4.8,
+    ph: 7.40,
+    viscosidade_cp: 3.8,
+    hematocrito_pct: 40.0,
+    status: "ESTÁVEL",
+    alerta_mensagem: "Sem sinal ativo de sensores. Iniciando ponte..."
+  };
+
+  // Obter array de valores históricos para o Sparkline
+  const getSparkValues = (key) => {
+    if (history.length === 0) return [0, 0];
+    return history.map(item => item[key]);
+  };
+
+  // Retorna cor com base no status do sensor
+  const getStatusColor = (status) => {
+    if (status === "CRÍTICO") return "text-biotech-crimson border-biotech-crimson glow-crimson";
+    if (status === "ALERTA") return "text-yellow-400 border-yellow-400";
+    return "text-biotech-neon border-biotech-neon glow-neon";
+  };
+
+  const getStatusBg = (status) => {
+    if (status === "CRÍTICO") return "bg-biotech-crimson/10 border-biotech-crimson/30";
+    if (status === "ALERTA") return "bg-yellow-500/10 border-yellow-500/30";
+    return "bg-biotech-neon/10 border-biotech-neon/30";
+  };
+
+  const pythonScript = `import time
+import json
+import random
+import requests
+
+API_URL = "http://${window.location.hostname}:8000/api/sensor-data"
+LOTE_ID = "SA-025"
+
+print("Ponte de Dados Iniciada. Enviando para:", API_URL)
+t = 0
+while True:
+    # Simulação local de sensores
+    ox = 94.0 + 3.0 * random.uniform(-0.5, 0.5)
+    temp = 36.5 + random.uniform(-0.2, 0.2)
+    vaz = 4.8 + random.uniform(-0.1, 0.1)
+    
+    payload = {
+        "lote_id": LOTE_ID,
+        "oxigenacao": f"{ox:.1f}%",
+        "temperatura": f"{temp:.1f}C",
+        "vazao": f"{vaz:.1f}"
+    }
+    try:
+        r = requests.post(API_URL, json=payload, timeout=2.0)
+        print(f"POST {r.status_code} | Lote {LOTE_ID} | Ox: {ox:.1f}% | Temp: {temp:.1f}°C")
+    except Exception as e:
+        print("Erro ao enviar:", e)
+    
+    time.sleep(2.0)
+    t += 2`;
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(pythonScript);
+    setCopiedScript(true);
+    setTimeout(() => setCopiedScript(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col relative text-slate-100 select-none">
+      
+      {/* Detalhe de Malha de Circuitos no Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
+      
+      {/* 1. TOPO / CABEÇALHO */}
+      <header className="z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          
+          {/* Gotícula com circuito integrado (desenho em SVG) */}
+          <div className="relative w-10 h-10 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" className="w-full h-full fill-biotech-crimson drop-shadow-[0_0_8px_rgba(255,42,66,0.6)]">
+              <path d="M50,10 C50,10 85,45 85,68 C85,85 70,95 50,95 C30,95 15,85 15,68 C15,45 50,10 50,10 Z" />
+              {/* Linhas de circuito integradas */}
+              <path d="M50,30 L50,60 M35,55 L50,55 M50,45 L65,45 M35,70 L50,70 M50,70 L65,75" stroke="#00E5A3" strokeWidth="3" fill="none" opacity="0.8" />
+              <circle cx="35" cy="55" r="4" fill="#00E5A3" />
+              <circle cx="65" cy="45" r="4" fill="#00E5A3" />
+              <circle cx="35" cy="70" r="4" fill="#00E5A3" />
+            </svg>
+          </div>
+          
+          <div>
+            <h1 className="text-xl font-bold tracking-wider text-slate-100 flex items-center gap-2">
+              FLOWTIFICIAL <span className="text-[10px] bg-biotech-crimson/20 border border-biotech-crimson/50 text-biotech-crimson px-1.5 py-0.5 rounded font-mono">PROTÓTIPO</span>
+            </h1>
+            <p className="text-xs text-slate-400 font-mono tracking-tight">TRADUTOR CIENTÍFICO E IA EXPLICÁVEL PARA SANGUE ARTIFICIAL</p>
+          </div>
+        </div>
+
+        {/* Barra de Conexão de Hardware */}
+        <div className="flex items-center gap-6">
+          
+          {/* Navegação entre abas */}
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1">
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'dashboard' ? 'bg-slate-800 text-biotech-neon' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Monitor Clínico
+            </button>
+            <button 
+              onClick={() => setActiveTab('tecnico')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'tecnico' ? 'bg-slate-800 text-biotech-neon' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              Console Técnico
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800/80 px-4 py-2 rounded-xl">
+            <div className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-biotech-neon opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-biotech-neon animate-pulse-green"></span>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-400 font-mono">SISTEMA CONECTADO</p>
+              <p className="text-xs text-biotech-neon font-bold font-mono">Arduino Nano • Porta COM3</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {activeTab === 'dashboard' ? (
+        /* ========================================================
+           TELA PRINCIPAL: DASHBOARD BIOMÉDICO
+           ======================================================== */
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 z-10 overflow-hidden">
+          
+          {/* COLUNA ESQUERDA (MÉTRICAS RÁPIDAS - 1/3) */}
+          <section className="lg:col-span-1 flex flex-col gap-4">
+            
+            {/* Lotes em Monitoramento */}
+            <div className="glass-panel rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
+                  <Database className="w-3.5 h-3.5 text-biotech-crimson" />
+                  LOTES DE SANGUE EM ENSAIO
+                </h2>
+                <button 
+                  onClick={handleCreateLot}
+                  className="text-[10px] text-biotech-neon border border-biotech-neon/30 hover:border-biotech-neon hover:bg-biotech-neon/10 px-2 py-1 rounded transition-all font-mono"
+                >
+                  + NOVO LOTE
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {lots.map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => setSelectedLot(l.id)}
+                    className={`p-2.5 rounded-lg border text-center font-mono transition-all duration-200 ${
+                      selectedLot === l.id 
+                        ? 'bg-slate-800 border-biotech-neon text-biotech-neon font-bold glow-neon-border' 
+                        : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="block text-xs">{l.id}</span>
+                    <span className={`text-[8px] px-1 rounded block mt-1 ${
+                      l.status === 'CRÍTICO' ? 'bg-red-500/20 text-red-400' :
+                      l.status === 'ALERTA' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'
+                    }`}>{l.status}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 5 Variáveis Fisiológicas */}
+            <div className="flex-1 flex flex-col gap-3 justify-between">
+              
+              {/* CARD 1: OXIGENAÇÃO */}
+              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">01 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
+                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                    {(currentReading.oxigenacao_limpa * 100).toFixed(1)}
+                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                    currentReading.oxigenacao_limpa < 0.85 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
+                    currentReading.oxigenacao_limpa < 0.90 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                  }`}>
+                    {currentReading.oxigenacao_limpa < 0.90 ? 'SAT BAIXA' : 'OTIMO'}
+                  </span>
+                  <Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00E5A3'} />
+                </div>
+              </div>
+
+              {/* CARD 2: TEMPERATURA */}
+              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">02 • ESTABILIDADE TÉRMICA</span>
+                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                    {currentReading.temperatura_c.toFixed(1)}
+                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                    currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
+                    currentReading.temperatura_c > 37.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                  }`}>
+                    {currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'NORMAL'}
+                  </span>
+                  <Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />
+                </div>
+              </div>
+
+              {/* CARD 3: pH */}
+              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">03 • POTENCIAL HIDROGENIÔNICO (pH)</span>
+                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                    {currentReading.ph.toFixed(2)}
+                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                    currentReading.ph < 7.30 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
+                    currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                  }`}>
+                    {currentReading.ph < 7.35 ? 'ACIDOSE' : currentReading.ph > 7.45 ? 'ALCALOSE' : 'FISIOLOGICO'}
+                  </span>
+                  <Sparkline data={getSparkValues('ph')} color="#22d3ee" />
+                </div>
+              </div>
+
+              {/* CARD 4: VISCOSIDADE */}
+              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">04 • RESISTÊNCIA DE FLUXO (VISCOSIDADE)</span>
+                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                    {currentReading.viscosidade_cp.toFixed(1)}
+                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">cP</span>
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                    currentReading.viscosidade_cp > 5.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
+                    currentReading.viscosidade_cp < 3.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                  }`}>
+                    {currentReading.viscosidade_cp > 4.5 ? 'ESPESSO' : currentReading.viscosidade_cp < 3.5 ? 'FLUIDO' : 'ESTÁVEL'}
+                  </span>
+                  <Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />
+                </div>
+              </div>
+
+              {/* CARD 5: HEMATÓCRITO */}
+              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-400" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">05 • FRAÇÃO VOLUMÉTRICA (HEMATÓCRITO)</span>
+                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                    {currentReading.hematocrito_pct.toFixed(1)}
+                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                    currentReading.hematocrito_pct < 35.0 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                  }`}>
+                    {currentReading.hematocrito_pct < 37.0 ? 'MÉDIO-BAIXO' : 'OTIMO'}
+                  </span>
+                  <Sparkline data={getSparkValues('hematocrito_pct')} color="#f87171" />
+                </div>
+              </div>
+
+            </div>
+
+            {/* Status do Hardware Arduino */}
+            <div className="glass-panel rounded-xl p-3 flex items-center justify-between bg-slate-900/40">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-biotech-neon" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO FÍSICA ARDUINO</p>
+                  <p className="text-xs font-mono font-bold">115200 baud • {packetCount} packets rx</p>
+                </div>
+              </div>
+              <span className="text-[9px] bg-slate-800 border border-slate-700 text-slate-400 font-mono px-2 py-0.5 rounded">
+                DRV: CH340G
+              </span>
+            </div>
+
+          </section>
+
+          {/* COLUNA CENTRAL/DIREITA (CHATBOT PRINCIPAL - 2/3) */}
+          <section className="lg:col-span-2 flex flex-col gap-4">
+            
+            {/* Status Alerta Geral */}
+            <div className={`border rounded-xl p-4 flex items-center gap-4 transition-all duration-300 ${getStatusBg(currentReading.status)}`}>
+              <div className={`p-2.5 rounded-lg border bg-slate-950/80 ${getStatusColor(currentReading.status)}`}>
+                {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
+                 currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-400 font-mono">VEREDITO GERAL DA CAMADA 2 & 3 • LOTE {selectedLot}</p>
+                <h3 className="text-lg font-bold text-white tracking-wide">STATUS DO SISTEMA: {currentReading.status}</h3>
+                <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">{currentReading.alerta_mensagem}</p>
+              </div>
+            </div>
+
+            {/* Janela de Chat Conversacional */}
+            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative">
+              
+              {/* Detalhe estético: grade */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
+              
+              {/* Header do Chat */}
+              <div className="z-10 bg-slate-900/60 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-biotech-crimson animate-pulse" />
+                  <span className="text-xs font-bold font-mono tracking-widest text-slate-400">CAMADA 4: TRADUTOR CIENTÍFICO CONVERSACIONAL</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                  <span className="h-1.5 w-1.5 rounded-full bg-biotech-neon"></span>
+                  ONLINE
+                </div>
+              </div>
+
+              {/* Corpo de Mensagens */}
+              <div className="z-10 flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                {messages.map((msg, index) => (
+                  <div 
+                    key={index}
+                    className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
+                  >
+                    
+                    {/* Balão de Mensagem */}
+                    <div 
+                      className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
+                        msg.role === 'user' 
+                          ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
+                          : 'bg-slate-900/90 text-slate-200 border border-slate-850 rounded-tl-none glow-neon-border'
+                      }`}
+                    >
+                      <div className="whitespace-pre-line font-sans">{msg.content}</div>
+                    </div>
+                    
+                    {/* Timestamp / Metadados */}
+                    <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
+                      {msg.role === 'user' ? 'Visitante' : 'Tradutor Clínico EcoSanguis'}
+                    </span>
+
+                    {/* Bloco de IA Explicável Integrado (se disponível na resposta) */}
+                    {msg.role === 'assistant' && msg.explicabilidade && (
+                      <div className="mt-3 w-full bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+                        <div className="flex items-center justify-between border-b border-slate-900 pb-2">
+                          <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <Cpu className="w-3.5 h-3.5 text-biotech-crimson" />
+                            DETALHAMENTO DE INFERÊNCIA DA IA EXPLICÁVEL
+                          </span>
+                          <span className={`text-xs font-mono font-bold ${getStatusColor(msg.explicabilidade.nivel_risco)}`}>
+                            RISCO: {msg.explicabilidade.risco_degradacao_pct}%
+                          </span>
+                        </div>
+                        
+                        {/* Grid dos Sensores e Barras de Progresso */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
+                          
+                          {/* 1. Oxigenação */}
+                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
+                            <div className="flex justify-between text-[10px] font-mono mb-1">
+                              <span className="text-slate-400">Oxigenação (Ideal &gt;= 90%)</span>
+                              <span className="text-white font-bold">{(msg.explicabilidade.valores_sensores.oxigenacao*100).toFixed(0)}%</span>
+                            </div>
+                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.oxigenacao < 0.90 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
+                                style={{ width: `${msg.explicabilidade.valores_sensores.oxigenacao * 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 2. Temperatura */}
+                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
+                            <div className="flex justify-between text-[10px] font-mono mb-1">
+                              <span className="text-slate-400">Temperatura (Ideal 35.5 - 37.5)</span>
+                              <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.temperatura.toFixed(1)}°C</span>
+                            </div>
+                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.temperatura > 38.0 || msg.explicabilidade.valores_sensores.temperatura < 35.0 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
+                                style={{ width: `${Math.min(100, (msg.explicabilidade.valores_sensores.temperatura / 45) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 3. pH */}
+                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
+                            <div className="flex justify-between text-[10px] font-mono mb-1">
+                              <span className="text-slate-400">pH (Ideal 7.35 - 7.45)</span>
+                              <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.ph.toFixed(2)}</span>
+                            </div>
+                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.ph < 7.35 || msg.explicabilidade.valores_sensores.ph > 7.45 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
+                                style={{ width: `${(msg.explicabilidade.valores_sensores.ph / 14) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 4. Viscosidade */}
+                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
+                            <div className="flex justify-between text-[10px] font-mono mb-1">
+                              <span className="text-slate-400">Viscosidade (Ideal 3.5 - 4.5)</span>
+                              <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.viscosidade.toFixed(1)} cP</span>
+                            </div>
+                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.viscosidade > 4.5 || msg.explicabilidade.valores_sensores.viscosidade < 3.5 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
+                                style={{ width: `${(msg.explicabilidade.valores_sensores.viscosidade / 10) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                        </div>
+
+                        {/* Pesos das features (atribuição) */}
+                        <div className="mt-2 text-[10px] text-slate-400 leading-relaxed bg-slate-900/20 p-2.5 rounded border border-slate-900">
+                          <p className="font-bold text-slate-300 font-mono mb-1">PONDERAÇÃO DE VARIÁVEIS:</p>
+                          <ul className="grid grid-cols-2 gap-x-4 list-disc list-inside">
+                            <li>Oxigenação: +{msg.explicabilidade.pesos_atribuicao.oxigenacao}% risco</li>
+                            <li>Temperatura: +{msg.explicabilidade.pesos_atribuicao.temperatura}% risco</li>
+                            <li>pH: +{msg.explicabilidade.pesos_atribuicao.ph}% risco</li>
+                            <li>Viscosidade: +{msg.explicabilidade.pesos_atribuicao.viscosidade}% risco</li>
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                ))}
+
+                {/* Balão Simulando Processamento (Onda Senoidal / Batimento cardíaco) */}
+                {isTyping && (
+                  <div className="flex flex-col max-w-[85%] self-start items-start">
+                    <div className="p-3.5 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none flex flex-col gap-2 min-w-[280px]">
+                      <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+                        <Activity className="w-3.5 h-3.5 text-biotech-crimson animate-heartbeat" />
+                        <span>Analisando dados mais recentes do Arduino...</span>
+                      </div>
+                      
+                      {/* Onda Senoidal SVG Animada */}
+                      <svg width="240" height="24" className="stroke-biotech-crimson" fill="none">
+                        <path
+                          className="ecg-path"
+                          strokeWidth="2"
+                          d="M 0 12 L 40 12 L 50 12 L 55 2 L 60 22 L 65 12 L 70 12 L 110 12 L 120 12 L 125 2 L 130 22 L 135 12 L 140 12 L 180 12 L 190 12 L 195 2 L 200 22 L 205 12 L 240 12"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+                
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Botões de Ações Rápidas (Pills) */}
+              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/90">
+                <button 
+                  onClick={() => handleSendMessage(`Como está o lote ${selectedLot} agora?`)}
+                  className="whitespace-nowrap text-[11px] text-biotech-neon border border-biotech-neon/30 hover:border-biotech-neon hover:bg-biotech-neon/10 px-3 py-1.5 rounded-full transition-all font-mono"
+                >
+                  Como está {selectedLot} agora?
+                </button>
+                <button 
+                  onClick={() => handleSendMessage(`Por que o Lote SA-024 está em risco?`)}
+                  className="whitespace-nowrap text-[11px] text-biotech-crimson border border-biotech-crimson/30 hover:border-biotech-crimson hover:bg-biotech-crimson/10 px-3 py-1.5 rounded-full transition-all font-mono"
+                >
+                  Por que SA-024 está em risco?
+                </button>
+                <button 
+                  onClick={() => handleSendMessage(`Como funciona a Camada de Processamento?`)}
+                  className="whitespace-nowrap text-[11px] text-cyan-400 border border-cyan-400/30 hover:border-cyan-400 hover:bg-cyan-400/10 px-3 py-1.5 rounded-full transition-all font-mono"
+                >
+                  Limpeza de ruído e pH
+                </button>
+                <button 
+                  onClick={() => handleSendMessage(`O que é sangue artificial?`)}
+                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 hover:border-slate-500 hover:bg-slate-800 px-3 py-1.5 rounded-full transition-all font-mono"
+                >
+                  O que é sangue artificial?
+                </button>
+              </div>
+
+              {/* Caixa de Entrada de Texto */}
+              <form 
+                onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }}
+                className="z-10 bg-slate-900/80 border-t border-slate-800 px-4 py-3 flex gap-2 items-center"
+              >
+                <input 
+                  type="text" 
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Faça uma pergunta sobre o lote de sangue ou sobre a IA do sistema..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-slate-700 text-slate-100 placeholder-slate-500 transition-all font-sans"
+                />
+                <button 
+                  type="submit"
+                  className="bg-slate-850 hover:bg-slate-800 text-biotech-neon p-2.5 rounded-xl border border-slate-700/60 hover:border-biotech-neon transition-all"
+                >
+                  <Send className="w-4.5 h-4.5" />
+                </button>
+              </form>
+
+            </div>
+
+          </section>
+        </main>
+      ) : (
+        /* ========================================================
+           TELA SECUNDÁRIA: CONSOLE TÉCNICO (DOCUMENTAÇÃO E SCRIPT)
+           ======================================================== */
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 z-10 overflow-hidden">
+          
+          {/* COLUNA ESQUERDA: DOCUMENTAÇÃO DA API E SCRIPT PYTHON */}
+          <section className="flex flex-col gap-4">
+            
+            {/* Bloco de Script de Ponte Python */}
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
+                  <Terminal className="w-3.5 h-3.5 text-biotech-neon" />
+                  SCRIPT DE SUPORTE: PONTE PYTHON (ARDUINO PARA API)
+                </h2>
+                <button 
+                  onClick={copyToClipboard}
+                  className="text-[10px] text-biotech-neon border border-biotech-neon/30 hover:border-biotech-neon hover:bg-biotech-neon/10 px-2.5 py-1.5 rounded transition-all font-mono flex items-center gap-1"
+                >
+                  <Copy className="w-3 h-3" />
+                  {copiedScript ? "COPIADO!" : "COPIAR SCRIPT"}
+                </button>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                Rode este script Python no computador do estande conectado ao Arduino. O script lê as leituras da porta serial e faz requisições HTTP POST para a API do site, alimentando o painel em tempo real.
+              </p>
+              
+              <div className="flex-1 bg-slate-950 border border-slate-900 rounded-lg p-3 overflow-auto max-h-[300px]">
+                <pre className="text-[10px] text-slate-400 font-mono select-text">{pythonScript}</pre>
+              </div>
+            </div>
+
+            {/* Bloco de Documentação do Endpoint */}
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3">
+              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-biotech-crimson" />
+                DOCUMENTAÇÃO DO ENDPOINT DE TELEMETRIA
+              </h2>
+              
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold">POST</span>
+                  <span className="text-xs font-mono text-white">/api/sensor-data</span>
+                </div>
+                <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                  O Arduino ou qualquer ponte envia leituras brutas em JSON. O backend limpa erros de digitação e calcula as variáveis secundárias.
+                </p>
+                <div className="bg-slate-950 border border-slate-900 rounded-lg p-3 mt-1">
+                  <p className="text-[9px] text-slate-500 font-mono mb-1">PAYLOAD DE ENTRADA EXIGIDO:</p>
+                  <pre className="text-[10px] text-slate-400 font-mono select-text">{JSON.stringify({
+                    "lote_id": "SA-025",
+                    "oxigenacao": "95%",
+                    "temperatura": "36.8C",
+                    "vazao": "4.8"
+                  }, null, 2)}</pre>
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+          {/* COLUNA DIREITA: AUDITORIA DE DADOS DA CAMADA 1 */}
+          <section className="flex flex-col gap-4">
+            
+            {/* Bloco explicativo da Arquitetura */}
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3">
+              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
+                <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                FLUXO OPERACIONAL DE 4 CAMADAS
+              </h2>
+              <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-mono mt-1">
+                <div className="bg-slate-900 p-2.5 rounded border border-slate-850">
+                  <span className="block font-bold text-biotech-neon">1. DADOS</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Coleta e armazena</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded border border-slate-850">
+                  <span className="block font-bold text-cyan-400">2. PROCESS.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Limpa e normaliza</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded border border-slate-850">
+                  <span className="block font-bold text-amber-500">3. IA EXPL.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Infe. risco & laudo</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded border border-slate-850">
+                  <span className="block font-bold text-biotech-crimson">4. INTERM.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Chat de conversa</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Trilha de Auditoria (Logs da Camada de Dados em Tempo Real) */}
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1 overflow-hidden">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
+                  <Database className="w-3.5 h-3.5 text-biotech-crimson animate-pulse" />
+                  CAMADA 1: LOGS DE AUDITORIA E RASTREABILIDADE
+                </h2>
+                <RefreshCw className="w-3 h-3 text-slate-400 animate-spin" />
+              </div>
+              
+              <div className="flex-1 overflow-y-auto flex flex-col gap-2 font-mono text-[10px]">
+                {audits.map((a, index) => (
+                  <div 
+                    key={a.id || index}
+                    className="p-2.5 rounded bg-slate-900/50 border border-slate-900 flex flex-col gap-1 hover:bg-slate-900 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 font-bold">[{a.modulo.toUpperCase()}] {a.acao}</span>
+                      <span className="text-slate-500">{new Date(a.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="text-slate-300 text-xs font-sans leading-relaxed">{a.descricao}</p>
+                    <div className="flex items-center gap-1 text-[9px] text-slate-500 mt-0.5">
+                      <span>Operador:</span>
+                      <span className="text-slate-400 font-bold">{a.operador}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </section>
+
+        </main>
+      )}
+
+      {/* Footer / Direitos */}
+      <footer className="z-10 py-3 border-t border-slate-900 bg-slate-950 px-6 text-center">
+        <p className="text-[10px] text-slate-500 font-mono tracking-wider">
+          CONCEPÇÃO CIENTÍFICA: ARQUITETURA INTELIGENTE PARA UM SISTEMA DE SANGUE ARTIFICIAL • FEIRA CULTURAL 2026
+        </p>
+      </footer>
+    </div>
+  );
+}

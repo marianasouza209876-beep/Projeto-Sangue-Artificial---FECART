@@ -1,0 +1,30 @@
+# Arquivo de configuração de Deploy Automático para a plataforma Antigravity
+# Define a orquestração do Backend FastAPI (Python) e do Frontend React (Node/Nginx)
+
+version: "1.0"
+
+services:
+  backend:
+    name: flowtificial-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+    restart: always
+
+  frontend:
+    name: flowtificial-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: always

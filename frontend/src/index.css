@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+@theme {
+  --color-biotech-bg: #0b0f19;
+  --color-biotech-crimson: #ff2a42;
+  --color-biotech-neon: #00e5a3;
+  --font-sans: "Inter", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Roboto Mono", monospace;
+}
+
+@layer base {
+  body {
+    background-color: #0b0f19;
+    color: #f8fafc;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Scrollbar for Biotech Console */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Glassmorphism Panel style */
+.glass-panel {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s ease;
+}
+.glass-panel-hover:hover {
+  background-color: rgba(15, 23, 42, 0.65);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Glow Effects */
+.glow-crimson {
+  box-shadow: 0 0 15px rgba(255, 42, 66, 0.25);
+  text-shadow: 0 0 8px rgba(255, 42, 66, 0.4);
+}
+
+.glow-crimson-border {
+  box-shadow: 0 0 10px rgba(255, 42, 66, 0.2);
+  border-color: rgba(255, 42, 66, 0.5);
+}
+
+.glow-neon {
+  box-shadow: 0 0 15px rgba(0, 229, 163, 0.25);
+  text-shadow: 0 0 8px rgba(0, 229, 163, 0.4);
+}
+
+.glow-neon-border {
+  box-shadow: 0 0 10px rgba(0, 229, 163, 0.2);
+  border-color: rgba(0, 229, 163, 0.5);
+}
+
+/* ECG / Pulse wave animation */
+@keyframes ecg-line {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.ecg-path {
+  stroke-dasharray: 1000;
+  animation: ecg-line 8s linear infinite;
+}
+
+/* Custom heartbeat keyframes */
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(255, 42, 66, 0.6));
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Crimson pulse for critical indicators */
+@keyframes pulse-crimson {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 42, 66, 0.7);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 0 8px rgba(255, 42, 66, 0);
+  }
+}
+
+.animate-pulse-crimson {
+  animation: pulse-crimson 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Green pulse for hardware connectivity */
+@keyframes pulse-green {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 229, 163, 0.7);
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.6;
+    box-shadow: 0 0 0 6px rgba(0, 229, 163, 0);
+  }
+}
+
+.animate-pulse-green {
+  animation: pulse-green 1.8s infinite;
+}
