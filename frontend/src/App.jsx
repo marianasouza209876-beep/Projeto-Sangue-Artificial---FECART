@@ -15,9 +15,7 @@ import {
   Copy,
   ChevronRight
 } from 'lucide-react';
-
-const API_BASE = "http://localhost:8000";
-
+const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
 // Componente para desenhar o Sparkline em SVG
 const Sparkline = ({ data, color }) => {
   if (!data || data.length < 2) return null;
@@ -237,7 +235,7 @@ import json
 import random
 import requests
 
-API_URL = "http://${window.location.hostname}:8000/api/sensor-data"
+API_URL = "${import.meta.env.VITE_API_URL || (window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : ''))}/api/sensor-data"
 LOTE_ID = "SA-025"
 
 print("Ponte de Dados Iniciada. Enviando para:", API_URL)
