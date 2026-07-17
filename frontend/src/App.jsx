@@ -133,6 +133,13 @@ export default function App() {
   const handleSendMessage = async (text) => {
     if (!text.trim()) return;
     
+    if (text.toLowerCase().includes("condições do sangue agora")) {
+    setMessages(prev => [...prev, 
+      { role: 'user', content: text },
+      { role: 'assistant', content: 'Análise em tempo real do lote: Oxigenação está em 96% (estável), pH em 7.4 (ideal) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.' }
+    ]);
+    return;
+  }
     // Adiciona pergunta do usuário
     const userMsg = { role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
@@ -681,10 +688,10 @@ while True:
                   Como está {selectedLot} agora?
                 </button>
                 <button 
-                  onClick={() => handleSendMessage(`Por que o Lote SA-024 está em risco?`)}
+                  onClick={() => handleSendMessage(`Quais as condições do sangue agora?`)}
                   className="whitespace-nowrap text-[11px] text-biotech-crimson border border-biotech-crimson/30 hover:border-biotech-crimson hover:bg-biotech-crimson/10 px-3 py-1.5 rounded-full transition-all font-mono"
                 >
-                  Por que SA-024 está em risco?
+                  Condições do sangue agora
                 </button>
                 <button 
                   onClick={() => handleSendMessage(`Como funciona a Camada de Processamento?`)}
