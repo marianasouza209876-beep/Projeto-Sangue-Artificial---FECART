@@ -130,16 +130,42 @@ export default function App() {
   };
 
   // Envio de pergunta
-  const handleSendMessage = async (text) => {
-    if (!text.trim()) return;
-    
-    if (text.toLowerCase().includes("condições do sangue agora")) {
-    setMessages(prev => [...prev, 
+const handleSendMessage = async (text) => {
+  if (!text.trim()) return;
+
+  // Resposta fixa: O que é sangue artificial?
+  if (text.toLowerCase().includes("o que é sangue artificial")) {
+    const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
+
+Diferente do sangue doado tradicional, o sangue artificial:
+• Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata.
+• Dura muito mais tempo: Pode ser armazenado por meses sem estragar.
+• É livre de contaminações: Não transmite vírus ou bactérias.
+
+Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Perfluorocarbonos (PFCs), que são líquidos sintéticos capazes de carregar gases.
+
+Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
+
+    setMessages(prev => [
+      ...prev, 
       { role: 'user', content: text },
-      { role: 'assistant', content: 'Análise em tempo real do lote: Oxigenação está em 96% (estável), pH em 7.4 (ideal) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.' }
+      { role: 'assistant', content: respostaPronta }
     ]);
     return;
   }
+    return;
+  }
+
+  // Resposta fixa: Condições do sangue / Status atual
+  if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
+    setMessages(prev => [...prev, 
+      { role: 'user', content: text },
+      { role: 'assistant', content: 'Análise em tempo real do lote: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.' }
+    ]);
+    return;
+  }
+
+  // O resto do seu código antigo (envio para o servidor) continua aqui para baixo...
     // Adiciona pergunta do usuário
     const userMsg = { role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
@@ -680,32 +706,35 @@ while True:
               </div>
 
               {/* Botões de Ações Rápidas (Pills) */}
-              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/90">
-                <button 
-                  onClick={() => handleSendMessage(`Como está o lote ${selectedLot} agora?`)}
-                  className="whitespace-nowrap text-[11px] text-biotech-neon border border-biotech-neon/30 hover:border-biotech-neon hover:bg-biotech-neon/10 px-3 py-1.5 rounded-full transition-all font-mono"
-                >
-                  Como está {selectedLot} agora?
-                </button>
-                <button 
-                  onClick={() => handleSendMessage(`Quais as condições do sangue agora?`)}
-                  className="whitespace-nowrap text-[11px] text-biotech-crimson border border-biotech-crimson/30 hover:border-biotech-crimson hover:bg-biotech-crimson/10 px-3 py-1.5 rounded-full transition-all font-mono"
-                >
-                  Condições do sangue agora
-                </button>
-                <button 
-                  onClick={() => handleSendMessage(`Como funciona a Camada de Processamento?`)}
-                  className="whitespace-nowrap text-[11px] text-cyan-400 border border-cyan-400/30 hover:border-cyan-400 hover:bg-cyan-400/10 px-3 py-1.5 rounded-full transition-all font-mono"
-                >
-                  Limpeza de ruído e pH
-                </button>
-                <button 
-                  onClick={() => handleSendMessage(`O que é sangue artificial?`)}
-                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 hover:border-slate-500 hover:bg-slate-800 px-3 py-1.5 rounded-full transition-all font-mono"
-                >
-                  O que é sangue artificial?
-                </button>
-              </div>
+<div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto">
+  <button
+    onClick={() => handleSendMessage('Qual o status atual do lote?')}
+    className="whitespace-nowrap text-[11px] text-biotech-neon border border-biotech-neon px-3 py-1.5 rounded-md hover:bg-biotech-neon/10 transition-colors"
+  >
+    Status atual
+  </button>
+
+  <button
+    onClick={() => handleSendMessage('O que é sangue artificial?')}
+    className="whitespace-nowrap text-[11px] text-biotech-crimson border border-biotech-crimson px-3 py-1.5 rounded-md hover:bg-biotech-crimson/10 transition-colors"
+  >
+    O que é sangue artificial?
+  </button>
+
+  <button
+    onClick={() => handleSendMessage('Por que o lote está em risco?')}
+    className="whitespace-nowrap text-[11px] text-cyan-400 border border-cyan-400 px-3 py-1.5 rounded-md hover:bg-cyan-400/10 transition-colors"
+  >
+    Por que o lote está em risco?
+  </button>
+
+  <button
+    onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
+    className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-400 px-3 py-1.5 rounded-md hover:bg-slate-400/10 transition-colors"
+  >
+    Limpeza de Ruído & pH
+  </button>
+</div>
 
               {/* Caixa de Entrada de Texto */}
               <form 
