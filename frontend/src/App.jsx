@@ -47,43 +47,117 @@ const Sparkline = ({ data, color }) => {
   );
 };
 
+// Objeto com os Limites e Protocolos Clínicos Médicos
+const PROTOCOLOS_CLINICOS = {
+  "Simulação Fisiológica Humana": {
+    o2: { normal: [95, 100], seguro: [93, 100], critico: 90 },
+    temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
+    ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.35, criticoMax: 7.45 },
+    viscosidade: { normal: [3.0, 4.5], seguro: [3.0, 5.0], criticoMin: 2.5, criticoMax: 5.5 },
+    hematocrito: { normal: [38, 50], seguro: [36, 52], criticoMin: 30, criticoMax: 55 }
+  },
+  "Preservação de Órgãos para Transplante": {
+    o2: { normal: [98, 100], seguro: [95, 100], critico: 95 },
+    temp: { normal: [4.0, 10.0], seguro: [4.0, 37.5], criticoMin: 4.0, criticoMax: 37.5 },
+    ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.35, criticoMax: 7.45 },
+    viscosidade: { normal: [2.5, 3.5], seguro: [2.0, 4.0], criticoMin: 2.0, criticoMax: 4.5 },
+    hematocrito: { normal: [30, 40], seguro: [28, 42], criticoMin: 25, criticoMax: 45 }
+  },
+  "Transfusão de Emergência (Uso Universal)": {
+    o2: { normal: [95, 100], seguro: [92, 100], critico: 90 },
+    temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
+    ph: { normal: [7.40, 7.40], seguro: [7.35, 7.45], criticoMin: 7.35, criticoMax: 7.45 },
+    viscosidade: { normal: [3.0, 4.5], seguro: [3.0, 5.0], criticoMin: 2.5, criticoMax: 5.5 },
+    hematocrito: { normal: [35, 45], seguro: [32, 48], criticoMin: 30, criticoMax: 50 }
+  },
+  "Teste de Segurança e Toxicidade Celular": {
+    o2: { normal: [95, 100], seguro: [93, 100], critico: 90 },
+    temp: { normal: [37.0, 37.0], seguro: [36.5, 37.5], criticoMin: 35.0, criticoMax: 38.0 },
+    ph: { normal: [7.38, 7.42], seguro: [7.35, 7.45], criticoMin: 7.35, criticoMax: 7.45 },
+    viscosidade: { normal: [3.0, 4.0], seguro: [2.8, 4.2], criticoMin: 2.5, criticoMax: 5.0 },
+    hematocrito: { normal: [40, 40], seguro: [38, 42], criticoMin: 35, criticoMax: 45 }
+  }
+};
+
 export default function App() {
   // Estados da Aplicação
   const [selectedLot, setSelectedLot] = useState("SA-025");
-  const [lots, setLots] = useState([]);
+  const [lots, setLots] = useState([
+    {
+      id: "SA-025",
+      name: "Lote Teste Primário",
+      createdAt: new Date().toLocaleString('pt-BR'),
+      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
+      destino: "Simulação Fisiológica Humana",
+      intervaloLeitura: "5s",
+      protocolo: PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"]
+    }
+  ]);
   const [history, setHistory] = useState([]);
   const [audits, setAudits] = useState([]);
   const [messages, setMessages] = useState([
-    { 
-      role: 'assistant', 
-      content: 'Olá! Sou o assistente clínico EcoSanguis. Pergunte-me sobre o estado de qualquer lote (Ex: "Como está o lote SA-025 agora?" ou "Por que o Lote SA-024 está em risco?") ou escolha uma das perguntas rápidas abaixo!',
+    {
+      role: 'assistant',
+      content: 'Olá! Sou o assistente clínico EcoSanguis. Pergunte-me sobre o estado de qualquer lote ou escolha uma das perguntas rápidas abaixo!',
       explicabilidade: null
     }
   ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard ou tecnico
-  const [copiedScript, setCopiedScript] = useState(false);
-  const [packetCount, setPacketCount] = useState(128);
 
-  const messagesEndRef = useRef(null);
+  // Função para criar novos lotes com responsável técnico e protocolo
+  const handleAddLot = (customName, destinoSelecionado = "Simulação Fisiológica Humana") => {
+    const nextNumber = lots.length + 25;
+    const newLotId = `SA-${String(nextNumber).padStart(3, '0')}`;
+    const now = new Date();
+    
+    const newLot = {
+      id: newLotId,
+      name: customName || `Lote ${newLotId}`,
+      createdAt: now.toLocaleString('pt-BR'),
+      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
+      destino: destinoSelecionado,
+      intervaloLeitura: "5s",
+      protocolo: PROTOCOLOS_CLINICOS[destinoSelecionado]
+    };
 
-  // Inicialização e Polling
-  useEffect(() => {
-    fetchLots();
-    fetchHistory();
-    fetchAudits();
-    
-    // Polling a cada 2 segundos para atualizar dados do Arduino
-    const interval = setInterval(() => {
-      fetchLots();
-      fetchHistory();
-      fetchAudits();
-      setPacketCount(prev => prev + Math.floor(Math.random() * 2));
-    }, 2000);
-    
-    return () => clearInterval(interval);
-  }, [selectedLot]);
+    setLots(prev => [...prev, newLot]);
+    setSelectedLot(newLot.id);
+  };
+
+  // Função para apagar/deletar lote
+  const handleDeleteLot = (lotIdToDelete) => {
+    setLots(prev => prev.filter(lot => lot.id !== lotIdToDelete));
+    if (selectedLot === lotIdToDelete && lots.length > 1) {
+      setSelectedLot(lots[0].id);
+    }
+  };
+// Envio de pergunta
+  const handleSendMessage = async (text) => {
+    if (!text.trim()) return;
+
+    if (text.toLowerCase().includes("o que é sangue artificial")) {
+      const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
+
+Diferente do sangue doado tradicional, o sangue artificial:
+• Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata.
+• Dura muito mais tempo: Pode ser armazenado por meses sem estragar.
+• É livre de contaminações: Não transmite vírus ou bactérias.
+
+Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Perfluorocarbonos (PFCs), que são líquidos sintéticos capazes de carregar gases.
+
+Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
+
+      setMessages(prev => [
+        ...prev, 
+        { role: 'user', content: text },
+        { role: 'assistant', content: respostaPronta }
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
+    setInputValue('');
+  };
 
   useEffect(() => {
     // Scroll para a última mensagem do chat
@@ -129,13 +203,13 @@ export default function App() {
     }
   };
 
-  // Envio de pergunta
-const handleSendMessage = async (text) => {
-  if (!text.trim()) return;
+  // Envio de pergunta e integração com backend
+  const handleSendMessage = async (text) => {
+    if (!text.trim()) return;
 
-  // Resposta fixa: O que é sangue artificial?
-  if (text.toLowerCase().includes("o que é sangue artificial")) {
-    const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
+    // Resposta fixa: O que é sangue artificial
+    if (text.toLowerCase().includes("o que é sangue artificial")) {
+      const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
 
 Diferente do sangue doado tradicional, o sangue artificial:
 • Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata.
@@ -146,27 +220,26 @@ Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Per
 
 Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
 
-    setMessages(prev => [
-      ...prev, 
-      { role: 'user', content: text },
-      { role: 'assistant', content: respostaPronta }
-    ]);
-    return;
-  }
-    return;
-  }
+      setMessages(prev => [
+        ...prev, 
+        { role: 'user', content: text },
+        { role: 'assistant', content: respostaPronta }
+      ]);
+      setInputValue('');
+      return;
+    }
 
-  // Resposta fixa: Condições do sangue / Status atual
-  if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
-    setMessages(prev => [...prev, 
-      { role: 'user', content: text },
-      { role: 'assistant', content: 'Análise em tempo real do lote: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.' }
-    ]);
-    return;
-  }
+    // Resposta fixa: Condições do sangue / Status atual
+    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
+      setMessages(prev => [...prev, 
+        { role: 'user', content: text },
+        { role: 'assistant', content: 'Análise em tempo real do lote: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.' }
+      ]);
+      setInputValue('');
+      return;
+    }
 
-  // O resto do seu código antigo (envio para o servidor) continua aqui para baixo...
-    // Adiciona pergunta do usuário
+    // Adiciona pergunta do usuário e consulta servidor
     const userMsg = { role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
@@ -181,7 +254,6 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       
       if (res.ok) {
         const data = await res.json();
-        // Simular um leve tempo de processamento para mostrar a onda senoidal biomédica
         setTimeout(() => {
           setMessages(prev => [...prev, { 
             role: 'assistant', 
@@ -190,7 +262,6 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           }]);
           setIsTyping(false);
           
-          // Se na resposta citar um lote, muda o lote selecionado no painel lateral
           const match = text.toUpperCase().match(/SA-\d{3}/);
           if (match) {
             setSelectedLot(match[0]);
@@ -208,7 +279,6 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       }]);
     }
   };
-
   // Cadastra novo lote de simulação
   const handleCreateLot = async () => {
     const nextNum = lots.length + 23; // SA-023, 24, 25...
@@ -389,24 +459,37 @@ while True:
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {lots.map(l => (
-                  <button
-                    key={l.id}
-                    onClick={() => setSelectedLot(l.id)}
-                    className={`p-2.5 rounded-lg border text-center font-mono transition-all duration-200 ${
-                      selectedLot === l.id 
-                        ? 'bg-slate-800 border-biotech-neon text-biotech-neon font-bold glow-neon-border' 
-                        : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="block text-xs">{l.id}</span>
-                    <span className={`text-[8px] px-1 rounded block mt-1 ${
-                      l.status === 'CRÍTICO' ? 'bg-red-500/20 text-red-400' :
-                      l.status === 'ALERTA' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'
-                    }`}>{l.status}</span>
-                  </button>
-                ))}
-              </div>
+            <div key={l.id} className="relative group">
+              <button
+                onClick={() => setSelectedLot(l.id)}
+                className={`w-full p-2.5 rounded-lg border text-center font-mono transition-all ${
+                  selectedLot === l.id
+                    ? 'bg-slate-800 border-biotech-neon text-biotech-neon font-bold shadow-lg shadow-biotech-neon/10'
+                    : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <span className="block text-xs">{l.id}</span>
+                <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote de Sangue'}</span>
+                <span className="block text-[8px] text-cyan-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
+              </button>
+
+              {/* Botão Lixinho 🗑️ (Aparece ao passar o mouse ou fixo em vermelho) */}
+              {lots.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteLot(l.id);
+                  }}
+                  title="Excluir este lote"
+                  className="absolute -top-1.5 -right-1.5 bg-red-950/80 text-red-400 hover:bg-red-600 hover:text-white border border-red-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20"
+                >
+                  ✕
+                </button>
+              )}
             </div>
+          ))}
+        </div>
+        </div> {/*
 
             {/* 5 Variáveis Fisiológicas */}
             <div className="flex-1 flex flex-col gap-3 justify-between">
@@ -516,8 +599,7 @@ while True:
               </div>
 
             </div>
-
-            {/* Status do Hardware Arduino */}
+{/* Status do Hardware Arduino */}
             <div className="glass-panel rounded-xl p-3 flex items-center justify-between bg-slate-900/40">
               <div className="flex items-center gap-2">
                 <Cpu className="w-4 h-4 text-biotech-neon" />
@@ -530,7 +612,6 @@ while True:
                 DRV: CH340G
               </span>
             </div>
-
           </section>
 
           {/* COLUNA CENTRAL/DIREITA (CHATBOT PRINCIPAL - 2/3) */}
@@ -566,9 +647,8 @@ while True:
                   ONLINE
                 </div>
               </div>
-
-              {/* Corpo de Mensagens */}
-              <div className="z-10 flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+{/* Corpo de Mensagens */}
+              <div className="z-10 flex-1 h-[420px] max-h-[420px] overflow-y-auto p-4 flex flex-col gap-4">
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
@@ -606,7 +686,7 @@ while True:
                         
                         {/* Grid dos Sensores e Barras de Progresso */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
-                          
+
                           {/* 1. Oxigenação */}
                           <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
                             <div className="flex justify-between text-[10px] font-mono mb-1">
@@ -704,7 +784,6 @@ while True:
                 
                 <div ref={messagesEndRef} />
               </div>
-
               {/* Botões de Ações Rápidas (Pills) */}
 <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto">
   <button
@@ -822,7 +901,7 @@ while True:
 
           </section>
 
-          {/* COLUNA DIREITA: AUDITORIA DE DADOS DA CAMADA 1 */}
+         {/* COLUNA DIREITA: AUDITORIA DE DADOS DA CAMADA 1 */}
           <section className="flex flex-col gap-4">
             
             {/* Bloco explicativo da Arquitetura */}
@@ -852,29 +931,29 @@ while True:
             </div>
 
             {/* Trilha de Auditoria (Logs da Camada de Dados em Tempo Real) */}
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1 overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5 text-biotech-crimson animate-pulse" />
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2 uppercase">
+                  <Database className="w-3.5 h-3.5 text-biotech-crimson" />
                   CAMADA 1: LOGS DE AUDITORIA E RASTREABILIDADE
                 </h2>
                 <RefreshCw className="w-3 h-3 text-slate-400 animate-spin" />
               </div>
-              
-              <div className="flex-1 overflow-y-auto flex flex-col gap-2 font-mono text-[10px]">
+
+              <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-60">
                 {audits.map((a, index) => (
-                  <div 
+                  <div
                     key={a.id || index}
-                    className="p-2.5 rounded bg-slate-900/50 border border-slate-900 flex flex-col gap-1 hover:bg-slate-900 transition-all"
+                    className="p-2.5 rounded bg-slate-900/50 border border-slate-800/80 text-xs flex flex-col gap-1"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 font-bold">[{a.modulo.toUpperCase()}] {a.acao}</span>
+                      <span className="text-slate-400 font-bold">[{a.action}]</span>
                       <span className="text-slate-500">{new Date(a.timestamp).toLocaleTimeString()}</span>
                     </div>
-                    <p className="text-slate-300 text-xs font-sans leading-relaxed">{a.descricao}</p>
-                    <div className="flex items-center gap-1 text-[9px] text-slate-500 mt-0.5">
-                      <span>Operador:</span>
-                      <span className="text-slate-400 font-bold">{a.operador}</span>
+                    <p className="text-slate-300 text-xs font-sans">{a.details}</p>
+                    <div className="flex items-center gap-1 text-[9px]">
+                      <span>Operador: </span>
+                      <span className="text-slate-400 font-bold">{a.operator || "SISTEMA"}</span>
                     </div>
                   </div>
                 ))}
@@ -882,16 +961,18 @@ while True:
             </div>
 
           </section>
-
         </main>
       )}
 
       {/* Footer / Direitos */}
-      <footer className="z-10 py-3 border-t border-slate-900 bg-slate-950 px-6 text-center">
-        <p className="text-[10px] text-slate-500 font-mono tracking-wider">
-          CONCEPÇÃO CIENTÍFICA: ARQUITETURA INTELIGENTE PARA UM SISTEMA DE SANGUE ARTIFICIAL • FEIRA CULTURAL 2026
+      <footer className="z-10 py-3 border-t border-slate-900 bg-slate-950/50">
+        <p className="text-[10px] text-slate-500 font-mono tracking-wider text-center">
+          CONCEPÇÃO CIENTÍFICA: ARQUITETURA INTELIGENTE PARA UM SISTEMA DE SANGUE ARTIFICIAL
         </p>
       </footer>
     </div>
   );
 }
+
+export default App;
+export default App;
