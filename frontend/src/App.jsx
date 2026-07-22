@@ -787,6 +787,7 @@ while True:
               {/* Botões de Ações Rápidas (Pills) */}
 <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto">
   <button
+  type="button"
     onClick={() => handleSendMessage('Qual o status atual do lote?')}
     className="whitespace-nowrap text-[11px] text-biotech-neon border border-biotech-neon px-3 py-1.5 rounded-md hover:bg-biotech-neon/10 transition-colors"
   >
@@ -794,6 +795,7 @@ while True:
   </button>
 
   <button
+  type= "button"
     onClick={() => handleSendMessage('O que é sangue artificial?')}
     className="whitespace-nowrap text-[11px] text-biotech-crimson border border-biotech-crimson px-3 py-1.5 rounded-md hover:bg-biotech-crimson/10 transition-colors"
   >
@@ -801,6 +803,7 @@ while True:
   </button>
 
   <button
+  type="button"
     onClick={() => handleSendMessage('Por que o lote está em risco?')}
     className="whitespace-nowrap text-[11px] text-cyan-400 border border-cyan-400 px-3 py-1.5 rounded-md hover:bg-cyan-400/10 transition-colors"
   >
@@ -808,6 +811,7 @@ while True:
   </button>
 
   <button
+    type="button"
     onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
     className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-400 px-3 py-1.5 rounded-md hover:bg-slate-400/10 transition-colors"
   >
