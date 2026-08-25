@@ -179,41 +179,97 @@ export default function App() {
   const handleSendMessage = async (text) => {
     if (!text.trim()) return;
 
-    // Resposta fixa: O que é sangue artificial
-    if (text.toLowerCase().includes("o que é sangue artificial")) {
+    // Normaliza o texto removendo acentos e convertendo para minúsculas
+    const normalizedText = text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    // 1. Resposta para "O que é sangue artificial?"
+    if (
+      normalizedText.includes('sangue artificial') ||
+      normalizedText.includes('o que e sangue') ||
+      normalizedText.includes('que e sangue')
+    ) {
       const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
 
 Diferente do sangue doado tradicional, o sangue artificial:
-• Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata.
-• Dura muito mais tempo: Pode ser armazenado por meses sem estragar.
-• É livre de contaminações: Não transmite vírus ou bactérias.
+• Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata (compatibilidade universal).
+• Validade estendida: Pode ser armazenado por meses sem estragar ou se degradar.
+• Livre de patógenos: 100% isento de contaminação por vírus ou bactérias.
 
-Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Perfluorocarbonos (PFCs), que são líquidos sintéticos capazes de carregar gases.
+Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Perfluorocarbonos (PFCs), que são líquidos sintéticos capazes de transportar gases.
 
-Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
+Aqui no FLOWTIFICIAL, nosso papel é monitorar em tempo real a oxigenação, temperatura, pH, viscosidade e hematócrito desse sangue para garantir que ele esteja perfeito e seguro para uso!`;
 
-      setMessages(prev => [
-        ...prev, 
+      setMessages((prev) => [
+        ...prev,
         { role: 'user', content: text },
-        { role: 'assistant', content: respostaPronta }
+        { role: 'assistant', content: respostaPronta },
       ]);
       setInputValue('');
       return;
     }
 
-    // Resposta fixa: Condições do sangue / Status atual
-    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
-      setMessages(prev => [...prev, 
+    // 2. Resposta para "Status atual" ou "Condições do lote"
+    if (
+      normalizedText.includes('status') ||
+      normalizedText.includes('condicoes') ||
+      normalizedText.includes('como esta')
+    ) {
+      const respostaStatus = `Status Operacional do Lote ${selectedLot}:
+• Oxigenação: ${currentReading?.oxigenacao_pct ?? 95}% (Ideal >= 95%)
+• Temperatura: ${currentReading?.temperatura_c ?? 36.5}°C (Fisiológico)
+• pH: ${currentReading?.ph ?? 7.4} (Estável)
+• Viscosidade: ${currentReading?.viscosidade_cp ?? 3.8} cP
+• Veredito: ${currentReading?.status ?? 'ESTÁVEL'} (${currentReading?.alerta_mensagem ?? 'Sem desvios detectados'})`;
+
+      setMessages((prev) => [
+        ...prev,
         { role: 'user', content: text },
-        { role: 'assistant', content: 'Análise em tempo real do lote: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.' }
+        { role: 'assistant', content: respostaStatus },
       ]);
       setInputValue('');
       return;
     }
 
-    // Adiciona pergunta do usuário e consulta servidor
+    // 3. Resposta para "Risco do lote"
+    if (normalizedText.includes('risco')) {
+      const respostaRisco = `Análise de Risco do Lote (${selectedLot}):
+• Se qualquer sensor registrar oxigenação < 90%, pH fora da faixa [7.35 - 7.45] ou temperatura fora do limite, a IA Explicável da Camada 3 infere risco de degradação.
+• Atualmente o sistema monitora e previne qualquer deterioração das hemoproteínas sintéticas antes de sua aplicação em ensaios.`;
+
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: text },
+        { role: 'assistant', content: respostaRisco },
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    // 4. Resposta para "Limpeza de ruído / Processamento"
+    if (
+      normalizedText.includes('ruido') ||
+      normalizedText.includes('processamento') ||
+      normalizedText.includes('camada')
+    ) {
+      const respostaProcessamento = `Camada 2 (Processamento & Normalização de Dados):
+• Os dados de telemetria recebidos via Arduino/API passam por algoritmos de filtragem para eliminar ruídos e interferências elétricas.
+• O sistema calcula variáveis secundárias em tempo real para normalizar a escala antes da inferência pela IA da Camada 3.`;
+
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: text },
+        { role: 'assistant', content: respostaProcessamento },
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    // Tenta consultar servidor backend FastAPI e usa fallback se estiver offline
     const userMsg = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInputValue('');
     setIsTyping(true);
 
@@ -221,34 +277,36 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pergunta: text })
+        body: JSON.stringify({ pergunta: text }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setTimeout(() => {
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: data.resposta, 
-            explicabilidade: data.explicabilidade 
-          }]);
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: data.resposta,
+              explicabilidade: data.explicabilidade,
+            },
+          ]);
           setIsTyping(false);
-          
-          const match = text.toUpperCase().match(/SA-\d{3}/);
-          if (match) {
-            setSelectedLot(match[0]);
-          }
-        }, 1200);
+        }, 1000);
       } else {
-        setIsTyping(false);
+        throw new Error('Backend indisponível');
       }
     } catch (err) {
-      console.log("Erro no chat:", err);
+      console.log('Erro no chat:', err);
       setIsTyping(false);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico. Verifique se o servidor backend FastAPI está rodando na porta 8000.'
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            'O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para transportar oxigênio e nutrientes. O FLOWTIFICIAL realiza o monitoramento contínuo em tempo real da oxigenação, temperatura, pH e viscosidade.',
+        },
+      ]);
     }
   };
   // Cadastra novo lote de simulação
