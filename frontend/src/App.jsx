@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ChatBox } from './components/ChatBox';
 import { 
   Activity, 
   Database, 
@@ -129,34 +130,6 @@ export default function App() {
     if (selectedLot === lotIdToDelete && lots.length > 1) {
       setSelectedLot(lots[0].id);
     }
-  };
-// Envio de pergunta
-  const handleSendMessage = async (text) => {
-    if (!text.trim()) return;
-
-    if (text.toLowerCase().includes("o que é sangue artificial")) {
-      const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
-
-Diferente do sangue doado tradicional, o sangue artificial:
-• Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata.
-• Dura muito mais tempo: Pode ser armazenado por meses sem estragar.
-• É livre de contaminações: Não transmite vírus ou bactérias.
-
-Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Perfluorocarbonos (PFCs), que são líquidos sintéticos capazes de carregar gases.
-
-Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
-
-      setMessages(prev => [
-        ...prev, 
-        { role: 'user', content: text },
-        { role: 'assistant', content: respostaPronta }
-      ]);
-      setInputValue('');
-      return;
-    }
-
-    setMessages(prev => [...prev, { role: 'user', content: text }]);
-    setInputValue('');
   };
 
   useEffect(() => {
@@ -630,8 +603,8 @@ while True:
               </div>
             </div>
 
-            {/* Janela de Chat Conversacional */}
-            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative">
+            {/* Janela de Chat Conversacional com tamanho ajustável e rolagem otimizada */}
+            <div className="flex-1 min-h-[500px] h-[600px] glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl">
               
               {/* Detalhe estético: grade */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
@@ -647,8 +620,8 @@ while True:
                   ONLINE
                 </div>
               </div>
-{/* Corpo de Mensagens */}
-              <div className="z-10 flex-1 h-[420px] max-h-[420px] overflow-y-auto p-4 flex flex-col gap-4">
+{/* Corpo de Mensagens com rolagem automática (overflow-y-auto) */}
+              <div className="z-10 flex-1 overflow-y-auto scroll-smooth p-4 flex flex-col gap-4">
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
@@ -977,6 +950,4 @@ while True:
     </div>
   );
 }
-
-export default App;
-export default App;
+
