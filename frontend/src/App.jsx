@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatBox } from './components/ChatBox';
 import { 
   Activity, 
   Database, 
@@ -604,7 +603,7 @@ while True:
             </div>
 
             {/* Janela de Chat Conversacional com tamanho ajustável e rolagem otimizada */}
-            <div className="flex-1 min-h-[500px] h-[600px] glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl">
+            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl">
               
               {/* Detalhe estético: grade */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
@@ -621,7 +620,7 @@ while True:
                 </div>
               </div>
 {/* Corpo de Mensagens com rolagem automática (overflow-y-auto) */}
-              <div className="z-10 flex-1 overflow-y-auto scroll-smooth p-4 flex flex-col gap-4">
+              <div className="z-10 flex-1 h-[380px] max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-4">
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
