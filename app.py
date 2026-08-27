@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import time
+from datetime import datetime
 
 # Configuração da página da feira cultural
 st.set_page_config(
@@ -19,6 +20,17 @@ st.markdown("""
     .chat-explicacao { background-color: #eef7f9; padding: 10px; border-radius: 5px; border: 1px solid #bbeeeb; margin-top: 5px; }
 </style>
 """, unsafe_allowed_html=True)
+
+# Lista oficial de finalidades clínicas
+OPCOES_FINALIDADE = [
+    "Atendimento Pré-Hospitalar de Emergência (Trauma e Hemorragia Massiva)",
+    "Preservação Avançada de Órgãos para Transplante",
+    "Resgate e Cirurgia em Altas Altitudes",
+    "Vítimas de Envenenamento por Monóxido de Carbono",
+    "Tratamento de Queimaduras Graves e Choque Séptico",
+    "Doação de sangue",
+    "Manejo Clínico de Pacientes com Raros Fenótipos Sanguíneos"
+]
 
 # ==========================================
 # CAMADA 1 & 2: DADOS, PIPELINE E PROCESSAMENTO (Limpeza e Resiliência)
@@ -49,18 +61,69 @@ def processar_e_normalizar_oxigenacao(texto_bruto):
 # Inicializando a Camada de Dados na memória do site (Session State)
 if "banco_de_dados" not in st.session_state:
     st.session_state.banco_de_dados = pd.DataFrame([
-        {"Lote": "SA-023", "Oxigenacao_Bruta": "95%", "Oxigenacao_Limpa": 0.95, "Temperatura_C": 36.5, "Status": "✅ ESTÁVEL"},
-        {"Lote": "SA-024", "Oxigenacao_Bruta": "89 pct", "Oxigenacao_Limpa": 0.89, "Temperatura_C": 38.5, "Status": "🚨 CRÍTICO"}
+        {
+            "Lote": "SA-023",
+            "Nome_Lote": "Lote Alfa Trauma",
+            "Data_Criacao": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "Finalidade": OPCOES_FINALIDADE[0],
+            "Oxigenacao_Bruta": "95%",
+            "Oxigenacao_Limpa": 0.95,
+            "Temperatura_C": 36.5,
+            "Status": "✅ ESTÁVEL"
+        },
+        {
+            "Lote": "SA-024",
+            "Nome_Lote": "Lote Beta Transplante",
+            "Data_Criacao": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "Finalidade": OPCOES_FINALIDADE[1],
+            "Oxigenacao_Bruta": "89 pct",
+            "Oxigenacao_Limpa": 0.89,
+            "Temperatura_C": 38.5,
+            "Status": "🚨 CRÍTICO"
+        }
     ])
 
-# ==========================================
-# PAINEL LATERAL: ENTRADA PRÁTICA (SIMULAÇÃO DE LIQUIDOS E SENSORES)
-# ==========================================
-st.sidebar.markdown("# 🧪 Flowtificial: Sensores & Líquidos")
-st.sidebar.write("Use esta área para simular a leitura do sangue artificial que estará no seu estande.")
+if "contador_lotes" not in st.session_state:
+    st.session_state.contador_lotes = 25
 
+# ==========================================
+# PAINEL LATERAL: CRIAÇÃO DE NOVO LOTE E LEITURA DE SENSORES
+# ==========================================
+st.sidebar.markdown("# 🧪 Flowtificial: Gestão de Lotes")
+
+with st.sidebar.expander("➕ **Criar Novo Lote de Sangue Artificial**", expanded=True):
+    codigo_auto = f"SA-{st.session_state.contador_lotes:03d}"
+    data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    
+    st.info(f"⚡ **Código do Lote (Gerado Automático):** `{codigo_auto}`")
+    st.info(f"🕒 **Data/Hora da Criação (Sistema):** `{data_hora_atual}`")
+    
+    nome_lote_input = st.text_input("Nome do Lote:", value=f"Lote {codigo_auto}")
+    finalidade_input = st.selectbox("Finalidade Clínica:", options=OPCOES_FINALIDADE)
+    
+    if st.button("➕ Confirmar Criação de Novo Lote"):
+        novo_lote_row = pd.DataFrame([{
+            "Lote": codigo_auto,
+            "Nome_Lote": nome_lote_input.strip(),
+            "Data_Criacao": data_hora_atual,
+            "Finalidade": finalidade_input,
+            "Oxigenacao_Bruta": "95%",
+            "Oxigenacao_Limpa": 0.95,
+            "Temperatura_C": 36.6,
+            "Status": "✅ ESTÁVEL"
+        }])
+        st.session_state.banco_de_dados = pd.concat([st.session_state.banco_de_dados, novo_lote_row], ignore_index=True)
+        st.session_state.contador_lotes += 1
+        st.success(f"✅ Lote '{nome_lote_input}' ({codigo_auto}) criado com sucesso!")
+        st.rerun()
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📡 Simulação de Sensores & Leitura")
+
+# Seleção do lote ativo para enviar leituras
+lotes_disponiveis = list(st.session_state.banco_de_dados["Lote"].unique())
 with st.sidebar.form("formulario_sensores"):
-    id_lote = st.text_input("Etiqueta/ID do Lote de Líquido:", "SA-025")
+    id_lote_selecionado = st.selectbox("Selecione o Lote de Líquido:", options=lotes_disponiveis if lotes_disponiveis else ["SA-025"])
     ox_bruta = st.text_input("Oxigenação lida (Teste erros de digitação):", "92pco")
     temp_lida = st.number_input("Temperatura (°C):", min_value=15.0, max_value=50.0, value=36.6, step=0.1)
     
@@ -71,24 +134,30 @@ if botao_enviar:
     ox_normalizada = processar_e_normalizar_oxigenacao(ox_bruta)
     
     if ox_normalizada is not None:
-        # Definindo alertas automáticos com base nas regras científicas
         if temp_lida > 38.0 or ox_normalizada < 0.90:
             status_alerta = "🚨 CRÍTICO"
         else:
             status_alerta = "✅ ESTÁVEL"
             
-        # Criando o novo registro estruturado
+        # Obter nome e finalidade do lote selecionado
+        lote_existente = st.session_state.banco_de_dados[st.session_state.banco_de_dados["Lote"] == id_lote_selecionado]
+        nome_lote_atual = lote_existente.iloc[0]["Nome_Lote"] if not lote_existente.empty and "Nome_Lote" in lote_existente.columns else f"Lote {id_lote_selecionado}"
+        finalidade_atual = lote_existente.iloc[0]["Finalidade"] if not lote_existente.empty and "Finalidade" in lote_existente.columns else OPCOES_FINALIDADE[0]
+        data_criacao_atual = lote_existente.iloc[0]["Data_Criacao"] if not lote_existente.empty and "Data_Criacao" in lote_existente.columns else datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
         novo_registro = pd.DataFrame([{
-            "Lote": id_lote.upper().strip(),
+            "Lote": id_lote_selecionado,
+            "Nome_Lote": nome_lote_atual,
+            "Data_Criacao": data_criacao_atual,
+            "Finalidade": finalidade_atual,
             "Oxigenacao_Bruta": ox_bruta,
             "Oxigenacao_Limpa": ox_normalizada,
             "Temperatura_C": temp_lida,
             "Status": status_alerta
         }])
         
-        # Salvando na Camada de Dados
         st.session_state.banco_de_dados = pd.concat([st.session_state.banco_de_dados, novo_registro], ignore_index=True)
-        st.sidebar.success(f"Lote {id_lote} salvo com Sucesso e Auditado!")
+        st.sidebar.success(f"Leitura do Lote {id_lote_selecionado} salva com Sucesso!")
     else:
         st.sidebar.error("❌ Erro Crítico de Processamento: O valor digitado para Oxigenação é incompreensível. Tente usar números ou '%'.")
 

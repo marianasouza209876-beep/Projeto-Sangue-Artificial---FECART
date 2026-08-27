@@ -42,8 +42,13 @@ class SensorDataInput(BaseModel):
     temperatura: str
     vazao: str
 
+import datetime
+
 class LoteCreate(BaseModel):
     id: str
+    nome: Optional[str] = None
+    data_criacao: Optional[str] = None
+    finalidade: Optional[str] = None
     composicao: Optional[str] = "Composto de Sangue Artificial Customizado"
     status_inicial: Optional[str] = "ESTÁVEL"
 
@@ -143,7 +148,12 @@ def get_lots(db: Session = Depends(get_db)):
         status_atual = ultima_leitura.status if ultima_leitura else l.status_inicial
         resultado.append({
             "id": l.id,
-            "data_criacao": l.data_criacao,
+            "nome": l.nome or f"Lote {l.id}",
+            "name": l.nome or f"Lote {l.id}",
+            "data_criacao": l.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if l.data_criacao else "",
+            "createdAt": l.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if l.data_criacao else "",
+            "finalidade": l.finalidade or "Atendimento Pré-Hospitalar de Emergência (Trauma e Hemorragia Massiva)",
+            "destino": l.finalidade or "Atendimento Pré-Hospitalar de Emergência (Trauma e Hemorragia Massiva)",
             "composicao": l.composicao,
             "status": status_atual
         })
@@ -156,8 +166,18 @@ def create_lot(lote_in: LoteCreate, db: Session = Depends(get_db)):
     if existente:
         raise HTTPException(status_code=400, detail="Lote já cadastrado.")
     
+    dt = datetime.datetime.now()
+    if lote_in.data_criacao:
+        try:
+            dt = datetime.datetime.fromisoformat(lote_in.data_criacao.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
     novo_lote = Lote(
         id=lote_id_clean,
+        nome=lote_in.nome or f"Lote {lote_id_clean}",
+        data_criacao=dt,
+        finalidade=lote_in.finalidade or "Atendimento Pré-Hospitalar de Emergência (Trauma e Hemorragia Massiva)",
         composicao=lote_in.composicao,
         status_inicial=lote_in.status_inicial
     )
@@ -167,12 +187,24 @@ def create_lot(lote_in: LoteCreate, db: Session = Depends(get_db)):
     db.add(TrilhaAuditoria(
         modulo="Dados",
         acao="Criação de Lote",
-        descricao=f"Novo lote {lote_id_clean} cadastrado manualmente via painel.",
+        descricao=f"Novo lote {lote_id_clean} ({novo_lote.nome}) cadastrado. Finalidade: {novo_lote.finalidade}.",
         operador="Pesquisador Biomédico"
     ))
     db.commit()
     
-    return {"success": True, "lote": {"id": novo_lote.id, "composicao": novo_lote.composicao}}
+    return {
+        "success": True, 
+        "lote": {
+            "id": novo_lote.id, 
+            "nome": novo_lote.nome,
+            "name": novo_lote.nome,
+            "data_criacao": novo_lote.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if novo_lote.data_criacao else "",
+            "createdAt": novo_lote.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if novo_lote.data_criacao else "",
+            "finalidade": novo_lote.finalidade,
+            "destino": novo_lote.finalidade,
+            "composicao": novo_lote.composicao
+        }
+    }
 
 @app.get("/api/history/{lote_id}")
 def get_lot_history(lote_id: str, limit: int = 20, db: Session = Depends(get_db)):

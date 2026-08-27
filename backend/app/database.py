@@ -15,7 +15,9 @@ class Lote(Base):
     __tablename__ = "lotes"
 
     id = Column(String, primary_key=True, index=True) # Ex: SA-023
-    data_criacao = Column(DateTime, default=datetime.datetime.utcnow)
+    nome = Column(String, nullable=True) # Nome do lote
+    data_criacao = Column(DateTime, default=datetime.datetime.now)
+    finalidade = Column(String, nullable=True) # Finalidade clínica do lote
     status_inicial = Column(String, default="ESTÁVEL")
     composicao = Column(String, default="PFC (Perfluorocarbono) Premium")
     
@@ -65,9 +67,9 @@ def init_db():
     try:
         if db.query(Lote).count() == 0:
             # Criar Lotes Padrão
-            lote1 = Lote(id="SA-023", status_inicial="ESTÁVEL", composicao="Emulsão de Perfluorocarboneto 20% com Albumina")
-            lote2 = Lote(id="SA-024", status_inicial="CRÍTICO", composicao="Hemoglobina Polimerizada de Base Humana (HBOC)")
-            lote3 = Lote(id="SA-025", status_inicial="ESTÁVEL", composicao="Cápsulas Lipossomais de Hemoglobina (LEH)")
+            lote1 = Lote(id="SA-023", nome="Lote Alfa Trauma", finalidade="Atendimento Pré-Hospitalar de Emergência (Trauma e Hemorragia Massiva)", status_inicial="ESTÁVEL", composicao="Emulsão de Perfluorocarboneto 20% com Albumina")
+            lote2 = Lote(id="SA-024", nome="Lote Beta Transplante", finalidade="Preservação Avançada de Órgãos para Transplante", status_inicial="CRÍTICO", composicao="Hemoglobina Polimerizada de Base Humana (HBOC)")
+            lote3 = Lote(id="SA-025", nome="Lote Gama Altitude", finalidade="Resgate e Cirurgia em Altas Altitudes", status_inicial="ESTÁVEL", composicao="Cápsulas Lipossomais de Hemoglobina (LEH)")
             
             db.add_all([lote1, lote2, lote3])
             db.commit()
