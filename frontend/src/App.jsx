@@ -371,8 +371,9 @@ while True:
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col relative text-slate-100 select-none">
+    <div className="min-h-screen max-h-screen h-screen w-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans select-none">
       
+  
       {/* Detalhe de Malha de Circuitos no Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
       
