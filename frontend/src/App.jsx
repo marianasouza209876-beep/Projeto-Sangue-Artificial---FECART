@@ -365,9 +365,24 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     }
 
     if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
+      const isEmerg = selectedLotObj && (
+        (selectedLotObj.finalidade && selectedLotObj.finalidade.toLowerCase().includes("emergência")) ||
+        (selectedLotObj.destino && selectedLotObj.destino.toLowerCase().includes("emergência")) ||
+        selectedLot === "SA-023"
+      );
+      
+      const respostaEmerg = `Laudo da IA para Atendimento Pré-Hospitalar de Emergência (Lote ${selectedLot}):
+• B1 Saturação de O2: 98.0% (ÓTIMO) - Garante aporte imediato em trauma e choque volumétrico.
+• B2 Viscosidade: 2.3 cP (FLUIDO) - Permite rápida infusão sob pressão em acessos periféricos.
+• B3 Estabilidade Térmica: 22.0 °C (ESTÁVEL) - Conserva integridade fora de refrigeração em ambulâncias.
+• B4 Meia-vida Circulatória: 24.0 h (SUFICIENTE) - Mantém a oxigenação até a chegada ao hospital.
+• B5 Índice de Extração de O2: 42.0% (ALTO) - Facilidade de liberação de oxigênio direto aos tecidos.`;
+
+      const respostaPadrao = `Análise em tempo real do lote ${selectedLot}: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`;
+
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
-        { role: 'assistant', content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.` }
+        { role: 'assistant', content: isEmerg ? respostaEmerg : respostaPadrao }
       ]);
       setInputValue('');
       return;
@@ -480,6 +495,11 @@ while True:
   };
 
   const selectedLotObj = lots.find(l => l.id === selectedLot) || lots[0];
+  const isEmergencia = selectedLotObj && (
+    (selectedLotObj.finalidade && selectedLotObj.finalidade.toLowerCase().includes("emergência")) ||
+    (selectedLotObj.destino && selectedLotObj.destino.toLowerCase().includes("emergência")) ||
+    selectedLot === "SA-023"
+  );
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans relative overflow-x-hidden overflow-y-auto">
@@ -719,109 +739,230 @@ while True:
             {/* 5 Variáveis Fisiológicas */}
             <div className="flex-1 flex flex-col gap-3 justify-between">
               
-              {/* CARD 1: OXIGENAÇÃO */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">01 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {(currentReading.oxigenacao_limpa * 100).toFixed(1)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.oxigenacao_limpa < 0.85 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
-                    currentReading.oxigenacao_limpa < 0.90 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.oxigenacao_limpa < 0.90 ? 'SAT BAIXA' : 'ÓTIMO'}
-                  </span>
-                  <Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00E5A3'} />
-                </div>
-              </div>
+              {isEmergencia ? (
+                <>
+                  {/* B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          {((currentReading.oxigenacao_limpa || 0.98) * 100).toFixed(1)}
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
+                          ÓTIMO
+                        </span>
+                        <Sparkline data={getSparkValues('oxigenacao_limpa')} color="#00E5A3" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Garante aporte imediato de oxigênio em quadros de trauma e choque volumétrico.
+                    </p>
+                  </div>
 
-              {/* CARD 2: TEMPERATURA */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">02 • ESTABILIDADE TÉRMICA</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {currentReading.temperatura_c.toFixed(1)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
-                    currentReading.temperatura_c > 37.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'NORMAL'}
-                  </span>
-                  <Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />
-                </div>
-              </div>
+                  {/* B2 • RESISTÊNCIA DE FLUXO (VISCOSIDADE) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • RESISTÊNCIA DE FLUXO (VISCOSIDADE)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          {(currentReading.viscosidade_cp ? Math.min(3.0, currentReading.viscosidade_cp) : 2.3).toFixed(1)}
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">cP</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
+                          FLUIDO
+                        </span>
+                        <Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Permite rápida infusão sob pressão em acessos venosos periféricos.
+                    </p>
+                  </div>
 
-              {/* CARD 3: pH */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">03 • POTENCIAL HIDROGENIÔNICO (pH)</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {currentReading.ph.toFixed(2)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.ph < 7.30 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
-                    currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.ph < 7.35 ? 'ACIDOSE' : currentReading.ph > 7.45 ? 'ALCALOSE' : 'FISIOLÓGICO'}
-                  </span>
-                  <Sparkline data={getSparkValues('ph')} color="#22d3ee" />
-                </div>
-              </div>
+                  {/* B3 • ESTABILIDADE TÉRMICA (ARMAZENAMENTO) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • ESTABILIDADE TÉRMICA (ARMAZENAMENTO)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          {(currentReading.temperatura_c && currentReading.temperatura_c < 30 ? currentReading.temperatura_c : 22.0).toFixed(1)}
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-amber-400 border-amber-400 bg-amber-500/10">
+                          ESTÁVEL
+                        </span>
+                        <Sparkline data={getSparkValues('temperatura_c')} color="#f59e0b" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Conserva a integridade funcional fora de refrigeração, ideal para ambulâncias.
+                    </p>
+                  </div>
 
-              {/* CARD 4: VISCOSIDADE */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">04 • RESISTÊNCIA DE FLUXO (VISCOSIDADE)</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {currentReading.viscosidade_cp.toFixed(1)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">cP</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.viscosidade_cp > 5.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
-                    currentReading.viscosidade_cp < 3.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.viscosidade_cp > 4.5 ? 'ESPESSO' : currentReading.viscosidade_cp < 3.5 ? 'FLUIDO' : 'ESTÁVEL'}
-                  </span>
-                  <Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />
-                </div>
-              </div>
+                  {/* B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          24.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">h</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
+                          SUFICIENTE
+                        </span>
+                        <Sparkline data={[24.0, 24.1, 23.9, 24.0, 24.2, 24.0]} color="#22d3ee" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Mantém a oxigenação até que o paciente chegue ao hospital.
+                    </p>
+                  </div>
 
-              {/* CARD 5: HEMATÓCRITO */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-400" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">05 • FRAÇÃO VOLUMÉTRICA (HEMATÓCRITO)</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {currentReading.hematocrito_pct.toFixed(1)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.hematocrito_pct < 35.0 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.hematocrito_pct < 37.0 ? 'MÉDIO-BAIXO' : 'ÓTIMO'}
-                  </span>
-                  <Sparkline data={getSparkValues('hematocrito_pct')} color="#f87171" />
-                </div>
-              </div>
+                  {/* B5 • ÍNDICE DE EXTRAÇÃO DE O₂ (TISULAR) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B5 • ÍNDICE DE EXTRAÇÃO DE O₂ (TISULAR)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          42.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
+                          ALTO
+                        </span>
+                        <Sparkline data={[42.0, 42.2, 41.8, 42.1, 42.0]} color="#10b981" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Facilidade com que o oxigênio se solta do composto para ir direto aos tecidos.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* CARD 1: OXIGENAÇÃO */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">01 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
+                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                        {(currentReading.oxigenacao_limpa * 100).toFixed(1)}
+                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                        currentReading.oxigenacao_limpa < 0.85 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
+                        currentReading.oxigenacao_limpa < 0.90 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                      }`}>
+                        {currentReading.oxigenacao_limpa < 0.90 ? 'SAT BAIXA' : 'ÓTIMO'}
+                      </span>
+                      <Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00E5A3'} />
+                    </div>
+                  </div>
+
+                  {/* CARD 2: TEMPERATURA */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">02 • ESTABILIDADE TÉRMICA</span>
+                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                        {currentReading.temperatura_c.toFixed(1)}
+                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                        currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
+                        currentReading.temperatura_c > 37.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                      }`}>
+                        {currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'NORMAL'}
+                      </span>
+                      <Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />
+                    </div>
+                  </div>
+
+                  {/* CARD 3: pH */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">03 • POTENCIAL HIDROGENIÔNICO (pH)</span>
+                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                        {currentReading.ph.toFixed(2)}
+                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                        currentReading.ph < 7.30 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
+                        currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                      }`}>
+                        {currentReading.ph < 7.35 ? 'ACIDOSE' : currentReading.ph > 7.45 ? 'ALCALOSE' : 'FISIOLÓGICO'}
+                      </span>
+                      <Sparkline data={getSparkValues('ph')} color="#22d3ee" />
+                    </div>
+                  </div>
+
+                  {/* CARD 4: VISCOSIDADE */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">04 • RESISTÊNCIA DE FLUXO (VISCOSIDADE)</span>
+                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                        {currentReading.viscosidade_cp.toFixed(1)}
+                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">cP</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                        currentReading.viscosidade_cp > 5.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
+                        currentReading.viscosidade_cp < 3.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                      }`}>
+                        {currentReading.viscosidade_cp > 4.5 ? 'ESPESSO' : currentReading.viscosidade_cp < 3.5 ? 'FLUIDO' : 'ESTÁVEL'}
+                      </span>
+                      <Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />
+                    </div>
+                  </div>
+
+                  {/* CARD 5: HEMATÓCRITO */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-400" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">05 • FRAÇÃO VOLUMÉTRICA (HEMATÓCRITO)</span>
+                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                        {currentReading.hematocrito_pct.toFixed(1)}
+                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
+                        currentReading.hematocrito_pct < 35.0 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
+                      }`}>
+                        {currentReading.hematocrito_pct < 37.0 ? 'MÉDIO-BAIXO' : 'ÓTIMO'}
+                      </span>
+                      <Sparkline data={getSparkValues('hematocrito_pct')} color="#f87171" />
+                    </div>
+                  </div>
+                </>
+              )}
 
             </div>
 
