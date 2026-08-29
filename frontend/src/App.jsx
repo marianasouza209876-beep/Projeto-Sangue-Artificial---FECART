@@ -482,13 +482,13 @@ while True:
   const selectedLotObj = lots.find(l => l.id === selectedLot) || lots[0];
 
   return (
-    <div className="min-h-screen max-h-screen h-screen w-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans select-none relative">
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans relative overflow-x-hidden overflow-y-auto">
       
       {/* Detalhe de Malha de Circuitos no Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
       
       {/* 1. TOPO / CABEÇALHO */}
-      <header className="z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 flex items-center justify-center">
             <svg viewBox="0 0 100 100" className="w-full h-full fill-biotech-crimson drop-shadow-[0_0_8px_rgba(255,42,66,0.6)]">
@@ -651,7 +651,7 @@ while True:
         /* ========================================================
            TELA PRINCIPAL: DASHBOARD BIOMÉDICO
            ======================================================== */
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 z-10 overflow-hidden">
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 sm:p-6 z-10 overflow-visible">
           
           {/* COLUNA ESQUERDA (MÉTRICAS RÁPIDAS - 1/3) */}
           <section className="lg:col-span-1 flex flex-col gap-4">
@@ -873,7 +873,7 @@ while True:
               </div>
 
               {/* Corpo de Mensagens */}
-              <div className="z-10 flex-1 h-[400px] max-h-[400px] overflow-y-auto p-4 flex flex-col gap-4">
+              <div className="z-10 flex-1 min-h-[360px] max-h-[480px] overflow-y-auto p-4 flex flex-col gap-4">
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
@@ -1004,7 +1004,7 @@ while True:
         /* ========================================================
            TELA SECUNDÁRIA: CONSOLE TÉCNICO
            ======================================================== */
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 z-10 overflow-hidden">
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6 z-10 overflow-visible">
           <section className="flex flex-col gap-4">
             <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
