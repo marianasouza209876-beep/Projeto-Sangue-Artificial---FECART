@@ -370,6 +370,18 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
         (selectedLotObj.destino && selectedLotObj.destino.toLowerCase().includes("emergência")) ||
         selectedLot === "SA-023"
       );
+
+      const isTransp = selectedLotObj && !isEmerg && (
+        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("transplante") || selectedLotObj.finalidade.toLowerCase().includes("órgãos"))) ||
+        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("transplante") || selectedLotObj.destino.toLowerCase().includes("órgãos"))) ||
+        selectedLot === "SA-024"
+      );
+
+      const isAlt = selectedLotObj && !isEmerg && !isTransp && (
+        (selectedLotObj.finalidade && selectedLotObj.finalidade.toLowerCase().includes("altitude")) ||
+        (selectedLotObj.destino && selectedLotObj.destino.toLowerCase().includes("altitude")) ||
+        selectedLot === "SA-025"
+      );
       
       const respostaEmerg = `Laudo da IA para Atendimento Pré-Hospitalar de Emergência (Lote ${selectedLot}):
 • B1 Saturação de O2: 98.0% (ÓTIMO) - Garante aporte imediato em trauma e choque volumétrico.
@@ -378,11 +390,26 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 • B4 Meia-vida Circulatória: 24.0 h (SUFICIENTE) - Mantém a oxigenação até a chegada ao hospital.
 • B5 Índice de Extração de O2: 42.0% (ALTO) - Facilidade de liberação de oxigênio direto aos tecidos.`;
 
+      const respostaTransp = `Laudo da IA para Preservação Avançada de Órgãos para Transplante (Lote ${selectedLot}):
+• B1 Pressão Osmótica (Oncótica): 25.0 mmHg (FISIOLÓGICO) - Previne inchaço e danos celulares no órgão fora do corpo.
+• B2 Capacidade Antioxidante: 94.5% (ALTÍSSIMO) - Neutraliza radicais livres no momento de reperfusão.
+• B3 Potencial Hidrogeniônico: 7.38 pH (ESTÁVEL) - Conserva o equilíbrio ácido-base durante a perfusão.
+• B4 Pressão Parcial de CO2 (pCO2): 40.0 mmHg (NORMAL) - Remoção eficiente dos resíduos metabólicos.
+• B5 Concentração de Glicose: 100.0 mg/dL (NUTRITIVO) - Mantém as células do órgão vivas e metabolicamente ativas.`;
+
+      const respostaAlt = `Laudo da IA para Resgate e Cirurgias em Altas Altitudes (Lote ${selectedLot}):
+• B1 Pressão Parcial P50 (Afinidade O2): 34.0 mmHg (ADAPTADO) - Liberação eficiente sob baixa pressão atmosférica.
+• B2 Ponto de Congelamento: -2.5 °C (RESISTENTE) - Evita cristalização em frio extremo de altitude.
+• B3 Saturação de O2 (Oxigenação): 96.5% (ÓTIMO) - Compensa a menor oferta de oxigênio no ar rarefeito.
+• B4 Pressão Parcial de Oxi-Hemoglobina (pO2): 92.0 mmHg (ELEVADO) - Força de impulsão para difundir O2 nos tecidos.`;
+
       const respostaPadrao = `Análise em tempo real do lote ${selectedLot}: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`;
+
+      const respostaFinal = isEmerg ? respostaEmerg : (isTransp ? respostaTransp : (isAlt ? respostaAlt : respostaPadrao));
 
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
-        { role: 'assistant', content: isEmerg ? respostaEmerg : respostaPadrao }
+        { role: 'assistant', content: respostaFinal }
       ]);
       setInputValue('');
       return;
@@ -504,6 +531,11 @@ while True:
     (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("transplante") || selectedLotObj.finalidade.toLowerCase().includes("órgãos"))) ||
     (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("transplante") || selectedLotObj.destino.toLowerCase().includes("órgãos"))) ||
     selectedLot === "SA-024"
+  );
+  const isAltitude = selectedLotObj && !isEmergencia && !isTransplante && (
+    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("altitude") || selectedLotObj.finalidade.toLowerCase().includes("altitudes"))) ||
+    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("altitude") || selectedLotObj.destino.toLowerCase().includes("altitudes"))) ||
+    selectedLot === "SA-025"
   );
 
   return (
@@ -975,6 +1007,100 @@ while True:
                     </div>
                     <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
                       Mantém as células do órgão vivas e metabolicamente ativas.
+                    </p>
+                  </div>
+                </>
+              ) : isAltitude ? (
+                <>
+                  {/* B1 • PRESSÃO PARCIAL P50 (AFINIDADE O₂) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • PRESSÃO PARCIAL P50 (AFINIDADE O₂)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          34.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
+                          ADAPTADO
+                        </span>
+                        <Sparkline data={[34.0, 34.2, 33.8, 34.1, 34.0]} color="#22d3ee" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Garante liberação de oxigênio mesmo sob baixa pressão atmosférica.
+                    </p>
+                  </div>
+
+                  {/* B2 • PONTO DE CONGELAMENTO */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • PONTO DE CONGELAMENTO</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          -2.5
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-blue-400 border-blue-400 bg-blue-500/10">
+                          RESISTENTE
+                        </span>
+                        <Sparkline data={[-2.5, -2.4, -2.6, -2.5, -2.5]} color="#3b82f6" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Evita cristalização e perda de fluidez em ambientes de frio extremo.
+                    </p>
+                  </div>
+
+                  {/* B3 • SATURAÇÃO DE O₂ (OXIGENAÇÃO) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          96.5
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
+                          ÓTIMO
+                        </span>
+                        <Sparkline data={[96.5, 96.7, 96.3, 96.5, 96.5]} color="#00E5A3" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Compensa a menor oferta de oxigênio no ar rarefeito.
+                    </p>
+                  </div>
+
+                  {/* B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          92.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
+                          ELEVADO
+                        </span>
+                        <Sparkline data={[92.0, 92.3, 91.8, 92.1, 92.0]} color="#10b981" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Força de impulsão para difundir O₂ nos tecidos em altitude.
                     </p>
                   </div>
                 </>

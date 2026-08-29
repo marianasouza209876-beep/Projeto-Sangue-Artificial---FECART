@@ -21,10 +21,13 @@ DEFAULT_BAUD = 9600
 def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
     """
     Gera dados biomédicos simulados e validados para os lotes.
-    Suporta Atendimento Pré-Hospitalar de Emergência e Preservação Avançada de Órgãos para Transplante.
+    Suporta:
+    1. Atendimento Pré-Hospitalar de Emergência
+    2. Preservação Avançada de Órgãos para Transplante
+    3. Resgate e Cirurgias em Altas Altitudes
     """
     if "Emergência" in finalidade or "Atendimento" in finalidade or lote_id == "SA-023":
-        # B1: Saturação de O2 (Oxigenação): ideal 98.0%
+        # B1-B5 Pré-Hospitalar de Emergência
         ox = 98.0 + random.uniform(-0.3, 0.3)
         visc = 2.3 + random.uniform(-0.1, 0.1)
         temp = 22.0 + random.uniform(-0.2, 0.2)
@@ -44,15 +47,11 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "b5_extracao_o2": f"{extracao:.1f}%"
         }
     elif "Transplante" in finalidade or "Órgãos" in finalidade or lote_id == "SA-024":
-        # B1: Pressão Osmótica (Oncótica): ideal 25.0 mmHg
+        # B1-B5 Preservação de Órgãos para Transplante
         p_osmotica = 25.0 + random.uniform(-0.2, 0.2)
-        # B2: Capacidade Antioxidante: ideal 94.5 %
         antioxidante = 94.5 + random.uniform(-0.3, 0.3)
-        # B3: pH: ideal 7.38 pH
         ph = 7.38 + random.uniform(-0.02, 0.02)
-        # B4: Pressão Parcial de CO2 (pCO2): ideal 40.0 mmHg
         pco2 = 40.0 + random.uniform(-0.4, 0.4)
-        # B5: Concentração de Glicose: ideal 100.0 mg/dL
         glicose = 100.0 + random.uniform(-0.5, 0.5)
         
         return {
@@ -67,6 +66,24 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "temperatura": "4.0C",
             "vazao": "3.5 L/min"
         }
+    elif "Altitude" in finalidade or "Altitudes" in finalidade or lote_id == "SA-025":
+        # B1-B4 Resgate e Cirurgias em Altas Altitudes
+        p50 = 34.0 + random.uniform(-0.3, 0.3)
+        ponto_congelamento = -2.5 + random.uniform(-0.1, 0.1)
+        saturacao_o2 = 96.5 + random.uniform(-0.3, 0.3)
+        po2 = 92.0 + random.uniform(-0.4, 0.4)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Resgate e Cirurgias em Altas Altitudes",
+            "b1_p50": f"{p50:.1f} mmHg",
+            "b2_ponto_congelamento": f"{ponto_congelamento:.1f}°C",
+            "b3_saturacao_o2": f"{saturacao_o2:.1f}%",
+            "b4_po2": f"{po2:.1f} mmHg",
+            "oxigenacao": f"{saturacao_o2:.1f}%",
+            "temperatura": f"{ponto_congelamento:.1f}C",
+            "vazao": "4.8 L/min"
+        }
     else:
         ox = 95.0 + 2.0 * math.sin(t / 20.0) + random.uniform(-0.4, 0.4)
         temp = 36.6 + 0.5 * math.sin(t / 40.0) + random.uniform(-0.1, 0.1)
@@ -78,7 +95,7 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "vazao": f"{vazao:.1f} L/min"
         }
 
-def validar_e_sanitizar_payload(payload, lote_padrao="SA-024"):
+def validar_e_sanitizar_payload(payload, lote_padrao="SA-025"):
     """
     Valida rigorosamente os dados recebidos para evitar corrupção de estado ou travamento da aplicação.
     """
@@ -149,7 +166,7 @@ def main():
     parser.add_argument("--port", default=DEFAULT_PORT, help="Porta Serial do Arduino (ex: COM3, /dev/ttyUSB0)")
     parser.add_argument("--baud", type=int, default=DEFAULT_BAUD, help="Baudrate da conexão Serial")
     parser.add_argument("--simulado", action="store_true", help="Forçar modo simulado de sensores")
-    parser.add_argument("--lote", default="SA-024", help="ID do Lote de Sangue Artificial")
+    parser.add_argument("--lote", default="SA-025", help="ID do Lote de Sangue Artificial")
     
     args = parser.parse_args()
     
