@@ -500,6 +500,11 @@ while True:
     (selectedLotObj.destino && selectedLotObj.destino.toLowerCase().includes("emergência")) ||
     selectedLot === "SA-023"
   );
+  const isTransplante = selectedLotObj && !isEmergencia && (
+    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("transplante") || selectedLotObj.finalidade.toLowerCase().includes("órgãos"))) ||
+    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("transplante") || selectedLotObj.destino.toLowerCase().includes("órgãos"))) ||
+    selectedLot === "SA-024"
+  );
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans relative overflow-x-hidden overflow-y-auto">
@@ -853,6 +858,123 @@ while True:
                     </div>
                     <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
                       Facilidade com que o oxigênio se solta do composto para ir direto aos tecidos.
+                    </p>
+                  </div>
+                </>
+              ) : isTransplante ? (
+                <>
+                  {/* B1 • PRESSÃO OSMÓTICA (ONCÓTICA) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • PRESSÃO OSMÓTICA (ONCÓTICA)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          25.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
+                          FISIOLÓGICO
+                        </span>
+                        <Sparkline data={[25.0, 25.1, 24.9, 25.0, 25.2, 25.0]} color="#22d3ee" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Previne inchaço e danos celulares no órgão mantido fora do corpo.
+                    </p>
+                  </div>
+
+                  {/* B2 • CAPACIDADE ANTIOXIDANTE (REPERFUSÃO) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • CAPACIDADE ANTIOXIDANTE (REPERFUSÃO)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          94.5
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
+                          ALTÍSSIMO
+                        </span>
+                        <Sparkline data={[94.5, 94.8, 94.2, 94.6, 94.5]} color="#00E5A3" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Neutraliza radicais livres no momento de religar o órgão ao receptor.
+                    </p>
+                  </div>
+
+                  {/* B3 • POTENCIAL HIDROGENIÔNICO (pH) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • POTENCIAL HIDROGENIÔNICO (pH)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          7.38
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
+                          ESTÁVEL
+                        </span>
+                        <Sparkline data={[7.38, 7.39, 7.37, 7.38, 7.38]} color="#10b981" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Conserva o equilíbrio ácido-base do tecido durante a perfusão.
+                    </p>
+                  </div>
+
+                  {/* B4 • PRESSÃO PARCIAL DE DIÓXIDO DE CARBONO (pCO₂) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • PRESSÃO PARCIAL DE DIÓXIDO DE CARBONO (pCO₂)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          40.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
+                          NORMAL
+                        </span>
+                        <Sparkline data={[40.0, 40.3, 39.8, 40.1, 40.0]} color="#a855f7" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Avalia a remoção eficiente dos resíduos metabólicos do órgão.
+                    </p>
+                  </div>
+
+                  {/* B5 • CONCENTRAÇÃO DE GLICOSE */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B5 • CONCENTRAÇÃO DE GLICOSE</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          100.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mg/dL</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-amber-400 border-amber-400 bg-amber-500/10">
+                          NUTRITIVO
+                        </span>
+                        <Sparkline data={[100.0, 100.5, 99.5, 100.2, 100.0]} color="#f59e0b" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Mantém as células do órgão vivas e metabolicamente ativas.
                     </p>
                   </div>
                 </>

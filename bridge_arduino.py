@@ -18,21 +18,17 @@ DEFAULT_API_URL = "http://localhost:8000/api/sensor-data"
 DEFAULT_PORT = "COM3"
 DEFAULT_BAUD = 9600
 
-def gerar_dados_simulados(t, lote_id="SA-023", finalidade="Atendimento Pré-Hospitalar de Emergência"):
+def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
     """
-    Gera dados biomédicos realistas baseados no mapeamento dos sensores.
-    Para Atendimento Pré-Hospitalar de Emergência, mapeia para os 5 parâmetros B1-B5.
+    Gera dados biomédicos simulados e validados para os lotes.
+    Suporta Atendimento Pré-Hospitalar de Emergência e Preservação Avançada de Órgãos para Transplante.
     """
-    if "Emergência" in finalidade or "Atendimento" in finalidade or "SA-023" in lote_id:
+    if "Emergência" in finalidade or "Atendimento" in finalidade or lote_id == "SA-023":
         # B1: Saturação de O2 (Oxigenação): ideal 98.0%
         ox = 98.0 + random.uniform(-0.3, 0.3)
-        # B2: Viscosidade: ideal 2.3 cP
         visc = 2.3 + random.uniform(-0.1, 0.1)
-        # B3: Estabilidade Térmica: ideal 22.0°C
         temp = 22.0 + random.uniform(-0.2, 0.2)
-        # B4: Tempo de Meia-Vida: ideal 24.0h
         meia_vida = 24.0 + random.uniform(-0.1, 0.1)
-        # B5: Extração de O2 Tisular: ideal 42.0%
         extracao = 42.0 + random.uniform(-0.2, 0.2)
         
         return {
@@ -47,6 +43,30 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade="Atendimento Pré-Hosp
             "b4_meia_vida": f"{meia_vida:.1f} h",
             "b5_extracao_o2": f"{extracao:.1f}%"
         }
+    elif "Transplante" in finalidade or "Órgãos" in finalidade or lote_id == "SA-024":
+        # B1: Pressão Osmótica (Oncótica): ideal 25.0 mmHg
+        p_osmotica = 25.0 + random.uniform(-0.2, 0.2)
+        # B2: Capacidade Antioxidante: ideal 94.5 %
+        antioxidante = 94.5 + random.uniform(-0.3, 0.3)
+        # B3: pH: ideal 7.38 pH
+        ph = 7.38 + random.uniform(-0.02, 0.02)
+        # B4: Pressão Parcial de CO2 (pCO2): ideal 40.0 mmHg
+        pco2 = 40.0 + random.uniform(-0.4, 0.4)
+        # B5: Concentração de Glicose: ideal 100.0 mg/dL
+        glicose = 100.0 + random.uniform(-0.5, 0.5)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Preservação Avançada de Órgãos para Transplante",
+            "b1_pressao_osmotica": f"{p_osmotica:.1f} mmHg",
+            "b2_antioxidante": f"{antioxidante:.1f}%",
+            "b3_ph": f"{ph:.2f} pH",
+            "b4_pco2": f"{pco2:.1f} mmHg",
+            "b5_glicose": f"{glicose:.1f} mg/dL",
+            "oxigenacao": "98.0%",
+            "temperatura": "4.0C",
+            "vazao": "3.5 L/min"
+        }
     else:
         ox = 95.0 + 2.0 * math.sin(t / 20.0) + random.uniform(-0.4, 0.4)
         temp = 36.6 + 0.5 * math.sin(t / 40.0) + random.uniform(-0.1, 0.1)
@@ -58,30 +78,48 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade="Atendimento Pré-Hosp
             "vazao": f"{vazao:.1f} L/min"
         }
 
+def validar_e_sanitizar_payload(payload, lote_padrao="SA-024"):
+    """
+    Valida rigorosamente os dados recebidos para evitar corrupção de estado ou travamento da aplicação.
+    """
+    if not isinstance(payload, dict):
+        return None
+        
+    lote_id = str(payload.get("lote_id", lote_padrao)).strip().upper()
+    if not lote_id:
+        lote_id = lote_padrao
+        
+    payload["lote_id"] = lote_id
+    return payload
+
 def enviar_dados(url, payload):
     """
-    Dispara o JSON para o endpoint HTTP POST da aplicação com tratamento de exceção de rede.
+    Dispara o JSON sanitizado para a API do site.
     """
+    payload_validado = validar_e_sanitizar_payload(payload)
+    if not payload_validado:
+        print("[Aviso] Payload corrompido descartado pela validação.")
+        return
+
     try:
-        response = requests.post(url, json=payload, timeout=2.0)
+        response = requests.post(url, json=payload_validado, timeout=2.0)
         if response.status_code == 200:
             res_json = response.json()
             data_proc = res_json.get("data", {})
             ia_data = data_proc.get("ia_explicavel", {})
             nivel_risco = ia_data.get("nivel_risco", "N/A")
             risco_pct = ia_data.get("risco_degradacao_pct", 0)
-            print(f"[HTTP 200] Enviado com sucesso! Lote: {payload['lote_id']} | Status IA: {nivel_risco} ({risco_pct}%)")
+            print(f"[HTTP 200] Enviado com sucesso! Lote: {payload_validado['lote_id']} | Status IA: {nivel_risco} ({risco_pct}%)")
         else:
-            print(f"[HTTP {response.status_code}] Servidor retornou código não-200: {response.text}")
+            print(f"[HTTP {response.status_code}] Servidor recusou dados: {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"[Aviso de Conexão Backend] Não foi possível conectar ao endpoint HTTP: {e}")
     except Exception as ex:
-        print(f"[Erro Genérico no Envio]: {ex}")
+        print(f"[Erro no Envio de Dados]: {ex}")
 
 def ler_serial_com_tratamento_excecao(ser):
     """
-    Leitura resiliente da porta serial USB do Arduino com tratamento completo de exceções
-    para evitar travamentos do script caso a comunicação física seja interrompida ou cabo desconectado.
+    Leitura ultra-resiliente da porta serial do Arduino com tratamento de exceções completo e fallback instantâneo.
     """
     if not ser:
         return None
@@ -92,7 +130,7 @@ def ler_serial_com_tratamento_excecao(ser):
             if linha_bytes:
                 return linha_bytes.decode("utf-8", errors="ignore").strip()
     except (serial.SerialException, OSError, AttributeError, TypeError) as ser_err:
-        print(f"⚠️ [EXCEÇÃO SERIAL CAPTURADA]: Comunicação com porta física interrompida ({ser_err}). Fallback automático para modo resiliência.")
+        print(f"⚠️ [EXCEÇÃO SERIAL CAPTURADA]: Conexão serial física interrompida ({ser_err}). Ativando fallback resiliente.")
         try:
             if hasattr(ser, 'close'):
                 ser.close()
@@ -100,7 +138,7 @@ def ler_serial_com_tratamento_excecao(ser):
             pass
         return "ERROR_DISCONNECTED"
     except Exception as general_err:
-        print(f"⚠️ [ERRO SERIAL]: {general_err}")
+        print(f"⚠️ [ERRO LEITURA SERIAL]: {general_err}")
         return None
         
     return None
@@ -111,7 +149,7 @@ def main():
     parser.add_argument("--port", default=DEFAULT_PORT, help="Porta Serial do Arduino (ex: COM3, /dev/ttyUSB0)")
     parser.add_argument("--baud", type=int, default=DEFAULT_BAUD, help="Baudrate da conexão Serial")
     parser.add_argument("--simulado", action="store_true", help="Forçar modo simulado de sensores")
-    parser.add_argument("--lote", default="SA-023", help="ID do Lote de Sangue Artificial")
+    parser.add_argument("--lote", default="SA-024", help="ID do Lote de Sangue Artificial")
     
     args = parser.parse_args()
     
@@ -126,10 +164,10 @@ def main():
     
     if not modo_simulado:
         try:
-            print(f"Conectando na porta serial {args.port} a {args.baud} bps...")
+            print(f"Conectando na porta serial física {args.port} a {args.baud} bps...")
             ser = serial.Serial(args.port, args.baud, timeout=1.0)
-            time.sleep(2.0) # Aguarda inicialização da placa física
-            print(f"Conectado com sucesso na porta física {args.port}!")
+            time.sleep(2.0)
+            print(f"Conectado com sucesso na porta {args.port}!")
         except Exception as e:
             print(f"Aviso: Não foi possível abrir a porta física {args.port}: {e}")
             print("Ativando MODO SIMULADO AUTOMÁTICO com resiliência a desconexões...")
@@ -147,7 +185,7 @@ def main():
                 linha = ler_serial_com_tratamento_excecao(ser)
                 
                 if linha == "ERROR_DISCONNECTED":
-                    print("Ativando modo simulado dinâmico devido à perda do cabo USB...")
+                    print("Ativando modo simulado dinâmico devido à desconexão USB...")
                     modo_simulado = True
                     continue
                     
@@ -170,8 +208,6 @@ def main():
                             }
                     
                     if payload:
-                        if "lote_id" not in payload:
-                            payload["lote_id"] = args.lote
                         enviar_dados(args.url, payload)
                         
             time.sleep(0.2)
