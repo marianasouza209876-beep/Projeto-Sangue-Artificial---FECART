@@ -25,6 +25,7 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
     1. Atendimento Pré-Hospitalar de Emergência
     2. Preservação Avançada de Órgãos para Transplante
     3. Resgate e Cirurgias em Altas Altitudes
+    4. Vítimas de Envenenamento por Monóxido de Carbono (CO)
     """
     if "Emergência" in finalidade or "Atendimento" in finalidade or lote_id == "SA-023":
         # B1-B5 Pré-Hospitalar de Emergência
@@ -84,6 +85,24 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "temperatura": f"{ponto_congelamento:.1f}C",
             "vazao": "4.8 L/min"
         }
+    elif "Monóxido" in finalidade or "Envenenamento" in finalidade or "CO" in finalidade:
+        # B1-B4 Vítimas de Envenenamento por Monóxido de Carbono (CO)
+        deslocamento_co = 88.0 + random.uniform(-0.4, 0.4)
+        effluence_depurantes = 91.2 + random.uniform(-0.3, 0.3)
+        ph = 7.42 + random.uniform(-0.02, 0.02)
+        cohb_residual = 2.1 + random.uniform(-0.1, 0.1)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Vítimas de Envenenamento por Monóxido de Carbono (CO)",
+            "b1_deslocamento_co": f"{deslocamento_co:.1f}%",
+            "b2_effluence_depurantes": f"{effluence_depurantes:.1f}%",
+            "b3_ph": f"{ph:.2f} pH",
+            "b4_cohb_residual": f"{cohb_residual:.1f}%",
+            "oxigenacao": f"{deslocamento_co:.1f}%",
+            "temperatura": "37.0C",
+            "vazao": "4.8 L/min"
+        }
     else:
         ox = 95.0 + 2.0 * math.sin(t / 20.0) + random.uniform(-0.4, 0.4)
         temp = 36.6 + 0.5 * math.sin(t / 40.0) + random.uniform(-0.1, 0.1)
@@ -95,7 +114,7 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "vazao": f"{vazao:.1f} L/min"
         }
 
-def validar_e_sanitizar_payload(payload, lote_padrao="SA-025"):
+def validar_e_sanitizar_payload(payload, lote_padrao="SA-026"):
     """
     Valida rigorosamente os dados recebidos para evitar corrupção de estado ou travamento da aplicação.
     """
@@ -136,7 +155,8 @@ def enviar_dados(url, payload):
 
 def ler_serial_com_tratamento_excecao(ser):
     """
-    Leitura ultra-resiliente da porta serial do Arduino com tratamento de exceções completo e fallback instantâneo.
+    Leitura ultra-resiliente da porta serial do Arduino com tratamento específico de erros de Timeout
+    e exceções físicas para evitar travamento na transmissão de dados.
     """
     if not ser:
         return None
@@ -146,8 +166,11 @@ def ler_serial_com_tratamento_excecao(ser):
             linha_bytes = ser.readline()
             if linha_bytes:
                 return linha_bytes.decode("utf-8", errors="ignore").strip()
-    except (serial.SerialException, OSError, AttributeError, TypeError) as ser_err:
-        print(f"⚠️ [EXCEÇÃO SERIAL CAPTURADA]: Conexão serial física interrompida ({ser_err}). Ativando fallback resiliente.")
+    except (getattr(serial, 'SerialTimeoutException', Exception), TimeoutError, OSError) as timeout_err:
+        print(f"⏱️ [ALERTA DE TIMEOUT SERIAL]: Tempo limite excedido na leitura do Arduino ({timeout_err}). Reciclando buffer.")
+        return None
+    except (getattr(serial, 'SerialException', Exception), AttributeError, TypeError) as ser_err:
+        print(f"⚠️ [EXCEÇÃO SERIAL CAPTURADA]: Comunicação com porta física interrompida ({ser_err}). Ativando fallback resiliente.")
         try:
             if hasattr(ser, 'close'):
                 ser.close()
@@ -166,7 +189,7 @@ def main():
     parser.add_argument("--port", default=DEFAULT_PORT, help="Porta Serial do Arduino (ex: COM3, /dev/ttyUSB0)")
     parser.add_argument("--baud", type=int, default=DEFAULT_BAUD, help="Baudrate da conexão Serial")
     parser.add_argument("--simulado", action="store_true", help="Forçar modo simulado de sensores")
-    parser.add_argument("--lote", default="SA-025", help="ID do Lote de Sangue Artificial")
+    parser.add_argument("--lote", default="SA-026", help="ID do Lote de Sangue Artificial")
     
     args = parser.parse_args()
     
@@ -187,7 +210,7 @@ def main():
             print(f"Conectado com sucesso na porta {args.port}!")
         except Exception as e:
             print(f"Aviso: Não foi possível abrir a porta física {args.port}: {e}")
-            print("Ativando MODO SIMULADO AUTOMÁTICO com resiliência a desconexões...")
+            print("Ativando MODO SIMULADO AUTOMÁTICO com resiliência a desconexões e timeouts...")
             modo_simulado = True
             
     t = 0

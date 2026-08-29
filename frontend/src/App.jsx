@@ -383,6 +383,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
         selectedLot === "SA-025"
       );
       
+      const isMonox = selectedLotObj && !isEmerg && !isTransp && !isAlt && (
+        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("monóxido") || selectedLotObj.finalidade.toLowerCase().includes("envenenamento"))) ||
+        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("monóxido") || selectedLotObj.destino.toLowerCase().includes("envenenamento")))
+      );
+      
       const respostaEmerg = `Laudo da IA para Atendimento Pré-Hospitalar de Emergência (Lote ${selectedLot}):
 • B1 Saturação de O2: 98.0% (ÓTIMO) - Garante aporte imediato em trauma e choque volumétrico.
 • B2 Viscosidade: 2.3 cP (FLUIDO) - Permite rápida infusão sob pressão em acessos periféricos.
@@ -403,9 +408,15 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 • B3 Saturação de O2 (Oxigenação): 96.5% (ÓTIMO) - Compensa a menor oferta de oxigênio no ar rarefeito.
 • B4 Pressão Parcial de Oxi-Hemoglobina (pO2): 92.0 mmHg (ELEVADO) - Força de impulsão para difundir O2 nos tecidos.`;
 
+      const respostaMonox = `Laudo da IA para Vítimas de Envenenamento por Monóxido de Carbono (CO) (Lote ${selectedLot}):
+• B1 Taxa de Deslocamento de CO: 88.0% (CRÍTICO / ALTO) - Remove o monóxido de carbono ligado às hemácias.
+• B2 Effluence de Depurantes: 91.2% (EFICIENTE) - Auxilia na varredura e eliminação celular do gás tóxico.
+• B3 Potencial Hidrogeniônico: 7.42 pH (FISIOLÓGICO) - Reverte o quadro de acidose metabólica provocado por sufocamento.
+• B4 Carboxi-Hemoglobina Residual (COHb): 2.1% (SEGURO) - Indica sucesso no expurgo da toxina do sistema circulatório.`;
+
       const respostaPadrao = `Análise em tempo real do lote ${selectedLot}: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`;
 
-      const respostaFinal = isEmerg ? respostaEmerg : (isTransp ? respostaTransp : (isAlt ? respostaAlt : respostaPadrao));
+      const respostaFinal = isEmerg ? respostaEmerg : (isTransp ? respostaTransp : (isAlt ? respostaAlt : (isMonox ? respostaMonox : respostaPadrao)));
 
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
@@ -536,6 +547,10 @@ while True:
     (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("altitude") || selectedLotObj.finalidade.toLowerCase().includes("altitudes"))) ||
     (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("altitude") || selectedLotObj.destino.toLowerCase().includes("altitudes"))) ||
     selectedLot === "SA-025"
+  );
+  const isMonoxido = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && (
+    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("monóxido") || selectedLotObj.finalidade.toLowerCase().includes("envenenamento"))) ||
+    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("monóxido") || selectedLotObj.destino.toLowerCase().includes("envenenamento")))
   );
 
   return (
@@ -1101,6 +1116,100 @@ while True:
                     </div>
                     <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
                       Força de impulsão para difundir O₂ nos tecidos em altitude.
+                    </p>
+                  </div>
+                </>
+              ) : isMonoxido ? (
+                <>
+                  {/* B1 • TAXA DE DESLOCAMENTO DE CO */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-crimson" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • TAXA DE DESLOCAMENTO DE CO</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          88.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse">
+                          CRÍTICO / ALTO
+                        </span>
+                        <Sparkline data={[88.0, 88.4, 87.6, 88.2, 88.0]} color="#ff2a42" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Remove o monóxido de carbono ligado às hemácias do paciente.
+                    </p>
+                  </div>
+
+                  {/* B2 • EFFLUENCE DE DEPURANTES */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • EFFLUENCE DE DEPURANTES</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          91.2
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
+                          EFICIENTE
+                        </span>
+                        <Sparkline data={[91.2, 91.5, 90.9, 91.3, 91.2]} color="#00E5A3" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Auxilia na varredura e eliminação celular do gás tóxico.
+                    </p>
+                  </div>
+
+                  {/* B3 • POTENCIAL HIDROGENIÔNICO (pH) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • POTENCIAL HIDROGENIÔNICO (pH)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          7.42
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
+                          FISIOLÓGICO
+                        </span>
+                        <Sparkline data={[7.42, 7.43, 7.41, 7.42, 7.42]} color="#22d3ee" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Reverte o quadro de acidose metabólica provocado por sufocamento.
+                    </p>
+                  </div>
+
+                  {/* B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          2.1
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
+                          SEGURO
+                        </span>
+                        <Sparkline data={[2.1, 2.2, 2.0, 2.1, 2.1]} color="#10b981" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Indica sucesso no expurgo da toxina do sistema circulatório.
                     </p>
                   </div>
                 </>
