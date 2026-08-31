@@ -397,6 +397,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
         (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("doação") || selectedLotObj.finalidade.toLowerCase().includes("doacao") || selectedLotObj.finalidade.toLowerCase().includes("compatibilidade"))) ||
         (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("doação") || selectedLotObj.destino.toLowerCase().includes("doacao") || selectedLotObj.destino.toLowerCase().includes("compatibilidade")))
       );
+
+      const isRarosMsg = selectedLotObj && !isEmerg && !isTransp && !isAlt && !isMonox && !isQueim && !isDoacaoMsg && (
+        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("raros") || selectedLotObj.finalidade.toLowerCase().includes("fenótipos") || selectedLotObj.finalidade.toLowerCase().includes("fenotipos"))) ||
+        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("raros") || selectedLotObj.destino.toLowerCase().includes("fenótipos") || selectedLotObj.destino.toLowerCase().includes("fenotipos")))
+      );
       
       const valO2 = ((currentReading?.oxigenacao_limpa || 0.98) * 100).toFixed(1);
       const pctO2 = Math.round(parseFloat(valO2));
@@ -611,6 +616,36 @@ ${barExtr} ${pctExtr}%  [ALTO]
             loteId: selectedLot,
             tagTitle: 'DOAÇÃO E COMPATIBILIDADE',
             veredit: '🟢 VEREDITO: Lote aprovado para doação e compatibilidade universal.',
+            metrics: cardMetrics
+          }
+        ]);
+        setInputValue('');
+        return;
+      }
+
+      if (isRarosMsg) {
+        const cardMetrics = [
+          { id: 'B1', name: 'B1 • IMUNOGENICIDADE ESTENDIDA (Kell/Duffy/Kidd)', val: '0.0%', pct: 100, badge: 'NEUTRO', color: '#a855f7' },
+          { id: 'B2', name: 'B2 • PUREZA DA RECONSTITUIÇÃO', val: '99.7%', pct: 99, badge: 'MÁXIMA', color: '#00d8ff' },
+          { id: 'B3', name: 'B3 • FRAÇÃO VOLUMÉTRICA (EQUIVALENTE DE HEMATÓCRITO)', val: '40.0%', pct: 80, badge: 'ÓTIMO', color: '#00ff9d' },
+          { id: 'B4', name: 'B4 • RESISTÊNCIA À HEMÓLISE INDUZIDA', val: '99.5%', pct: 99, badge: 'ALTA', color: '#ffb703' }
+        ];
+
+        const respostaRaros = `Laudo da IA para Manejo Clínico de Pacientes com Raros Fenótipos Sanguíneos (Lote ${selectedLot}):
+• B1 Imunogenicidade Estendida (Kell/Duffy/Kidd): 0.0% (NEUTRO)
+• B2 Pureza da Reconstituição: 99.7% (MÁXIMA)
+• B3 Fração Volumétrica (Equivalente de Hematócrito): 40.0% (ÓTIMO)
+• B4 Resistência à Hemólise Induzida: 99.5% (ALTA)`;
+
+        setMessages(prev => [...prev, 
+          { role: 'user', content: text },
+          { 
+            role: 'assistant', 
+            content: respostaRaros,
+            cardType: 'laudo_raros',
+            loteId: selectedLot,
+            tagTitle: 'RAROS FENÓTIPOS',
+            veredit: '🟢 VEREDITO: Lote aprovado para manejo de raros fenótipos sanguíneos.',
             metrics: cardMetrics
           }
         ]);
@@ -1896,7 +1931,7 @@ while True:
                     key={index}
                     className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' || msg.cardType === 'laudo_monoxido' || msg.cardType === 'laudo_queimaduras' || msg.cardType === 'laudo_doacao' ? (
+                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' || msg.cardType === 'laudo_monoxido' || msg.cardType === 'laudo_queimaduras' || msg.cardType === 'laudo_doacao' || msg.cardType === 'laudo_raros' ? (
                       <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xl select-text">
                         {/* Título do Laudo em Destaque */}
                         <div className="border-b border-slate-800/80 pb-2.5 flex items-center justify-between">
