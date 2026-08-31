@@ -552,6 +552,10 @@ while True:
     (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("monóxido") || selectedLotObj.finalidade.toLowerCase().includes("envenenamento"))) ||
     (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("monóxido") || selectedLotObj.destino.toLowerCase().includes("envenenamento")))
   );
+  const isQueimaduras = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && !isMonoxido && (
+    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("queimaduras") || selectedLotObj.finalidade.toLowerCase().includes("choque"))) ||
+    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("queimaduras") || selectedLotObj.destino.toLowerCase().includes("choque")))
+  );
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans relative overflow-x-hidden overflow-y-auto">
@@ -1210,6 +1214,123 @@ while True:
                     </div>
                     <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
                       Indica sucesso no expurgo da toxina do sistema circulatório.
+                    </p>
+                  </div>
+                </>
+              ) : isQueimaduras ? (
+                <>
+                  {/* B1 • PRESSÃO COLOIDOSMÓTICA */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • PRESSÃO COLOIDOSMÓTICA</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          28.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
+                          ÓTIMO
+                        </span>
+                        <Sparkline data={[28.0, 28.1, 27.9, 28.0, 28.2, 28.0]} color="#00E5A3" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Impede a perda de líquidos para os tecidos, combatendo o edema.
+                    </p>
+                  </div>
+
+                  {/* B2 • CONCENTRAÇÃO DE ENDOTOXINAS */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • CONCENTRAÇÃO DE ENDOTOXINAS</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          &lt; 0.05
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">EU/mL</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
+                          ISENTO
+                        </span>
+                        <Sparkline data={[0.04, 0.03, 0.04, 0.03, 0.04]} color="#10b981" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Evita a piora do quadro inflamatório severo e da sepse.
+                    </p>
+                  </div>
+
+                  {/* B3 • MARCADOR DE INTEGRIDADE ENDOTELIAL */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • MARCADOR DE INTEGRIDADE ENDOTELIAL</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          97.8
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
+                          PROTEGIDO
+                        </span>
+                        <Sparkline data={[97.8, 97.9, 97.7, 97.8, 97.8]} color="#00E5A3" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Preserva os microvasos contra o colapso estrutural.
+                    </p>
+                  </div>
+
+                  {/* B4 • LIGAÇÃO A CITOCINAS INFLAMATÓRIAS */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • LIGAÇÃO A CITOCINAS INFLAMATÓRIAS</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          78.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
+                          ATIVO
+                        </span>
+                        <Sparkline data={[78.0, 78.2, 77.8, 78.1, 78.0]} color="#a855f7" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Ajuda a absorver moléculas inflamatórias em excesso na corrente sanguínea.
+                    </p>
+                  </div>
+
+                  {/* B5 • SÓDIO SÉRICO (Na+) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B5 • SÓDIO SÉRICO (Na+)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          140.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mEq/L</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-amber-400 border-amber-400 bg-amber-500/10">
+                          EQUILIBRADO
+                        </span>
+                        <Sparkline data={[140.0, 140.2, 139.8, 140.1, 140.0]} color="#f59e0b" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Previne paradas cardíacas e arritmias decorrentes de queimaduras.
                     </p>
                   </div>
                 </>
