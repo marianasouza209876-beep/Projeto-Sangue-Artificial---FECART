@@ -522,7 +522,31 @@ ${barExtr} ${pctExtr}%  [ALTO]
         return;
       }
 
-      const respostaFinal = isMonox ? respostaMonox : respostaPadrao;
+      if (isMonox) {
+        const cardMetrics = [
+          { id: 'B1', name: 'B1 • TAXA DE DESLOCAMENTO DE CO', val: '88.0%', pct: 88, badge: 'ALTO', color: '#ff4d4d' },
+          { id: 'B2', name: 'B2 • EFFLUENCE DE DEPURANTES', val: '91.2%', pct: 91, badge: 'EFICIENTE', color: '#ffb703' },
+          { id: 'B3', name: 'B3 • POTENCIAL HIDROGENIÔNICO (pH)', val: '7.42 pH', pct: 98, badge: 'FISIOLÓGICO', color: '#02c39a' },
+          { id: 'B4', name: 'B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb)', val: '2.1%', pct: 98, badge: 'SEGURO', color: '#00ff9d' }
+        ];
+
+        setMessages(prev => [...prev, 
+          { role: 'user', content: text },
+          { 
+            role: 'assistant', 
+            content: respostaMonox,
+            cardType: 'laudo_monoxido',
+            loteId: selectedLot,
+            tagTitle: 'ENVENENAMENTO POR CO',
+            veredit: '🟢 VEREDITO: Lote aprovado para tratamento de envenenamento por CO.',
+            metrics: cardMetrics
+          }
+        ]);
+        setInputValue('');
+        return;
+      }
+
+      const respostaFinal = respostaPadrao;
 
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
@@ -1800,7 +1824,7 @@ while True:
                     key={index}
                     className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' ? (
+                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' || msg.cardType === 'laudo_monoxido' ? (
                       <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xl select-text">
                         {/* Título do Laudo em Destaque */}
                         <div className="border-b border-slate-800/80 pb-2.5 flex items-center justify-between">
