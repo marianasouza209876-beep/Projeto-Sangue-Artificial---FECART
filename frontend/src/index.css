@@ -4,14 +4,91 @@
   --color-biotech-bg: #0b0f19;
   --color-biotech-crimson: #ff2a42;
   --color-biotech-neon: #00e5a3;
+  --color-biotech-cyan: #22d3ee;
+  
+  --color-background: #0b0f19;
+  --color-foreground: #f8fafc;
+  --color-card: rgba(15, 23, 42, 0.65);
+  --color-card-foreground: #f8fafc;
+  --color-popover: #0f172a;
+  --color-popover-foreground: #f8fafc;
+  
+  --color-primary: #ff2a42;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: rgba(30, 41, 59, 0.7);
+  --color-secondary-foreground: #f1f5f9;
+  --color-muted: rgba(30, 41, 59, 0.5);
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #38bdf8;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #ff2a42;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-input: rgba(255, 255, 255, 0.12);
+  --color-ring: #38bdf8;
+  
+  --color-critical: #ff2a42;
+  --color-warning: #f59e0b;
+  --color-success: #00e5a3;
+  --color-tech: #38bdf8;
+  --color-tech-foreground: #0b0f19;
+  
+  --font-display: "Space Grotesk", "Plus Jakarta Sans", "Inter", sans-serif;
   --font-sans: "Inter", "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Roboto Mono", monospace;
 }
 
+:root {
+  --radius: 0.9rem;
+  --background: #0b0f19;
+  --foreground: #f8fafc;
+  --card: rgba(15, 23, 42, 0.65);
+  --card-foreground: #f8fafc;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
+  --primary: #ff2a42;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(30, 41, 59, 0.7);
+  --secondary-foreground: #f1f5f9;
+  --muted: rgba(30, 41, 59, 0.5);
+  --muted-foreground: #94a3b8;
+  --accent: #38bdf8;
+  --accent-foreground: #ffffff;
+  --destructive: #ff2a42;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #38bdf8;
+  --critical: #ff2a42;
+  --warning: #f59e0b;
+  --success: #00e5a3;
+  --tech: #38bdf8;
+  --tech-foreground: #0b0f19;
+
+  --gradient-surface: linear-gradient(
+    145deg,
+    rgba(30, 41, 59, 0.75),
+    rgba(15, 23, 42, 0.65)
+  );
+  --gradient-blood: linear-gradient(135deg, #ff2a42, #b91c1c);
+  --gradient-tech: linear-gradient(135deg, #38bdf8, #6366f1);
+  --shadow-glow-blood: 0 0 0 1px rgba(255, 42, 66, 0.25), 0 18px 50px -18px rgba(255, 42, 66, 0.45);
+  --shadow-panel: 0 24px 60px -30px rgba(0, 0, 0, 0.8);
+}
+
 @layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
   body {
-    background-color: #0b0f19;
-    color: #f8fafc;
+    background-color: var(--color-background);
+    background-image:
+      radial-gradient(900px 500px at 12% -10%, rgba(255, 42, 66, 0.12), transparent 70%),
+      radial-gradient(900px 600px at 95% 0%, rgba(56, 189, 248, 0.12), transparent 70%),
+      radial-gradient(700px 500px at 50% 110%, rgba(99, 102, 241, 0.1), transparent 70%);
+    background-attachment: fixed;
+    color: var(--color-foreground);
     font-family: var(--font-sans);
     overflow-x: hidden;
   }
@@ -35,24 +112,46 @@
 
 /* Glassmorphism Panel style */
 .glass-panel {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background-color: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  background: var(--gradient-surface);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-panel);
 }
 
 .glass-panel-hover {
   transition: all 0.3s ease;
 }
 .glass-panel-hover:hover {
-  background-color: rgba(15, 23, 42, 0.65);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(30, 41, 59, 0.85);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+}
+
+.grid-lines {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.text-gradient-blood {
+  background: var(--gradient-blood);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-tech {
+  background: var(--gradient-tech);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Glow Effects */
 .glow-crimson {
-  box-shadow: 0 0 15px rgba(255, 42, 66, 0.25);
+  box-shadow: 0 0 15px rgba(255, 42, 66, 0.3);
   text-shadow: 0 0 8px rgba(255, 42, 66, 0.4);
 }
 
@@ -62,13 +161,43 @@
 }
 
 .glow-neon {
-  box-shadow: 0 0 15px rgba(0, 229, 163, 0.25);
+  box-shadow: 0 0 15px rgba(0, 229, 163, 0.3);
   text-shadow: 0 0 8px rgba(0, 229, 163, 0.4);
 }
 
 .glow-neon-border {
   box-shadow: 0 0 10px rgba(0, 229, 163, 0.2);
   border-color: rgba(0, 229, 163, 0.5);
+}
+
+/* Animations */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 42, 66, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(255, 42, 66, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 42, 66, 0);
+  }
+}
+
+.pulse-alert {
+  animation: pulse-ring 1.8s ease-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.float-card {
+  animation: float 5s ease-in-out infinite;
 }
 
 /* ECG / Pulse wave animation */
@@ -86,7 +215,7 @@
   animation: ecg-line 8s linear infinite;
 }
 
-/* Custom heartbeat keyframes */
+/* Heartbeat animation */
 @keyframes heartbeat {
   0%, 100% {
     transform: scale(1);
@@ -101,22 +230,6 @@
 
 .animate-heartbeat {
   animation: heartbeat 1.5s ease-in-out infinite;
-}
-
-/* Crimson pulse for critical indicators */
-@keyframes pulse-crimson {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(255, 42, 66, 0.7);
-  }
-  50% {
-    opacity: 0.5;
-    box-shadow: 0 0 0 8px rgba(255, 42, 66, 0);
-  }
-}
-
-.animate-pulse-crimson {
-  animation: pulse-crimson 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Green pulse for hardware connectivity */

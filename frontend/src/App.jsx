@@ -13,14 +13,31 @@ import {
   RefreshCw, 
   FileText,
   Copy,
-  ChevronRight
+  ChevronRight,
+  TrendingUp,
+  Droplets,
+  ShieldCheck,
+  FlaskConical,
+  Waves,
+  Thermometer,
+  Layers,
+  Clock,
+  Sparkles,
+  Info
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MetricCard } from '@/components/MetricCard';
+import { DemandChart } from '@/components/DemandChart';
+import { LandingPage } from '@/components/LandingPage';
+import { QuickEntryModal } from '@/components/QuickEntryModal';
+
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
-// Componente para desenhar o Sparkline em SVG
-const Sparkline = ({ data, color }) => {
+
+// Sparkline SVG Component
+const Sparkline = ({ data, color = "#00e5a3" }) => {
   if (!data || data.length < 2) return null;
-  const width = 120;
-  const height = 30;
+  const width = 100;
+  const height = 26;
   
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -41,13 +58,12 @@ const Sparkline = ({ data, color }) => {
         points={points}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="filter drop-shadow-[0_0_3px_rgba(0,229,163,0.5)]"
       />
     </svg>
   );
 };
 
-// Objeto com os Limites e Protocolos Clínicos Médicos
+// Protocolos Clínicos Médicos
 const PROTOCOLOS_CLINICOS = {
   "Simulação Fisiológica Humana": {
     o2: { normal: [95, 100], seguro: [93, 100], critico: 90 },
@@ -80,6 +96,18 @@ const PROTOCOLOS_CLINICOS = {
 };
 
 export default function App() {
+  // Navegação: 'landing' | 'dashboard' | 'forecast' | 'tecnico'
+  const [activeTab, setActiveTab] = useState('landing');
+  const [clock, setClock] = useState("--:--:--");
+
+  // Relógio ao vivo
+  useEffect(() => {
+    const tick = () => setClock(new Date().toLocaleTimeString('pt-BR'));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Estados da Aplicação
   const [selectedLot, setSelectedLot] = useState("SA-025");
   const [lots, setLots] = useState([
@@ -95,15 +123,79 @@ export default function App() {
   ]);
   const [history, setHistory] = useState([]);
   const [audits, setAudits] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [copiedScript, setCopiedScript] = useState(false);
+  const [packetCount, setPacketCount] = useState(1420);
+  const messagesEndRef = useRef(null);
+
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Olá! Sou o assistente clínico EcoSanguis. Pergunte-me sobre o estado de qualquer lote ou escolha uma das perguntas rápidas abaixo!',
+      content: 'Olá! Sou o Tradutor Científico EcoSanguis / Flowtificial. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
       explicabilidade: null
     }
   ]);
 
-  // Função para criar novos lotes com responsável técnico e protocolo
+  // Carrega lotes cadastrados
+  const fetchLots = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/lots`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setLots(data);
+        }
+      }
+    } catch (err) {
+      console.log("Erro ao carregar lotes:", err);
+    }
+  };
+
+  // Carrega histórico do lote selecionado
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setHistory(data);
+        }
+      }
+    } catch (err) {
+      console.log("Erro ao carregar histórico:", err);
+    }
+  };
+
+  // Carrega logs de auditoria
+  const fetchAudits = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/audits`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setAudits(data);
+        }
+      }
+    } catch (err) {
+      console.log("Erro ao carregar auditoria:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLots();
+    fetchAudits();
+  }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [selectedLot]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
+  // Criação de novos lotes
   const handleAddLot = (customName, destinoSelecionado = "Simulação Fisiológica Humana") => {
     const nextNumber = lots.length + 25;
     const newLotId = `SA-${String(nextNumber).padStart(3, '0')}`;
@@ -123,7 +215,7 @@ export default function App() {
     setSelectedLot(newLot.id);
   };
 
-  // Função para apagar/deletar lote
+  // Deletar lote
   const handleDeleteLot = (lotIdToDelete) => {
     setLots(prev => prev.filter(lot => lot.id !== lotIdToDelete));
     if (selectedLot === lotIdToDelete && lots.length > 1) {
@@ -131,53 +223,32 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    // Scroll para a última mensagem do chat
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  // Injeção de leitura manual / QR Code
+  const handleInjectReading = (reading) => {
+    const oxVal = parseFloat(String(reading.oxigenacao).replace("%", "").replace(",", ".")) / 100;
+    const tempVal = parseFloat(String(reading.temperatura).replace("C", "").replace(",", "."));
+    const vazaoVal = parseFloat(String(reading.vazao).replace(",", "."));
 
-  // Carrega lotes cadastrados
-  const fetchLots = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/lots`);
-      if (res.ok) {
-        const data = await res.json();
-        setLots(data);
-      }
-    } catch (err) {
-      console.log("Erro ao carregar lotes:", err);
-    }
+    const newEntry = {
+      oxigenacao_limpa: isNaN(oxVal) ? 0.95 : oxVal,
+      temperatura_c: isNaN(tempVal) ? 36.8 : tempVal,
+      vazao_l_min: isNaN(vazaoVal) ? 4.8 : vazaoVal,
+      ph: 7.40,
+      viscosidade_cp: 3.8,
+      hematocrito_pct: 40.0,
+      status: (oxVal < 0.90 || tempVal > 38.0) ? "CRÍTICO" : "ESTÁVEL",
+      alerta_mensagem: (oxVal < 0.90 || tempVal > 38.0)
+        ? "ALERTA: Parâmetros fora da faixa fisiológica ideal."
+        : "Sistema operando dentro dos parâmetros de normalidade."
+    };
+
+    setHistory(prev => [...prev, newEntry]);
+    setPacketCount(p => p + 1);
   };
 
-  // Carrega histórico do lote selecionado
-  const fetchHistory = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data);
-      }
-    } catch (err) {
-      console.log("Erro ao carregar histórico:", err);
-    }
-  };
-
-  // Carrega logs de auditoria
-  const fetchAudits = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/audits`);
-      if (res.ok) {
-        const data = await res.json();
-        setAudits(data);
-      }
-    } catch (err) {
-      console.log("Erro ao carregar auditoria:", err);
-    }
-  };
-
-  // Envio de pergunta e integração com backend
+  // Envio de pergunta e integração com chat
   const handleSendMessage = async (text) => {
-    if (!text.trim()) return;
+    if (!text || !text.trim()) return;
 
     // Resposta fixa: O que é sangue artificial
     if (text.toLowerCase().includes("o que é sangue artificial")) {
@@ -205,13 +276,12 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
-        { role: 'assistant', content: 'Análise em tempo real do lote: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.' }
+        { role: 'assistant', content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.` }
       ]);
       setInputValue('');
       return;
     }
 
-    // Adiciona pergunta do usuário e consulta servidor
     const userMsg = { role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
@@ -238,7 +308,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           if (match) {
             setSelectedLot(match[0]);
           }
-        }, 1200);
+        }, 800);
       } else {
         setIsTyping(false);
       }
@@ -247,34 +317,12 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       setIsTyping(false);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico. Verifique se o servidor backend FastAPI está rodando na porta 8000.'
+        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico FastAPI. Verifique se o backend está ativo.'
       }]);
     }
   };
-  // Cadastra novo lote de simulação
-  const handleCreateLot = async () => {
-    const nextNum = lots.length + 23; // SA-023, 24, 25...
-    const name = `SA-0${nextNum}`;
-    try {
-      const res = await fetch(`${API_BASE}/api/lots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          id: name, 
-          composicao: "Composto Sintético de Segunda Geração Baseado em PFC",
-          status_inicial: "ESTÁVEL"
-        })
-      });
-      if (res.ok) {
-        setSelectedLot(name);
-        fetchLots();
-      }
-    } catch (err) {
-      alert("Erro ao criar novo lote.");
-    }
-  };
 
-  // Valores de exibição atuais (último do histórico ou simulados se vazio)
+  // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
     oxigenacao_limpa: 0.95,
     temperatura_c: 36.5,
@@ -283,26 +331,12 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     viscosidade_cp: 3.8,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
-    alerta_mensagem: "Sem sinal ativo de sensores. Iniciando ponte..."
+    alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
   };
 
-  // Obter array de valores históricos para o Sparkline
   const getSparkValues = (key) => {
-    if (history.length === 0) return [0, 0];
+    if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
     return history.map(item => item[key]);
-  };
-
-  // Retorna cor com base no status do sensor
-  const getStatusColor = (status) => {
-    if (status === "CRÍTICO") return "text-biotech-crimson border-biotech-crimson glow-crimson";
-    if (status === "ALERTA") return "text-yellow-400 border-yellow-400";
-    return "text-biotech-neon border-biotech-neon glow-neon";
-  };
-
-  const getStatusBg = (status) => {
-    if (status === "CRÍTICO") return "bg-biotech-crimson/10 border-biotech-crimson/30";
-    if (status === "ALERTA") return "bg-yellow-500/10 border-yellow-500/30";
-    return "bg-biotech-neon/10 border-biotech-neon/30";
   };
 
   const pythonScript = `import time
@@ -316,9 +350,9 @@ LOTE_ID = "SA-025"
 print("Ponte de Dados Iniciada. Enviando para:", API_URL)
 t = 0
 while True:
-    # Simulação local de sensores
-    ox = 94.0 + 3.0 * random.uniform(-0.5, 0.5)
-    temp = 36.5 + random.uniform(-0.2, 0.2)
+    # Leitura ou simulação de sensores físicos
+    ox = 95.0 + random.uniform(-1.0, 1.0)
+    temp = 36.5 + random.uniform(-0.3, 0.3)
     vaz = 4.8 + random.uniform(-0.1, 0.1)
     
     payload = {
@@ -331,7 +365,7 @@ while True:
         r = requests.post(API_URL, json=payload, timeout=2.0)
         print(f"POST {r.status_code} | Lote {LOTE_ID} | Ox: {ox:.1f}% | Temp: {temp:.1f}°C")
     except Exception as e:
-        print("Erro ao enviar:", e)
+        print("Erro ao enviar telemetria:", e)
     
     time.sleep(2.0)
     t += 2`;
@@ -342,408 +376,386 @@ while True:
     setTimeout(() => setCopiedScript(false), 2000);
   };
 
+  // Se a aba for Landing Page, renderiza a tela de apresentação
+  if (activeTab === 'landing') {
+    return (
+      <LandingPage
+        onNavigate={setActiveTab}
+        onInjectReading={handleInjectReading}
+        apiBase={API_BASE}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col relative text-slate-100 select-none">
-      
-      {/* Detalhe de Malha de Circuitos no Background */}
+    <div className="min-h-screen bg-slate-950 flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white">
+      {/* Background Decorativo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
       
-      {/* 1. TOPO / CABEÇALHO */}
-      <header className="z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          
-          {/* Gotícula com circuito integrado (desenho em SVG) */}
-          <div className="relative w-10 h-10 flex items-center justify-center">
-            <svg viewBox="0 0 100 100" className="w-full h-full fill-biotech-crimson drop-shadow-[0_0_8px_rgba(255,42,66,0.6)]">
-              <path d="M50,10 C50,10 85,45 85,68 C85,85 70,95 50,95 C30,95 15,85 15,68 C15,45 50,10 50,10 Z" />
-              {/* Linhas de circuito integradas */}
-              <path d="M50,30 L50,60 M35,55 L50,55 M50,45 L65,45 M35,70 L50,70 M50,70 L65,75" stroke="#00E5A3" strokeWidth="3" fill="none" opacity="0.8" />
-              <circle cx="35" cy="55" r="4" fill="#00E5A3" />
-              <circle cx="65" cy="45" r="4" fill="#00E5A3" />
-              <circle cx="35" cy="70" r="4" fill="#00E5A3" />
-            </svg>
+      {/* HEADER PRINCIPAL */}
+      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+        {/* Logo & Marca */}
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('landing')}>
+          <div className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-red-600 to-rose-700 shadow-[0_0_12px_rgba(255,42,66,0.5)]">
+            <Droplets className="w-5 h-5 text-white" />
           </div>
-          
           <div>
-            <h1 className="text-xl font-bold tracking-wider text-slate-100 flex items-center gap-2">
-              FLOWTIFICIAL <span className="text-[10px] bg-biotech-crimson/20 border border-biotech-crimson/50 text-biotech-crimson px-1.5 py-0.5 rounded font-mono">PROTÓTIPO</span>
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2 font-display">
+              FLOW<span className="text-rose-500">TIFICIAL</span>
+              <span className="text-[10px] bg-rose-500/10 border border-rose-500/30 text-rose-400 px-1.5 py-0.5 rounded font-mono">
+                FECART 2026
+              </span>
             </h1>
-            <p className="text-xs text-slate-400 font-mono tracking-tight">TRADUTOR CIENTÍFICO E IA EXPLICÁVEL PARA SANGUE ARTIFICIAL</p>
+            <p className="text-[10px] text-slate-400 font-mono tracking-tight hidden sm:block">
+              SANGUE ARTIFICIAL • IA EXPLICÁVEL & TELEMETRIA IoT
+            </p>
           </div>
         </div>
 
-        {/* Barra de Conexão de Hardware */}
-        <div className="flex items-center gap-6">
-          
-          {/* Navegação entre abas */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1">
-            <button 
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'dashboard' ? 'bg-slate-800 text-biotech-neon' : 'text-slate-400 hover:text-slate-200'}`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              Monitor Clínico
-            </button>
-            <button 
-              onClick={() => setActiveTab('tecnico')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'tecnico' ? 'bg-slate-800 text-biotech-neon' : 'text-slate-400 hover:text-slate-200'}`}
-            >
-              <Terminal className="w-3.5 h-3.5" />
-              Console Técnico
-            </button>
+        {/* Navegação entre Abas */}
+        <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 shadow-inner">
+          <button 
+            onClick={() => setActiveTab('landing')}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Apresentação</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'dashboard' 
+                ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 text-rose-500" />
+            <span>Monitor Clínico</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('forecast')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'forecast' 
+                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
+            <span>Previsão de Demanda</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('tecnico')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'tecnico' 
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Console Técnico</span>
+          </button>
+        </div>
+
+        {/* Status de Conexão & Ações */}
+        <div className="flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-2.5 bg-slate-900/60 border border-slate-800 px-3.5 py-1.5 rounded-xl font-mono text-xs text-slate-400">
+            <Clock className="w-3.5 h-3.5 text-sky-400" />
+            <span>{clock}</span>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800/80 px-4 py-2 rounded-xl">
-            <div className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-biotech-neon opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-biotech-neon animate-pulse-green"></span>
-            </div>
+          <div className="flex items-center gap-2.5 bg-slate-900/60 border border-slate-800/80 px-3.5 py-1.5 rounded-xl">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 animate-pulse-green"></span>
+            </span>
             <div className="text-right">
-              <p className="text-[10px] text-slate-400 font-mono">SISTEMA CONECTADO</p>
-              <p className="text-xs text-biotech-neon font-bold font-mono">Arduino Nano • Porta COM3</p>
+              <p className="text-[9px] text-slate-400 font-mono leading-none">HARDWARE ATIVO</p>
+              <p className="text-xs text-emerald-400 font-bold font-mono leading-tight">Arduino Nano</p>
             </div>
           </div>
+
+          <QuickEntryModal onInjectReading={handleInjectReading} apiBase={API_BASE} />
         </div>
       </header>
 
-      {activeTab === 'dashboard' ? (
-        /* ========================================================
-           TELA PRINCIPAL: DASHBOARD BIOMÉDICO
-           ======================================================== */
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 z-10 overflow-hidden">
+      {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
+      {activeTab === 'dashboard' && (
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* COLUNA ESQUERDA (MÉTRICAS RÁPIDAS - 1/3) */}
-          <section className="lg:col-span-1 flex flex-col gap-4">
+          {/* COLUNA ESQUERDA (MÉTRICAS & LOTES - 5/12) */}
+          <section className="lg:col-span-5 flex flex-col gap-4">
             
-            {/* Lotes em Monitoramento */}
-            <div className="glass-panel rounded-xl p-4 flex flex-col gap-3">
+            {/* Seletor de Lotes */}
+            <div className="glass-panel rounded-xl p-4 flex flex-col gap-3 border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5 text-biotech-crimson" />
-                  LOTES DE SANGUE EM ENSAIO
+                  <Database className="w-3.5 h-3.5 text-rose-500" />
+                  LOTES DE SANGUE EM MONITORAMENTO
                 </h2>
                 <button 
-                  onClick={handleCreateLot}
-                  className="text-[10px] text-biotech-neon border border-biotech-neon/30 hover:border-biotech-neon hover:bg-biotech-neon/10 px-2 py-1 rounded transition-all font-mono"
+                  onClick={() => handleAddLot()}
+                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold"
                 >
                   + NOVO LOTE
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {lots.map(l => (
-            <div key={l.id} className="relative group">
-              <button
-                onClick={() => setSelectedLot(l.id)}
-                className={`w-full p-2.5 rounded-lg border text-center font-mono transition-all ${
-                  selectedLot === l.id
-                    ? 'bg-slate-800 border-biotech-neon text-biotech-neon font-bold shadow-lg shadow-biotech-neon/10'
-                    : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                <span className="block text-xs">{l.id}</span>
-                <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote de Sangue'}</span>
-                <span className="block text-[8px] text-cyan-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
-              </button>
+                  <div key={l.id} className="relative group">
+                    <button
+                      onClick={() => setSelectedLot(l.id)}
+                      className={`w-full p-2.5 rounded-xl border text-center font-mono transition-all ${
+                        selectedLot === l.id
+                          ? 'bg-slate-800/90 border-rose-500 text-rose-400 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
+                          : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="block text-xs font-bold">{l.id}</span>
+                      <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote Biológico'}</span>
+                      <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
+                    </button>
 
-              {/* Botão Lixinho 🗑️ (Aparece ao passar o mouse ou fixo em vermelho) */}
-              {lots.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteLot(l.id);
-                  }}
-                  title="Excluir este lote"
-                  className="absolute -top-1.5 -right-1.5 bg-red-950/80 text-red-400 hover:bg-red-600 hover:text-white border border-red-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20"
-                >
-                  ✕
-                </button>
-              )}
+                    {lots.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteLot(l.id);
+                        }}
+                        title="Excluir lote"
+                        className="absolute -top-1.5 -right-1.5 bg-rose-950 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-        </div> {/*
 
-            {/* 5 Variáveis Fisiológicas */}
-            <div className="flex-1 flex flex-col gap-3 justify-between">
+            {/* Grid dos Novos MetricCards do Lovable */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               
               {/* CARD 1: OXIGENAÇÃO */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">01 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {(currentReading.oxigenacao_limpa * 100).toFixed(1)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.oxigenacao_limpa < 0.85 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
-                    currentReading.oxigenacao_limpa < 0.90 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.oxigenacao_limpa < 0.90 ? 'SAT BAIXA' : 'OTIMO'}
-                  </span>
-                  <Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00E5A3'} />
-                </div>
-              </div>
+              <MetricCard
+                title="Saturação de O₂"
+                subtitle="Transporte de oxigênio do lote"
+                value={(currentReading.oxigenacao_limpa * 100).toFixed(1)}
+                unit="%"
+                percent={currentReading.oxigenacao_limpa * 100}
+                level={currentReading.oxigenacao_limpa < 0.90 ? 'critical' : 'success'}
+                detail={currentReading.oxigenacao_limpa < 0.90 ? 'SATURAÇÃO BAIXA' : 'SpO₂ Equivalente Ideal'}
+                icon={Waves}
+                sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00e5a3'} />}
+              />
 
               {/* CARD 2: TEMPERATURA */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">02 • ESTABILIDADE TÉRMICA</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {currentReading.temperatura_c.toFixed(1)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
-                    currentReading.temperatura_c > 37.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'NORMAL'}
-                  </span>
-                  <Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />
-                </div>
-              </div>
+              <MetricCard
+                title="Estabilidade Térmica"
+                subtitle="Sensor DS18B20 em bancada"
+                value={currentReading.temperatura_c.toFixed(1)}
+                unit="°C"
+                percent={Math.min(100, (currentReading.temperatura_c / 42) * 100)}
+                level={currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'critical' : currentReading.temperatura_c > 37.5 ? 'warning' : 'success'}
+                detail={currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA CRÍTICA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'Faixa Fisiológica'}
+                icon={Thermometer}
+                sparkline={<Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />}
+              />
 
               {/* CARD 3: pH */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">03 • POTENCIAL HIDROGENIÔNICO (pH)</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {currentReading.ph.toFixed(2)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.ph < 7.30 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
-                    currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.ph < 7.35 ? 'ACIDOSE' : currentReading.ph > 7.45 ? 'ALCALOSE' : 'FISIOLOGICO'}
-                  </span>
-                  <Sparkline data={getSparkValues('ph')} color="#22d3ee" />
-                </div>
-              </div>
+              <MetricCard
+                title="Potencial pH"
+                subtitle="Equilíbrio ácido-base"
+                value={currentReading.ph.toFixed(2)}
+                unit="pH"
+                percent={Math.min(100, (currentReading.ph / 8.5) * 100)}
+                level={currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'warning' : 'success'}
+                detail={currentReading.ph < 7.35 ? 'Tendência à Acidose' : currentReading.ph > 7.45 ? 'Tendência à Alcalose' : 'pH 7.40 Fisiológico'}
+                icon={FlaskConical}
+                sparkline={<Sparkline data={getSparkValues('ph')} color="#38bdf8" />}
+              />
 
               {/* CARD 4: VISCOSIDADE */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">04 • RESISTÊNCIA DE FLUXO (VISCOSIDADE)</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {currentReading.viscosidade_cp.toFixed(1)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">cP</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.viscosidade_cp > 5.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
-                    currentReading.viscosidade_cp < 3.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.viscosidade_cp > 4.5 ? 'ESPESSO' : currentReading.viscosidade_cp < 3.5 ? 'FLUIDO' : 'ESTÁVEL'}
-                  </span>
-                  <Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />
-                </div>
-              </div>
-
-              {/* CARD 5: HEMATÓCRITO */}
-              <div className="glass-panel glass-panel-hover rounded-xl p-4 flex items-center justify-between relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-400" />
-                <div>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-wider block">05 • FRAÇÃO VOLUMÉTRICA (HEMATÓCRITO)</span>
-                  <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                    {currentReading.hematocrito_pct.toFixed(1)}
-                    <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                    currentReading.hematocrito_pct < 35.0 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                  }`}>
-                    {currentReading.hematocrito_pct < 37.0 ? 'MÉDIO-BAIXO' : 'OTIMO'}
-                  </span>
-                  <Sparkline data={getSparkValues('hematocrito_pct')} color="#f87171" />
-                </div>
-              </div>
+              <MetricCard
+                title="Viscosidade"
+                subtitle="Resistência ao fluxo"
+                value={currentReading.viscosidade_cp.toFixed(1)}
+                unit="cP"
+                percent={Math.min(100, (currentReading.viscosidade_cp / 6) * 100)}
+                level={currentReading.viscosidade_cp > 5.0 ? 'critical' : currentReading.viscosidade_cp < 3.2 ? 'warning' : 'success'}
+                detail={currentReading.viscosidade_cp > 4.5 ? 'Composto Espesso' : 'Fluidez Adequada'}
+                icon={Droplets}
+                sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
+              />
 
             </div>
-{/* Status do Hardware Arduino */}
-            <div className="glass-panel rounded-xl p-3 flex items-center justify-between bg-slate-900/40">
-              <div className="flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-biotech-neon" />
+
+            {/* Status do Hardware Arduino */}
+            <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between bg-slate-900/40 border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <Cpu className="w-4 h-4 text-emerald-400" />
                 <div>
-                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO FÍSICA ARDUINO</p>
-                  <p className="text-xs font-mono font-bold">115200 baud • {packetCount} packets rx</p>
+                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO ARDUINO SERIAL</p>
+                  <p className="text-xs font-mono font-bold text-slate-200">115200 baud • {packetCount} pacotes rx</p>
                 </div>
               </div>
-              <span className="text-[9px] bg-slate-800 border border-slate-700 text-slate-400 font-mono px-2 py-0.5 rounded">
-                DRV: CH340G
+              <span className="text-[9px] bg-slate-800 border border-slate-700 text-emerald-400 font-mono px-2.5 py-1 rounded-md font-semibold">
+                DRIVER: CH340G / COM3
               </span>
             </div>
+
           </section>
 
-          {/* COLUNA CENTRAL/DIREITA (CHATBOT PRINCIPAL - 2/3) */}
-          <section className="lg:col-span-2 flex flex-col gap-4">
+          {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
+          <section className="lg:col-span-7 flex flex-col gap-4">
             
-            {/* Status Alerta Geral */}
-            <div className={`border rounded-xl p-4 flex items-center gap-4 transition-all duration-300 ${getStatusBg(currentReading.status)}`}>
-              <div className={`p-2.5 rounded-lg border bg-slate-950/80 ${getStatusColor(currentReading.status)}`}>
-                {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
-                 currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+            {/* Veredito Geral Semáforo */}
+            <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
+              currentReading.status === "CRÍTICO" 
+                ? 'bg-rose-950/30 border-rose-500/40' 
+                : currentReading.status === "ALERTA"
+                ? 'bg-amber-950/30 border-amber-500/40'
+                : 'bg-emerald-950/20 border-emerald-500/40'
+            }`}>
+              <div className="flex items-center gap-3.5">
+                <div className={`p-3 rounded-xl border bg-slate-950/80 ${
+                  currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
+                  currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
+                }`}>
+                  {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
+                   currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                    VEREDITO DO SISTEMA • LOTE {selectedLot}
+                  </p>
+                  <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                    STATUS: {currentReading.status}
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                    {currentReading.alerta_mensagem}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-slate-400 font-mono">VEREDITO GERAL DA CAMADA 2 & 3 • LOTE {selectedLot}</p>
-                <h3 className="text-lg font-bold text-white tracking-wide">STATUS DO SISTEMA: {currentReading.status}</h3>
-                <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">{currentReading.alerta_mensagem}</p>
+
+              <div className="hidden sm:flex items-center gap-2 pr-2">
+                <Button
+                  onClick={() => setActiveTab('forecast')}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-xs text-slate-200"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
+                  Previsão
+                </Button>
               </div>
             </div>
 
-            {/* Janela de Chat Conversacional com tamanho ajustável e rolagem otimizada */}
-            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl">
+            {/* Chatbot Conversacional com IA Explicável */}
+            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
               
-              {/* Detalhe estético: grade */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
               
               {/* Header do Chat */}
-              <div className="z-10 bg-slate-900/60 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+              <div className="z-10 bg-slate-900/70 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-biotech-crimson animate-pulse" />
-                  <span className="text-xs font-bold font-mono tracking-widest text-slate-400">CAMADA 4: TRADUTOR CIENTÍFICO CONVERSACIONAL</span>
+                  <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
+                  <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
+                    CAMADA 4: TRADUTOR CIENTÍFICO CONVERSACIONAL
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
-                  <span className="h-1.5 w-1.5 rounded-full bg-biotech-neon"></span>
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   ONLINE
                 </div>
               </div>
-{/* Corpo de Mensagens com rolagem automática (overflow-y-auto) */}
-              <div className="z-10 flex-1 h-[380px] max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-4">
+
+              {/* Mensagens do Chat */}
+              <div className="z-10 flex-1 max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5">
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
-                    className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
+                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    
-                    {/* Balão de Mensagem */}
                     <div 
                       className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
                         msg.role === 'user' 
                           ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
-                          : 'bg-slate-900/90 text-slate-200 border border-slate-850 rounded-tl-none glow-neon-border'
+                          : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
                       }`}
                     >
                       <div className="whitespace-pre-line font-sans">{msg.content}</div>
                     </div>
                     
-                    {/* Timestamp / Metadados */}
                     <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
                       {msg.role === 'user' ? 'Visitante' : 'Tradutor Clínico EcoSanguis'}
                     </span>
 
-                    {/* Bloco de IA Explicável Integrado (se disponível na resposta) */}
+                    {/* Bloco de IA Explicável Integrado */}
                     {msg.role === 'assistant' && msg.explicabilidade && (
-                      <div className="mt-3 w-full bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+                      <div className="mt-2.5 w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-2.5">
                         <div className="flex items-center justify-between border-b border-slate-900 pb-2">
-                          <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <Cpu className="w-3.5 h-3.5 text-biotech-crimson" />
-                            DETALHAMENTO DE INFERÊNCIA DA IA EXPLICÁVEL
+                          <span className="text-[10px] font-mono font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
+                            <Cpu className="w-3.5 h-3.5 text-rose-500" />
+                            DETALHAMENTO DA IA EXPLICÁVEL
                           </span>
-                          <span className={`text-xs font-mono font-bold ${getStatusColor(msg.explicabilidade.nivel_risco)}`}>
+                          <span className="text-xs font-mono font-bold text-rose-400">
                             RISCO: {msg.explicabilidade.risco_degradacao_pct}%
                           </span>
                         </div>
                         
-                        {/* Grid dos Sensores e Barras de Progresso */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
-
-                          {/* 1. Oxigenação */}
-                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                          <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-850">
                             <div className="flex justify-between text-[10px] font-mono mb-1">
-                              <span className="text-slate-400">Oxigenação (Ideal &gt;= 90%)</span>
+                              <span className="text-slate-400">Oxigenação (&ge;90%)</span>
                               <span className="text-white font-bold">{(msg.explicabilidade.valores_sensores.oxigenacao*100).toFixed(0)}%</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                               <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.oxigenacao < 0.90 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.oxigenacao < 0.90 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
                                 style={{ width: `${msg.explicabilidade.valores_sensores.oxigenacao * 100}%` }}
                               />
                             </div>
                           </div>
 
-                          {/* 2. Temperatura */}
-                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
+                          <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-850">
                             <div className="flex justify-between text-[10px] font-mono mb-1">
-                              <span className="text-slate-400">Temperatura (Ideal 35.5 - 37.5)</span>
+                              <span className="text-slate-400">Temperatura (35.5-37.5°C)</span>
                               <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.temperatura.toFixed(1)}°C</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                               <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.temperatura > 38.0 || msg.explicabilidade.valores_sensores.temperatura < 35.0 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.temperatura > 38.0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
                                 style={{ width: `${Math.min(100, (msg.explicabilidade.valores_sensores.temperatura / 45) * 100)}%` }}
                               />
                             </div>
                           </div>
-
-                          {/* 3. pH */}
-                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
-                            <div className="flex justify-between text-[10px] font-mono mb-1">
-                              <span className="text-slate-400">pH (Ideal 7.35 - 7.45)</span>
-                              <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.ph.toFixed(2)}</span>
-                            </div>
-                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.ph < 7.35 || msg.explicabilidade.valores_sensores.ph > 7.45 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
-                                style={{ width: `${(msg.explicabilidade.valores_sensores.ph / 14) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* 4. Viscosidade */}
-                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
-                            <div className="flex justify-between text-[10px] font-mono mb-1">
-                              <span className="text-slate-400">Viscosidade (Ideal 3.5 - 4.5)</span>
-                              <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.viscosidade.toFixed(1)} cP</span>
-                            </div>
-                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.viscosidade > 4.5 || msg.explicabilidade.valores_sensores.viscosidade < 3.5 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
-                                style={{ width: `${(msg.explicabilidade.valores_sensores.viscosidade / 10) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-
                         </div>
 
-                        {/* Pesos das features (atribuição) */}
-                        <div className="mt-2 text-[10px] text-slate-400 leading-relaxed bg-slate-900/20 p-2.5 rounded border border-slate-900">
-                          <p className="font-bold text-slate-300 font-mono mb-1">PONDERAÇÃO DE VARIÁVEIS:</p>
-                          <ul className="grid grid-cols-2 gap-x-4 list-disc list-inside">
-                            <li>Oxigenação: +{msg.explicabilidade.pesos_atribuicao.oxigenacao}% risco</li>
-                            <li>Temperatura: +{msg.explicabilidade.pesos_atribuicao.temperatura}% risco</li>
-                            <li>pH: +{msg.explicabilidade.pesos_atribuicao.ph}% risco</li>
-                            <li>Viscosidade: +{msg.explicabilidade.pesos_atribuicao.viscosidade}% risco</li>
-                          </ul>
+                        <div className="text-[10px] text-slate-400 leading-relaxed bg-slate-900/30 p-2 rounded-lg border border-slate-850">
+                          <p className="font-bold text-slate-300 font-mono mb-1">PESOS DAS FEATURES:</p>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                            <span>• Oxigenação: +{msg.explicabilidade.pesos_atribuicao.oxigenacao}%</span>
+                            <span>• Temperatura: +{msg.explicabilidade.pesos_atribuicao.temperatura}%</span>
+                            <span>• pH: +{msg.explicabilidade.pesos_atribuicao.ph}%</span>
+                            <span>• Viscosidade: +{msg.explicabilidade.pesos_atribuicao.viscosidade}%</span>
+                          </div>
                         </div>
                       </div>
                     )}
-
                   </div>
                 ))}
 
-                {/* Balão Simulando Processamento (Onda Senoidal / Batimento cardíaco) */}
+                {/* Loading Heartbeat */}
                 {isTyping && (
                   <div className="flex flex-col max-w-[85%] self-start items-start">
                     <div className="p-3.5 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none flex flex-col gap-2 min-w-[280px]">
                       <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                        <Activity className="w-3.5 h-3.5 text-biotech-crimson animate-heartbeat" />
+                        <Activity className="w-3.5 h-3.5 text-rose-500 animate-heartbeat" />
                         <span>Analisando dados mais recentes do Arduino...</span>
                       </div>
                       
-                      {/* Onda Senoidal SVG Animada */}
-                      <svg width="240" height="24" className="stroke-biotech-crimson" fill="none">
+                      <svg width="240" height="24" className="stroke-rose-500" fill="none">
                         <path
                           className="ecg-path"
                           strokeWidth="2"
@@ -756,40 +768,38 @@ while True:
                 
                 <div ref={messagesEndRef} />
               </div>
+
               {/* Botões de Ações Rápidas (Pills) */}
-<div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto">
-  <button
-  type="button"
-    onClick={() => handleSendMessage('Qual o status atual do lote?')}
-    className="whitespace-nowrap text-[11px] text-biotech-neon border border-biotech-neon px-3 py-1.5 rounded-md hover:bg-biotech-neon/10 transition-colors"
-  >
-    Status atual
-  </button>
-
-  <button
-  type= "button"
-    onClick={() => handleSendMessage('O que é sangue artificial?')}
-    className="whitespace-nowrap text-[11px] text-biotech-crimson border border-biotech-crimson px-3 py-1.5 rounded-md hover:bg-biotech-crimson/10 transition-colors"
-  >
-    O que é sangue artificial?
-  </button>
-
-  <button
-  type="button"
-    onClick={() => handleSendMessage('Por que o lote está em risco?')}
-    className="whitespace-nowrap text-[11px] text-cyan-400 border border-cyan-400 px-3 py-1.5 rounded-md hover:bg-cyan-400/10 transition-colors"
-  >
-    Por que o lote está em risco?
-  </button>
-
-  <button
-    type="button"
-    onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
-    className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-400 px-3 py-1.5 rounded-md hover:bg-slate-400/10 transition-colors"
-  >
-    Limpeza de Ruído & pH
-  </button>
-</div>
+              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/40">
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Qual o status atual do lote?')}
+                  className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
+                >
+                  Status atual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('O que é sangue artificial?')}
+                  className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
+                >
+                  O que é sangue artificial?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Por que o lote está em risco?')}
+                  className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
+                >
+                  Por que o lote está em risco?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
+                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
+                >
+                  Limpeza de Ruído & pH
+                </button>
+              </div>
 
               {/* Caixa de Entrada de Texto */}
               <form 
@@ -800,40 +810,116 @@ while True:
                   type="text" 
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Faça uma pergunta sobre o lote de sangue ou sobre a IA do sistema..."
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-slate-700 text-slate-100 placeholder-slate-500 transition-all font-sans"
+                  placeholder="Pergunte sobre os lotes, sensores ou previsões..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
                 />
-                <button 
+                <Button 
                   type="submit"
-                  className="bg-slate-850 hover:bg-slate-800 text-biotech-neon p-2.5 rounded-xl border border-slate-700/60 hover:border-biotech-neon transition-all"
+                  className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
                 >
-                  <Send className="w-4.5 h-4.5" />
-                </button>
+                  <Send className="w-4 h-4" />
+                </Button>
               </form>
 
             </div>
 
           </section>
         </main>
-      ) : (
-        /* ========================================================
-           TELA SECUNDÁRIA: CONSOLE TÉCNICO (DOCUMENTAÇÃO E SCRIPT)
-           ======================================================== */
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 z-10 overflow-hidden">
+      )}
+
+      {/* ABA 2: PREVISÃO DE DEMANDA HOSPITALAR (LOVABLE RECHARTS) */}
+      {activeTab === 'forecast' && (
+        <main className="flex-1 max-w-[1480px] w-full mx-auto p-4 sm:p-6 z-10 space-y-6">
           
-          {/* COLUNA ESQUERDA: DOCUMENTAÇÃO DA API E SCRIPT PYTHON */}
+          <div className="glass-panel rounded-2xl p-6 border-slate-800">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="rounded-xl border border-sky-500/40 bg-sky-500/12 p-3 text-sky-400">
+                  <TrendingUp className="h-6 w-6" />
+                </span>
+                <div>
+                  <h2 className="font-display text-xl font-bold text-white">
+                    Previsão de Demanda Hospitalar por IA
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Histórico de 7 dias e projeção preditiva da IA para os próximos 4 dias
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-widest text-slate-400 bg-slate-900/60 border border-slate-800 px-4 py-2 rounded-xl">
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-sky-400" /> Demanda Histórica
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-rose-500" /> Previsão IA
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-emerald-400" /> Estoque Projetado
+                </span>
+              </div>
+            </div>
+
+            <DemandChart />
+
+            <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-xs text-amber-300 flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
+              <span>
+                <strong>Alerta Clínico Preditivo:</strong> A IA estima 92 unidades de demanda em D+3, enquanto o estoque projetado cai para 43 unidades — reposição recomendada em até 48h para evitar desabastecimento crítico no pronto-socorro.
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
+              <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
+                Capacidade de Produção
+              </p>
+              <p className="mt-2 font-mono text-3xl font-bold text-sky-400">
+                120 <span className="text-xs text-slate-400 font-sans">unid/dia</span>
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Turno de esterilização e síntese de PFCs</p>
+            </div>
+
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
+              <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
+                Lead Time de Reposição
+              </p>
+              <p className="mt-2 font-mono text-3xl font-bold text-emerald-400">
+                18 <span className="text-xs text-slate-400 font-sans">horas</span>
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Tempo médio de validação biológica e entrega</p>
+            </div>
+
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
+              <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
+                Acurácia do Modelo
+              </p>
+              <p className="mt-2 font-mono text-3xl font-bold text-rose-400">
+                94.8<span className="text-xs text-slate-400 font-sans">%</span>
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Score R² com base em séries temporais</p>
+            </div>
+          </div>
+
+        </main>
+      )}
+
+      {/* ABA 3: CONSOLE TÉCNICO & AUDITORIA */}
+      {activeTab === 'tecnico' && (
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* COLUNA ESQUERDA: SCRIPT PYTHON E ENDPOINT */}
           <section className="flex flex-col gap-4">
-            
-            {/* Bloco de Script de Ponte Python */}
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1">
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1 border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
-                  <Terminal className="w-3.5 h-3.5 text-biotech-neon" />
+                  <Terminal className="w-3.5 h-3.5 text-emerald-400" />
                   SCRIPT DE SUPORTE: PONTE PYTHON (ARDUINO PARA API)
                 </h2>
                 <button 
                   onClick={copyToClipboard}
-                  className="text-[10px] text-biotech-neon border border-biotech-neon/30 hover:border-biotech-neon hover:bg-biotech-neon/10 px-2.5 py-1.5 rounded transition-all font-mono flex items-center gap-1"
+                  className="text-[10px] text-emerald-400 border border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-all font-mono flex items-center gap-1.5"
                 >
                   <Copy className="w-3 h-3" />
                   {copiedScript ? "COPIADO!" : "COPIAR SCRIPT"}
@@ -843,27 +929,26 @@ while True:
                 Rode este script Python no computador do estande conectado ao Arduino. O script lê as leituras da porta serial e faz requisições HTTP POST para a API do site, alimentando o painel em tempo real.
               </p>
               
-              <div className="flex-1 bg-slate-950 border border-slate-900 rounded-lg p-3 overflow-auto max-h-[300px]">
-                <pre className="text-[10px] text-slate-400 font-mono select-text">{pythonScript}</pre>
+              <div className="flex-1 bg-slate-950 border border-slate-900 rounded-xl p-3.5 overflow-auto max-h-[320px]">
+                <pre className="text-[11px] text-slate-300 font-mono select-text">{pythonScript}</pre>
               </div>
             </div>
 
-            {/* Bloco de Documentação do Endpoint */}
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3">
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
               <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-biotech-crimson" />
+                <FileText className="w-3.5 h-3.5 text-rose-500" />
                 DOCUMENTAÇÃO DO ENDPOINT DE TELEMETRIA
               </h2>
               
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold">POST</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded font-mono font-bold">POST</span>
                   <span className="text-xs font-mono text-white">/api/sensor-data</span>
                 </div>
                 <p className="text-xs text-slate-400 font-sans leading-relaxed">
-                  O Arduino ou qualquer ponte envia leituras brutas em JSON. O backend limpa erros de digitação e calcula as variáveis secundárias.
+                  O Arduino ou ponte envia leituras brutas em JSON. O backend limpa erros de digitação e calcula as variáveis secundárias.
                 </p>
-                <div className="bg-slate-950 border border-slate-900 rounded-lg p-3 mt-1">
+                <div className="bg-slate-950 border border-slate-900 rounded-xl p-3 mt-1">
                   <p className="text-[9px] text-slate-500 font-mono mb-1">PAYLOAD DE ENTRADA EXIGIDO:</p>
                   <pre className="text-[10px] text-slate-400 font-mono select-text">{JSON.stringify({
                     "lote_id": "SA-025",
@@ -874,79 +959,82 @@ while True:
                 </div>
               </div>
             </div>
-
           </section>
 
-         {/* COLUNA DIREITA: AUDITORIA DE DADOS DA CAMADA 1 */}
+          {/* COLUNA DIREITA: ARQUITETURA E AUDITORIA */}
           <section className="flex flex-col gap-4">
-            
-            {/* Bloco explicativo da Arquitetura */}
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3">
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
               <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
-                <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                <Cpu className="w-3.5 h-3.5 text-sky-400" />
                 FLUXO OPERACIONAL DE 4 CAMADAS
               </h2>
-              <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-mono mt-1">
-                <div className="bg-slate-900 p-2.5 rounded border border-slate-850">
-                  <span className="block font-bold text-biotech-neon">1. DADOS</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px] font-mono mt-1">
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-emerald-400">1. DADOS</span>
                   <span className="text-[9px] text-slate-400 block mt-1">Coleta e armazena</span>
                 </div>
-                <div className="bg-slate-900 p-2.5 rounded border border-slate-850">
-                  <span className="block font-bold text-cyan-400">2. PROCESS.</span>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-sky-400">2. PROCESS.</span>
                   <span className="text-[9px] text-slate-400 block mt-1">Limpa e normaliza</span>
                 </div>
-                <div className="bg-slate-900 p-2.5 rounded border border-slate-850">
-                  <span className="block font-bold text-amber-500">3. IA EXPL.</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Infe. risco & laudo</span>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-amber-400">3. IA EXPL.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Inferência de risco</span>
                 </div>
-                <div className="bg-slate-900 p-2.5 rounded border border-slate-850">
-                  <span className="block font-bold text-biotech-crimson">4. INTERM.</span>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-rose-500">4. INTERM.</span>
                   <span className="text-[9px] text-slate-400 block mt-1">Chat de conversa</span>
                 </div>
               </div>
             </div>
 
-            {/* Trilha de Auditoria (Logs da Camada de Dados em Tempo Real) */}
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3">
+            {/* Trilha de Auditoria */}
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800 flex-1">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2 uppercase">
-                  <Database className="w-3.5 h-3.5 text-biotech-crimson" />
+                  <Database className="w-3.5 h-3.5 text-rose-500" />
                   CAMADA 1: LOGS DE AUDITORIA E RASTREABILIDADE
                 </h2>
-                <RefreshCw className="w-3 h-3 text-slate-400 animate-spin" />
+                <RefreshCw className="w-3.5 h-3.5 text-slate-400 cursor-pointer hover:text-white transition-colors" onClick={fetchAudits} />
               </div>
 
-              <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-60">
-                {audits.map((a, index) => (
-                  <div
-                    key={a.id || index}
-                    className="p-2.5 rounded bg-slate-900/50 border border-slate-800/80 text-xs flex flex-col gap-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 font-bold">[{a.action}]</span>
-                      <span className="text-slate-500">{new Date(a.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                    <p className="text-slate-300 text-xs font-sans">{a.details}</p>
-                    <div className="flex items-center gap-1 text-[9px]">
-                      <span>Operador: </span>
-                      <span className="text-slate-400 font-bold">{a.operator || "SISTEMA"}</span>
-                    </div>
+              <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[380px]">
+                {audits.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-500">
+                    Nenhum log de auditoria pendente no banco local.
                   </div>
-                ))}
+                ) : (
+                  audits.map((a, index) => (
+                    <div
+                      key={a.id || index}
+                      className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs flex flex-col gap-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-300 font-bold font-mono">[{a.action}]</span>
+                        <span className="text-slate-500 font-mono text-[10px]">
+                          {a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : "--:--"}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-xs font-sans">{a.details}</p>
+                      <div className="flex items-center gap-1 text-[9px] text-slate-500 font-mono">
+                        <span>Operador:</span>
+                        <span className="text-slate-400 font-bold">{a.operator || "SISTEMA"}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
-
           </section>
         </main>
       )}
 
-      {/* Footer / Direitos */}
-      <footer className="z-10 py-3 border-t border-slate-900 bg-slate-950/50">
+      {/* Footer */}
+      <footer className="z-10 py-3.5 border-t border-slate-900 bg-slate-950/80 px-6">
         <p className="text-[10px] text-slate-500 font-mono tracking-wider text-center">
-          CONCEPÇÃO CIENTÍFICA: ARQUITETURA INTELIGENTE PARA UM SISTEMA DE SANGUE ARTIFICIAL
+          FLOWTIFICIAL • PROJETO FECART 2026 • ARQUITETURA INTELIGENTE PARA SANGUE ARTIFICIAL
         </p>
       </footer>
     </div>
   );
 }
-
