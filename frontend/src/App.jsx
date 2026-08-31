@@ -450,7 +450,30 @@ ${barExtr} ${pctExtr}%  [ALTO]
 
       const respostaPadrao = `Análise em tempo real do lote ${selectedLot}: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`;
 
-      const respostaFinal = isEmerg ? respostaEmerg : (isTransp ? respostaTransp : (isAlt ? respostaAlt : (isMonox ? respostaMonox : respostaPadrao)));
+      if (isEmerg) {
+        const cardMetrics = [
+          { id: 'B1', name: 'B1 • SATURAÇÃO DE O₂', val: `${valO2}%`, pct: pctO2, badge: 'ÓTIMO', color: '#00ff9d' },
+          { id: 'B2', name: 'B2 • VISCOSIDADE DE FLUXO', val: `${valVisc} cP`, pct: pctVisc, badge: 'FLUIDO', color: '#a855f7' },
+          { id: 'B3', name: 'B3 • ESTABILIDADE TÉRMICA', val: `${valTemp} °C`, pct: pctTemp, badge: 'ESTÁVEL', color: '#ffb703' },
+          { id: 'B4', name: 'B4 • MEIA-VIDA CIRCUL.', val: `${valVida} h`, pct: pctVida, badge: 'SUFICIENTE', color: '#00d8ff' },
+          { id: 'B5', name: 'B5 • EXTRAÇÃO DE O₂', val: `${valExtr}%`, pct: pctExtr, badge: 'ALTO', color: '#02c39a' }
+        ];
+
+        setMessages(prev => [...prev, 
+          { role: 'user', content: text },
+          { 
+            role: 'assistant', 
+            content: respostaEmerg,
+            cardType: 'laudo_emergencia',
+            loteId: selectedLot,
+            metrics: cardMetrics
+          }
+        ]);
+        setInputValue('');
+        return;
+      }
+
+      const respostaFinal = isTransp ? respostaTransp : (isAlt ? respostaAlt : (isMonox ? respostaMonox : respostaPadrao));
 
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
@@ -1728,15 +1751,77 @@ while True:
                     key={index}
                     className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    <div 
-                      className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
-                        msg.role === 'user' 
-                          ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
-                          : 'bg-slate-900/90 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
-                      }`}
-                    >
-                      <div className="whitespace-pre-line font-sans">{msg.content}</div>
-                    </div>
+                    {msg.cardType === 'laudo_emergencia' ? (
+                      <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xl select-text">
+                        {/* Título do Laudo em Destaque */}
+                        <div className="border-b border-slate-800/80 pb-2.5 flex items-center justify-between">
+                          <h3 className="text-xs font-bold font-mono text-white tracking-wider flex items-center gap-2">
+                            <span>🩺</span> LAUDO TÉCNICO • LOTE {msg.loteId} (EMERGÊNCIA)
+                          </h3>
+                          <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                            APROVADO
+                          </span>
+                        </div>
+
+                        {/* Lista dos 5 Parâmetros com Cores Neon */}
+                        <div className="flex flex-col gap-3">
+                          {msg.metrics?.map((m) => (
+                            <div key={m.id} className="flex flex-col gap-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-850">
+                              <div className="flex justify-between items-center text-[11px] font-mono">
+                                <span className="text-slate-200 font-semibold">{m.name}</span>
+                                <span className="text-white font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-mono">
+                                  [{m.val}]
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex-1 bg-slate-950 border border-slate-800/80 h-3 rounded-full overflow-hidden p-0.5">
+                                  <div 
+                                    className="h-full rounded-full transition-all duration-500"
+                                    style={{ 
+                                      width: `${m.pct}%`, 
+                                      backgroundColor: m.color,
+                                      boxShadow: `0 0 8px ${m.color}aa`
+                                    }}
+                                  />
+                                </div>
+                                <span className="text-[11px] font-mono font-bold text-slate-300 min-w-[36px] text-right">
+                                  {m.pct}%
+                                </span>
+                                <span 
+                                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all min-w-[75px] text-center"
+                                  style={{
+                                    color: m.color,
+                                    borderColor: `${m.color}80`,
+                                    backgroundColor: `${m.color}18`,
+                                    boxShadow: `0 0 6px ${m.color}30`
+                                  }}
+                                >
+                                  [{m.badge}]
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Linha Final de Veredito em Destaque Verde */}
+                        <div className="border-t border-slate-800 pt-2.5 mt-1 bg-emerald-500/10 border-emerald-500/30 p-2.5 rounded-xl border">
+                          <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5">
+                            🟢 VEREDITO: Lote aprovado para atendimento pré-hospitalar.
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
+                          msg.role === 'user' 
+                            ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
+                            : 'bg-slate-900/90 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
+                        }`}
+                      >
+                        <div className="whitespace-pre-line font-sans">{msg.content}</div>
+                      </div>
+                    )}
                     
                     <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
                       {msg.role === 'user' ? 'Visitante' : 'Tradutor Clínico EcoSanguis'}
