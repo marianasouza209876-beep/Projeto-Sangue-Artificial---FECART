@@ -14,31 +14,30 @@ import {
   FileText,
   Copy,
   ChevronRight,
-  Plus,
-  X,
+  TrendingUp,
+  Droplets,
+  ShieldCheck,
+  FlaskConical,
+  Waves,
+  Thermometer,
+  Layers,
   Clock,
-  Tag,
-  Target
+  Sparkles,
+  Info
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MetricCard } from '@/components/MetricCard';
+import { DemandChart } from '@/components/DemandChart';
+import { LandingPage } from '@/components/LandingPage';
+import { QuickEntryModal } from '@/components/QuickEntryModal';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
 
-// Lista Oficial de Finalidades Clínicas
-const FINALIDADES_OPCOES = [
-  "Atendimento Pré-Hospitalar de Emergência (Trauma e Hemorragia Massiva)",
-  "Preservação Avançada de Órgãos para Transplante",
-  "Resgate e Cirurgia em Altas Altitudes",
-  "Vítimas de Envenenamento por Monóxido de Carbono",
-  "Tratamento de Queimaduras Graves e Choque Séptico",
-  "Doação de Sangue e Compatibilidade Universal",
-  "Manejo Clínico de Pacientes com Raros Fenótipos Sanguíneos"
-];
-
-// Componente para desenhar o Sparkline em SVG
-const Sparkline = ({ data, color }) => {
+// Sparkline SVG Component
+const Sparkline = ({ data, color = "#00e5a3" }) => {
   if (!data || data.length < 2) return null;
-  const width = 120;
-  const height = 30;
+  const width = 100;
+  const height = 26;
   
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -59,251 +58,97 @@ const Sparkline = ({ data, color }) => {
         points={points}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="filter drop-shadow-[0_0_3px_rgba(0,229,163,0.5)]"
       />
     </svg>
   );
 };
 
-// Objeto com os Limites e Protocolos Clínicos Médicos Mapeados
+// Protocolos Clínicos Médicos
 const PROTOCOLOS_CLINICOS = {
-  "Atendimento Pré-Hospitalar de Emergência (Trauma e Hemorragia Massiva)": {
-    o2: { normal: [95, 100], seguro: [92, 100], critico: 90 },
-    temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
-    ph: { normal: [7.35, 7.45], seguro: [7.30, 7.50], criticoMin: 7.25, criticoMax: 7.55 },
-    viscosidade: { normal: [3.0, 4.5], seguro: [3.0, 5.0], criticoMin: 2.5, criticoMax: 5.5 },
-    hematocrito: { normal: [35, 45], seguro: [32, 48], criticoMin: 30, criticoMax: 50 }
-  },
-  "Preservação Avançada de Órgãos para Transplante": {
-    o2: { normal: [98, 100], seguro: [95, 100], critico: 95 },
-    temp: { normal: [4.0, 10.0], seguro: [4.0, 37.5], criticoMin: 4.0, criticoMax: 37.5 },
-    ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.35, criticoMax: 7.45 },
-    viscosidade: { normal: [2.5, 3.5], seguro: [2.0, 4.0], criticoMin: 2.0, criticoMax: 4.5 },
-    hematocrito: { normal: [30, 40], seguro: [28, 42], criticoMin: 25, criticoMax: 45 }
-  },
-  "Resgate e Cirurgia em Altas Altitudes": {
-    o2: { normal: [90, 98], seguro: [88, 100], critico: 85 },
-    temp: { normal: [36.0, 37.2], seguro: [35.5, 37.5], criticoMin: 34.5, criticoMax: 38.0 },
-    ph: { normal: [7.38, 7.48], seguro: [7.33, 7.52], criticoMin: 7.30, criticoMax: 7.55 },
-    viscosidade: { normal: [3.2, 4.8], seguro: [3.0, 5.2], criticoMin: 2.8, criticoMax: 5.8 },
-    hematocrito: { normal: [40, 52], seguro: [38, 55], criticoMin: 35, criticoMax: 58 }
-  },
-  "Vítimas de Envenenamento por Monóxido de Carbono": {
-    o2: { normal: [98, 100], seguro: [96, 100], critico: 94 },
-    temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
-    ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.28, criticoMax: 7.50 },
-    viscosidade: { normal: [3.0, 4.2], seguro: [2.8, 4.5], criticoMin: 2.5, criticoMax: 5.0 },
-    hematocrito: { normal: [36, 46], seguro: [33, 49], criticoMin: 30, criticoMax: 52 }
-  },
-  "Tratamento de Queimaduras Graves e Choque Séptico": {
-    o2: { normal: [94, 100], seguro: [91, 100], critico: 89 },
-    temp: { normal: [36.5, 38.0], seguro: [36.0, 38.5], criticoMin: 35.0, criticoMax: 39.0 },
-    ph: { normal: [7.32, 7.45], seguro: [7.28, 7.48], criticoMin: 7.20, criticoMax: 7.52 },
-    viscosidade: { normal: [2.8, 4.0], seguro: [2.5, 4.5], criticoMin: 2.2, criticoMax: 5.0 },
-    hematocrito: { normal: [32, 42], seguro: [30, 45], criticoMin: 28, criticoMax: 48 }
-  },
-  "Doação de Sangue e Compatibilidade Universal": {
-    o2: { normal: [95, 100], seguro: [93, 100], critico: 90 },
-    temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
-    ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.30, criticoMax: 7.50 },
-    viscosidade: { normal: [3.0, 4.5], seguro: [3.0, 5.0], criticoMin: 2.5, criticoMax: 5.5 },
-    hematocrito: { normal: [38, 50], seguro: [36, 52], criticoMin: 30, criticoMax: 55 }
-  },
-  "Manejo Clínico de Pacientes com Raros Fenótipos Sanguíneos": {
-    o2: { normal: [95, 100], seguro: [93, 100], critico: 90 },
-    temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
-    ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.30, criticoMax: 7.50 },
-    viscosidade: { normal: [3.0, 4.5], seguro: [3.0, 5.0], criticoMin: 2.5, criticoMax: 5.5 },
-    hematocrito: { normal: [38, 48], seguro: [35, 50], criticoMin: 32, criticoMax: 53 }
-  },
   "Simulação Fisiológica Humana": {
     o2: { normal: [95, 100], seguro: [93, 100], critico: 90 },
     temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
     ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.35, criticoMax: 7.45 },
     viscosidade: { normal: [3.0, 4.5], seguro: [3.0, 5.0], criticoMin: 2.5, criticoMax: 5.5 },
     hematocrito: { normal: [38, 50], seguro: [36, 52], criticoMin: 30, criticoMax: 55 }
+  },
+  "Preservação de Órgãos para Transplante": {
+    o2: { normal: [98, 100], seguro: [95, 100], critico: 95 },
+    temp: { normal: [4.0, 10.0], seguro: [4.0, 37.5], criticoMin: 4.0, criticoMax: 37.5 },
+    ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.35, criticoMax: 7.45 },
+    viscosidade: { normal: [2.5, 3.5], seguro: [2.0, 4.0], criticoMin: 2.0, criticoMax: 4.5 },
+    hematocrito: { normal: [30, 40], seguro: [28, 42], criticoMin: 25, criticoMax: 45 }
+  },
+  "Transfusão de Emergência (Uso Universal)": {
+    o2: { normal: [95, 100], seguro: [92, 100], critico: 90 },
+    temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
+    ph: { normal: [7.40, 7.40], seguro: [7.35, 7.45], criticoMin: 7.35, criticoMax: 7.45 },
+    viscosidade: { normal: [3.0, 4.5], seguro: [3.0, 5.0], criticoMin: 2.5, criticoMax: 5.5 },
+    hematocrito: { normal: [35, 45], seguro: [32, 48], criticoMin: 30, criticoMax: 50 }
+  },
+  "Teste de Segurança e Toxicidade Celular": {
+    o2: { normal: [95, 100], seguro: [93, 100], critico: 90 },
+    temp: { normal: [37.0, 37.0], seguro: [36.5, 37.5], criticoMin: 35.0, criticoMax: 38.0 },
+    ph: { normal: [7.38, 7.42], seguro: [7.35, 7.45], criticoMin: 7.35, criticoMax: 7.45 },
+    viscosidade: { normal: [3.0, 4.0], seguro: [2.8, 4.2], criticoMin: 2.5, criticoMax: 5.0 },
+    hematocrito: { normal: [40, 40], seguro: [38, 42], criticoMin: 35, criticoMax: 45 }
   }
 };
 
 export default function App() {
+  // Navegação: 'landing' | 'dashboard' | 'forecast' | 'tecnico'
+  const [activeTab, setActiveTab] = useState('landing');
+  const [clock, setClock] = useState("--:--:--");
+
+  // Relógio ao vivo
+  useEffect(() => {
+    const tick = () => setClock(new Date().toLocaleTimeString('pt-BR'));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Estados da Aplicação
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedLot, setSelectedLot] = useState("SA-025");
   const [lots, setLots] = useState([
     {
-      id: "SA-023",
-      name: "Lote Alfa Trauma",
-      nome: "Lote Alfa Trauma",
-      createdAt: new Date().toLocaleString('pt-BR'),
-      data_criacao: new Date().toLocaleString('pt-BR'),
-      finalidade: FINALIDADES_OPCOES[0],
-      destino: FINALIDADES_OPCOES[0],
-      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
-      intervaloLeitura: "5s",
-      protocolo: PROTOCOLOS_CLINICOS[FINALIDADES_OPCOES[0]]
-    },
-    {
-      id: "SA-024",
-      name: "Lote Beta Transplante",
-      nome: "Lote Beta Transplante",
-      createdAt: new Date().toLocaleString('pt-BR'),
-      data_criacao: new Date().toLocaleString('pt-BR'),
-      finalidade: FINALIDADES_OPCOES[1],
-      destino: FINALIDADES_OPCOES[1],
-      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
-      intervaloLeitura: "5s",
-      protocolo: PROTOCOLOS_CLINICOS[FINALIDADES_OPCOES[1]]
-    },
-    {
       id: "SA-025",
-      name: "Lote Gama Altitude",
-      nome: "Lote Gama Altitude",
+      name: "Lote Teste Primário",
       createdAt: new Date().toLocaleString('pt-BR'),
-      data_criacao: new Date().toLocaleString('pt-BR'),
-      finalidade: FINALIDADES_OPCOES[2],
-      destino: FINALIDADES_OPCOES[2],
       responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
+      destino: "Simulação Fisiológica Humana",
       intervaloLeitura: "5s",
-      protocolo: PROTOCOLOS_CLINICOS[FINALIDADES_OPCOES[2]]
+      protocolo: PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"]
     }
   ]);
   const [history, setHistory] = useState([]);
   const [audits, setAudits] = useState([]);
-  const WELCOME_MESSAGE = {
-    role: 'assistant',
-    content: 'Olá! Sou o assistente clínico EcoSanguis. Pergunte-me sobre o estado de qualquer lote ou escolha uma das perguntas rápidas abaixo!',
-    explicabilidade: null
-  };
-
-  const [chatHistories, setChatHistories] = useState({});
-
-  const messages = chatHistories[selectedLot] || [WELCOME_MESSAGE];
-
-  const addMessagesToBatch = (batchId, ...newMsgs) => {
-    setChatHistories(prev => {
-      const existing = prev[batchId] || [WELCOME_MESSAGE];
-      return {
-        ...prev,
-        [batchId]: [...existing, ...newMsgs].slice(-50)
-      };
-    });
-  };
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
-  const [packetCount, setPacketCount] = useState(142);
+  const [packetCount, setPacketCount] = useState(1420);
   const messagesEndRef = useRef(null);
 
-  // Estados do Modal de Criação de Novo Lote
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newLotName, setNewLotName] = useState("");
-  const [newLotCode, setNewLotCode] = useState("");
-  const [newLotCreatedAt, setNewLotCreatedAt] = useState("");
-  const [newLotFinalidade, setNewLotFinalidade] = useState(FINALIDADES_OPCOES[0]);
-
-  // Função para abrir o modal de criação de lote com campos auto-preenchidos
-  const openCreateLotModal = () => {
-    const existingNumbers = lots.map(l => {
-      const match = String(l.id).match(/SA-(\d+)/i);
-      return match ? parseInt(match[1], 10) : 0;
-    });
-    const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 24) : 25;
-    const nextNum = maxNum + 1;
-    const autoCode = `SA-${String(nextNum).padStart(3, '0')}`;
-    
-    // Obter data e hora do sistema do computador
-    const now = new Date();
-    const fullDateTime = now.toLocaleString('pt-BR');
-
-    setNewLotCode(autoCode);
-    setNewLotName(`Lote ${autoCode}`);
-    setNewLotCreatedAt(fullDateTime);
-    setNewLotFinalidade(FINALIDADES_OPCOES[0]);
-    setIsModalOpen(true);
-  };
-
-  // Função para confirmar e cadastrar o lote
-  const handleConfirmCreateLot = async (e) => {
-    if (e) e.preventDefault();
-
-    const finalCode = newLotCode.trim() || `SA-${String(lots.length + 25).padStart(3, '0')}`;
-    const finalName = newLotName.trim() || `Lote ${finalCode}`;
-    const finalCreatedAt = newLotCreatedAt || new Date().toLocaleString('pt-BR');
-    const finalFinalidade = newLotFinalidade || FINALIDADES_OPCOES[0];
-    const finalProtocolo = PROTOCOLOS_CLINICOS[finalFinalidade] || PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"];
-
-    const newLotObj = {
-      id: finalCode,
-      name: finalName,
-      nome: finalName,
-      createdAt: finalCreatedAt,
-      data_criacao: finalCreatedAt,
-      finalidade: finalFinalidade,
-      destino: finalFinalidade,
-      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
-      intervaloLeitura: "5s",
-      protocolo: finalProtocolo,
-      status: "ESTÁVEL"
-    };
-
-    setLots(prev => [...prev, newLotObj]);
-    setSelectedLot(finalCode);
-    setIsModalOpen(false);
-
-    // Integrar com o backend FastAPI se disponível
-    try {
-      const res = await fetch(`${API_BASE}/api/lots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          id: finalCode,
-          nome: finalName,
-          data_criacao: new Date().toISOString(),
-          finalidade: finalFinalidade,
-          composicao: `Fórmula Biomédica para ${finalFinalidade}`,
-          status_inicial: "ESTÁVEL"
-        })
-      });
-      if (res.ok) {
-        fetchLots();
-      }
-    } catch (err) {
-      console.log("Servidor offline: lote adicionado localmente no estado React.");
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: 'Olá! Sou o Tradutor Científico EcoSanguis / Flowtificial. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
+      explicabilidade: null
     }
-  };
+  ]);
 
-  // Função para apagar/deletar lote
-  const handleDeleteLot = (lotIdToDelete) => {
-    setLots(prev => prev.filter(lot => lot.id !== lotIdToDelete));
-    if (selectedLot === lotIdToDelete && lots.length > 1) {
-      setSelectedLot(lots[0].id);
-    }
-  };
-
-  // Carrega lotes cadastrados do backend
+  // Carrega lotes cadastrados
   const fetchLots = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/lots`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          const mappedLots = data.map(item => ({
-            id: item.id,
-            name: item.nome || item.name || `Lote ${item.id}`,
-            nome: item.nome || item.name || `Lote ${item.id}`,
-            createdAt: item.data_criacao || item.createdAt || new Date().toLocaleString('pt-BR'),
-            data_criacao: item.data_criacao || item.createdAt || new Date().toLocaleString('pt-BR'),
-            finalidade: item.finalidade || item.destino || FINALIDADES_OPCOES[0],
-            destino: item.finalidade || item.destino || FINALIDADES_OPCOES[0],
-            responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
-            intervaloLeitura: "5s",
-            protocolo: PROTOCOLOS_CLINICOS[item.finalidade] || PROTOCOLOS_CLINICOS[item.destino] || PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"]
-          }));
-          setLots(mappedLots);
+          setLots(data);
         }
       }
     } catch (err) {
-      console.log("Erro ao carregar lotes do backend:", err);
+      console.log("Erro ao carregar lotes:", err);
     }
   };
 
@@ -313,7 +158,9 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
       if (res.ok) {
         const data = await res.json();
-        setHistory(Array.isArray(data) ? data.slice(-30) : []);
+        if (Array.isArray(data)) {
+          setHistory(data);
+        }
       }
     } catch (err) {
       console.log("Erro ao carregar histórico:", err);
@@ -326,7 +173,9 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/audits`);
       if (res.ok) {
         const data = await res.json();
-        setAudits(data);
+        if (Array.isArray(data)) {
+          setAudits(data);
+        }
       }
     } catch (err) {
       console.log("Erro ao carregar auditoria:", err);
@@ -340,21 +189,68 @@ export default function App() {
 
   useEffect(() => {
     fetchHistory();
-    const interval = setInterval(() => {
-      fetchHistory();
-      setPacketCount(prev => prev + 1);
-    }, 4000);
-    return () => clearInterval(interval);
   }, [selectedLot]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Envio de pergunta e integração com backend
-  const handleSendMessage = async (text) => {
-    if (!text.trim()) return;
+  // Criação de novos lotes
+  const handleAddLot = (customName, destinoSelecionado = "Simulação Fisiológica Humana") => {
+    const nextNumber = lots.length + 25;
+    const newLotId = `SA-${String(nextNumber).padStart(3, '0')}`;
+    const now = new Date();
+    
+    const newLot = {
+      id: newLotId,
+      name: customName || `Lote ${newLotId}`,
+      createdAt: now.toLocaleString('pt-BR'),
+      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
+      destino: destinoSelecionado,
+      intervaloLeitura: "5s",
+      protocolo: PROTOCOLOS_CLINICOS[destinoSelecionado]
+    };
 
+    setLots(prev => [...prev, newLot]);
+    setSelectedLot(newLot.id);
+  };
+
+  // Deletar lote
+  const handleDeleteLot = (lotIdToDelete) => {
+    setLots(prev => prev.filter(lot => lot.id !== lotIdToDelete));
+    if (selectedLot === lotIdToDelete && lots.length > 1) {
+      setSelectedLot(lots[0].id);
+    }
+  };
+
+  // Injeção de leitura manual / QR Code
+  const handleInjectReading = (reading) => {
+    const oxVal = parseFloat(String(reading.oxigenacao).replace("%", "").replace(",", ".")) / 100;
+    const tempVal = parseFloat(String(reading.temperatura).replace("C", "").replace(",", "."));
+    const vazaoVal = parseFloat(String(reading.vazao).replace(",", "."));
+
+    const newEntry = {
+      oxigenacao_limpa: isNaN(oxVal) ? 0.95 : oxVal,
+      temperatura_c: isNaN(tempVal) ? 36.8 : tempVal,
+      vazao_l_min: isNaN(vazaoVal) ? 4.8 : vazaoVal,
+      ph: 7.40,
+      viscosidade_cp: 3.8,
+      hematocrito_pct: 40.0,
+      status: (oxVal < 0.90 || tempVal > 38.0) ? "CRÍTICO" : "ESTÁVEL",
+      alerta_mensagem: (oxVal < 0.90 || tempVal > 38.0)
+        ? "ALERTA: Parâmetros fora da faixa fisiológica ideal."
+        : "Sistema operando dentro dos parâmetros de normalidade."
+    };
+
+    setHistory(prev => [...prev, newEntry]);
+    setPacketCount(p => p + 1);
+  };
+
+  // Envio de pergunta e integração com chat
+  const handleSendMessage = async (text) => {
+    if (!text || !text.trim()) return;
+
+    // Resposta fixa: O que é sangue artificial
     if (text.toLowerCase().includes("o que é sangue artificial")) {
       const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
 
@@ -367,316 +263,27 @@ Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Per
 
 Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
 
-      addMessagesToBatch(selectedLot, 
+      setMessages(prev => [
+        ...prev, 
         { role: 'user', content: text },
         { role: 'assistant', content: respostaPronta }
-      );
+      ]);
       setInputValue('');
       return;
     }
 
+    // Resposta fixa: Condições do sangue / Status atual
     if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
-      const isEmerg = selectedLotObj && (
-        (selectedLotObj.finalidade && selectedLotObj.finalidade.toLowerCase().includes("emergência")) ||
-        (selectedLotObj.destino && selectedLotObj.destino.toLowerCase().includes("emergência")) ||
-        selectedLot === "SA-023"
-      );
-
-      const isTransp = selectedLotObj && !isEmerg && (
-        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("transplante") || selectedLotObj.finalidade.toLowerCase().includes("órgãos"))) ||
-        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("transplante") || selectedLotObj.destino.toLowerCase().includes("órgãos"))) ||
-        selectedLot === "SA-024"
-      );
-
-      const isAlt = selectedLotObj && !isEmerg && !isTransp && (
-        (selectedLotObj.finalidade && selectedLotObj.finalidade.toLowerCase().includes("altitude")) ||
-        (selectedLotObj.destino && selectedLotObj.destino.toLowerCase().includes("altitude")) ||
-        selectedLot === "SA-025"
-      );
-      
-      const isMonox = selectedLotObj && !isEmerg && !isTransp && !isAlt && (
-        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("monóxido") || selectedLotObj.finalidade.toLowerCase().includes("envenenamento"))) ||
-        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("monóxido") || selectedLotObj.destino.toLowerCase().includes("envenenamento")))
-      );
-
-      const isQueim = selectedLotObj && !isEmerg && !isTransp && !isAlt && !isMonox && (
-        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("queimaduras") || selectedLotObj.finalidade.toLowerCase().includes("séptico") || selectedLotObj.finalidade.toLowerCase().includes("septico"))) ||
-        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("queimaduras") || selectedLotObj.destino.toLowerCase().includes("séptico") || selectedLotObj.destino.toLowerCase().includes("septico")))
-      );
-
-      const isDoacaoMsg = selectedLotObj && !isEmerg && !isTransp && !isAlt && !isMonox && !isQueim && (
-        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("doação") || selectedLotObj.finalidade.toLowerCase().includes("doacao") || selectedLotObj.finalidade.toLowerCase().includes("compatibilidade"))) ||
-        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("doação") || selectedLotObj.destino.toLowerCase().includes("doacao") || selectedLotObj.destino.toLowerCase().includes("compatibilidade")))
-      );
-
-      const isRarosMsg = selectedLotObj && !isEmerg && !isTransp && !isAlt && !isMonox && !isQueim && !isDoacaoMsg && (
-        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("raros") || selectedLotObj.finalidade.toLowerCase().includes("fenótipos") || selectedLotObj.finalidade.toLowerCase().includes("fenotipos"))) ||
-        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("raros") || selectedLotObj.destino.toLowerCase().includes("fenótipos") || selectedLotObj.destino.toLowerCase().includes("fenotipos")))
-      );
-      
-      const valO2 = ((currentReading?.oxigenacao_limpa || 0.98) * 100).toFixed(1);
-      const pctO2 = Math.round(parseFloat(valO2));
-      const barO2 = "█".repeat(Math.round((pctO2 / 100) * 20)) + "░".repeat(20 - Math.round((pctO2 / 100) * 20));
-
-      const valVisc = (currentReading?.viscosidade_cp ? Math.min(3.0, currentReading.viscosidade_cp) : 2.3).toFixed(1);
-      const pctVisc = Math.round((parseFloat(valVisc) / 5.0) * 100);
-      const barVisc = "█".repeat(Math.round((pctVisc / 100) * 20)) + "░".repeat(20 - Math.round((pctVisc / 100) * 20));
-
-      const valTemp = (currentReading?.temperatura_c && currentReading.temperatura_c < 30 ? currentReading.temperatura_c : 22.0).toFixed(1);
-      const pctTemp = Math.round((parseFloat(valTemp) / 37.0) * 100);
-      const barTemp = "█".repeat(Math.round((pctTemp / 100) * 20)) + "░".repeat(20 - Math.round((pctTemp / 100) * 20));
-
-      const valVida = "24.0";
-      const pctVida = 100;
-      const barVida = "█".repeat(20);
-
-      const valExtr = "42.0";
-      const pctExtr = 42;
-      const barExtr = "█".repeat(Math.round((pctExtr / 100) * 20)) + "░".repeat(20 - Math.round((pctExtr / 100) * 20));
-
-      const respostaEmerg = `🩺 LAUDO TÉCNICO • LOTE ${selectedLot} (EMERGÊNCIA)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-B1 • SATURAÇÃO DE O₂      [${valO2}% ]  
-${barO2} ${pctO2}%  [ÓTIMO]
-
-B2 • VISCOSIDADE DE FLUXO [${valVisc} cP]  
-${barVisc} ${pctVisc}%  [FLUIDO]
-
-B3 • ESTABILIDADE TÉRMICA [${valTemp} °C]  
-${barTemp} ${pctTemp}%  [ESTÁVEL]
-
-B4 • MEIA-VIDA CIRCUL.    [${valVida} h]  
-${barVida} ${pctVida}%  [SUFICIENTE]
-
-B5 • EXTRAÇÃO DE O₂       [${valExtr}% ]  
-${barExtr} ${pctExtr}%  [ALTO]
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🟢 VEREDITO: Lote aprovado para atendimento pré-hospitalar.`;
-
-      const respostaTransp = `Laudo da IA para Preservação Avançada de Órgãos para Transplante (Lote ${selectedLot}):
-• B1 Pressão Osmótica (Oncótica): 25.0 mmHg (FISIOLÓGICO) - Previne inchaço e danos celulares no órgão fora do corpo.
-• B2 Capacidade Antioxidante: 94.5% (ALTÍSSIMO) - Neutraliza radicais livres no momento de reperfusão.
-• B3 Potencial Hidrogeniônico: 7.38 pH (ESTÁVEL) - Conserva o equilíbrio ácido-base durante a perfusão.
-• B4 Pressão Parcial de CO2 (pCO2): 40.0 mmHg (NORMAL) - Remoção eficiente dos resíduos metabólicos.
-• B5 Concentração de Glicose: 100.0 mg/dL (NUTRITIVO) - Mantém as células do órgão vivas e metabolicamente ativas.`;
-
-      const respostaAlt = `Laudo da IA para Resgate e Cirurgias em Altas Altitudes (Lote ${selectedLot}):
-• B1 Pressão Parcial P50 (Afinidade O2): 34.0 mmHg (ADAPTADO) - Liberação eficiente sob baixa pressão atmosférica.
-• B2 Ponto de Congelamento: -2.5 °C (RESISTENTE) - Evita cristalização em frio extremo de altitude.
-• B3 Saturação de O2 (Oxigenação): 96.5% (ÓTIMO) - Compensa a menor oferta de oxigênio no ar rarefeito.
-• B4 Pressão Parcial de Oxi-Hemoglobina (pO2): 92.0 mmHg (ELEVADO) - Força de impulsão para difundir O2 nos tecidos.`;
-
-      const respostaMonox = `Laudo da IA para Vítimas de Envenenamento por Monóxido de Carbono (CO) (Lote ${selectedLot}):
-• B1 Taxa de Deslocamento de CO: 88.0% (CRÍTICO / ALTO) - Remove o monóxido de carbono ligado às hemácias.
-• B2 Effluence de Depurantes: 91.2% (EFICIENTE) - Auxilia na varredura e eliminação celular do gás tóxico.
-• B3 Potencial Hidrogeniônico: 7.42 pH (FISIOLÓGICO) - Reverte o quadro de acidose metabólica provocado por sufocamento.
-• B4 Carboxi-Hemoglobina Residual (COHb): 2.1% (SEGURO) - Indica sucesso no expurgo da toxina do sistema circulatório.`;
-
-      const respostaPadrao = `Análise em tempo real do lote ${selectedLot}: Oxigenação está em 95% (ótimo), pH em 7.4 (fisiológico) e Temperatura em 36.5°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`;
-
-      if (isEmerg) {
-        const cardMetrics = [
-          { id: 'B1', name: 'B1 • SATURAÇÃO DE O₂', val: `${valO2}%`, pct: pctO2, badge: 'ÓTIMO', color: '#00ff9d' },
-          { id: 'B2', name: 'B2 • VISCOSIDADE DE FLUXO', val: `${valVisc} cP`, pct: pctVisc, badge: 'FLUIDO', color: '#a855f7' },
-          { id: 'B3', name: 'B3 • ESTABILIDADE TÉRMICA', val: `${valTemp} °C`, pct: pctTemp, badge: 'ESTÁVEL', color: '#ffb703' },
-          { id: 'B4', name: 'B4 • MEIA-VIDA CIRCUL.', val: `${valVida} h`, pct: pctVida, badge: 'SUFICIENTE', color: '#00d8ff' },
-          { id: 'B5', name: 'B5 • EXTRAÇÃO DE O₂', val: `${valExtr}%`, pct: pctExtr, badge: 'ALTO', color: '#02c39a' }
-        ];
-
-        addMessagesToBatch(selectedLot, 
-          { role: 'user', content: text },
-          { 
-            role: 'assistant', 
-            content: respostaEmerg,
-            cardType: 'laudo_emergencia',
-            loteId: selectedLot,
-            metrics: cardMetrics
-          }
-        );
-        setInputValue('');
-        return;
-      }
-
-      if (isTransp) {
-        const cardMetrics = [
-          { id: 'B1', name: 'B1 • PRESSÃO OSMÓTICA (ONCÓTICA)', val: '25.0 mmHg', pct: 100, badge: 'FISIOLÓGICO', color: '#00d8ff' },
-          { id: 'B2', name: 'B2 • CAPACIDADE ANTIOXIDANTE (REPERFUSÃO)', val: '94.5%', pct: 95, badge: 'ALTÍSSIMO', color: '#00ff9d' },
-          { id: 'B3', name: 'B3 • POTENCIAL HIDROGENIÔNICO (pH)', val: '7.38 pH', pct: 98, badge: 'ESTÁVEL', color: '#02c39a' },
-          { id: 'B4', name: 'B4 • PRESSÃO PARCIAL DE CO₂ (pCO₂)', val: '40.0 mmHg', pct: 80, badge: 'NORMAL', color: '#a855f7' },
-          { id: 'B5', name: 'B5 • CONCENTRAÇÃO DE GLICOSE', val: '100.0 mg/dL', pct: 100, badge: 'NUTRITIVO', color: '#ffb703' }
-        ];
-
-        addMessagesToBatch(selectedLot, 
-          { role: 'user', content: text },
-          { 
-            role: 'assistant', 
-            content: respostaTransp,
-            cardType: 'laudo_transplante',
-            loteId: selectedLot,
-            tagTitle: 'TRANSPLANTE',
-            veredit: '🟢 VEREDITO: Lote aprovado para preservação de órgãos para transplante.',
-            metrics: cardMetrics
-          }
-        );
-        setInputValue('');
-        return;
-      }
-
-      if (isAlt) {
-        const cardMetrics = [
-          { id: 'B1', name: 'B1 • PRESSÃO PARCIAL P50 (AFINIDADE O₂)', val: '34.0 mmHg', pct: 85, badge: 'ADAPTADO', color: '#00d8ff' },
-          { id: 'B2', name: 'B2 • PONTO DE CONGELAMENTO', val: '-2.5 °C', pct: 95, badge: 'RESISTENTE', color: '#7c3aed' },
-          { id: 'B3', name: 'B3 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)', val: '96.5%', pct: 97, badge: 'ÓTIMO', color: '#00ff9d' },
-          { id: 'B4', name: 'B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂)', val: '92.0 mmHg', pct: 92, badge: 'ELEVADO', color: '#02c39a' }
-        ];
-
-        addMessagesToBatch(selectedLot, 
-          { role: 'user', content: text },
-          { 
-            role: 'assistant', 
-            content: respostaAlt,
-            cardType: 'laudo_altitude',
-            loteId: selectedLot,
-            tagTitle: 'ALTITUDE',
-            veredit: '🟢 VEREDITO: Lote aprovado para uso em alta altitude.',
-            metrics: cardMetrics
-          }
-        );
-        setInputValue('');
-        return;
-      }
-
-      if (isMonox) {
-        const cardMetrics = [
-          { id: 'B1', name: 'B1 • TAXA DE DESLOCAMENTO DE CO', val: '88.0%', pct: 88, badge: 'ALTO', color: '#ff4d4d' },
-          { id: 'B2', name: 'B2 • EFFLUENCE DE DEPURANTES', val: '91.2%', pct: 91, badge: 'EFICIENTE', color: '#ffb703' },
-          { id: 'B3', name: 'B3 • POTENCIAL HIDROGENIÔNICO (pH)', val: '7.42 pH', pct: 98, badge: 'FISIOLÓGICO', color: '#02c39a' },
-          { id: 'B4', name: 'B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb)', val: '2.1%', pct: 98, badge: 'SEGURO', color: '#00ff9d' }
-        ];
-
-        addMessagesToBatch(selectedLot, 
-          { role: 'user', content: text },
-          { 
-            role: 'assistant', 
-            content: respostaMonox,
-            cardType: 'laudo_monoxido',
-            loteId: selectedLot,
-            tagTitle: 'ENVENENAMENTO POR CO',
-            veredit: '🟢 VEREDITO: Lote aprovado para tratamento de envenenamento por CO.',
-            metrics: cardMetrics
-          }
-        );
-        setInputValue('');
-        return;
-      }
-
-      if (isQueim) {
-        const cardMetrics = [
-          { id: 'B1', name: 'B1 • PRESSÃO COLOIDOSMÓTICA', val: '28.0 mmHg', pct: 95, badge: 'ÓTIMO', color: '#ff9f1c' },
-          { id: 'B2', name: 'B2 • CONCENTRAÇÃO DE ENDOTOXINAS', val: '< 0.05 EU/mL', pct: 100, badge: 'ISENTO', color: '#00ff9d' },
-          { id: 'B3', name: 'B3 • MARCADOR DE INTEGRIDADE ENDOTELIAL', val: '99.2%', pct: 99, badge: 'MÁXIMA', color: '#00d8ff' },
-          { id: 'B4', name: 'B4 • CAPACIDADE DE LIGAÇÃO DE CITOCINAS', val: '92.5%', pct: 93, badge: 'ELEVADA', color: '#a855f7' },
-          { id: 'B5', name: 'B5 • EQUILÍBRIO HIDROELETROLÍTICO (Na+)', val: '140.0 mEq/L', pct: 100, badge: 'NORMAL', color: '#3a86ef' }
-        ];
-
-        const respostaQueim = `Laudo da IA para Tratamento de Queimaduras Graves e Choque Séptico (Lote ${selectedLot}):
-• B1 Pressão Coloidosmótica: 28.0 mmHg (ÓTIMO)
-• B2 Concentração de Endotoxinas: < 0.05 EU/mL (ISENTO)
-• B3 Marcador de Integridade Endotelial: 99.2% (MÁXIMA)
-• B4 Capacidade de Ligação de Citocinas: 92.5% (ELEVADA)
-• B5 Equilíbrio Hidroeletrolítico (Na+): 140.0 mEq/L (NORMAL)`;
-
-        addMessagesToBatch(selectedLot, 
-          { role: 'user', content: text },
-          { 
-            role: 'assistant', 
-            content: respostaQueim,
-            cardType: 'laudo_queimaduras',
-            loteId: selectedLot,
-            tagTitle: 'QUEIMADURAS E SEPSE',
-            veredit: '🟢 VEREDITO: Lote aprovado para tratamento de queimaduras graves e choque séptico.',
-            metrics: cardMetrics
-          }
-        );
-        setInputValue('');
-        return;
-      }
-
-      if (isDoacaoMsg) {
-        const cardMetrics = [
-          { id: 'B1', name: 'B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh)', val: '0.0%', pct: 100, badge: 'ISENTO', color: '#00ff9d' },
-          { id: 'B2', name: 'B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA)', val: '0.0%', pct: 100, badge: 'NULA', color: '#02c39a' },
-          { id: 'B3', name: 'B3 • PUREZA MOLECULAR', val: '99.9%', pct: 99, badge: 'EXCELENTE', color: '#00d8ff' },
-          { id: 'B4', name: 'B4 • ESTERILIDADE BIOLÓGICA', val: '100.0%', pct: 100, badge: 'LIVRE', color: '#39ff14' }
-        ];
-
-        const respostaDoacao = `Laudo da IA para Doação de Sangue e Compatibilidade Universal (Lote ${selectedLot}):
-• B1 Expressão Antigênica (ABO/Rh): 0.0% (ISENTO)
-• B2 Reatividade em Crossmatch: 0.0% (NULA)
-• B3 Pureza Molecular: 99.9% (EXCELENTE)
-• B4 Esterilidade Biológica: 100.0% (LIVRE)`;
-
-        addMessagesToBatch(selectedLot, 
-          { role: 'user', content: text },
-          { 
-            role: 'assistant', 
-            content: respostaDoacao,
-            cardType: 'laudo_doacao',
-            loteId: selectedLot,
-            tagTitle: 'DOAÇÃO E COMPATIBILIDADE',
-            veredit: '🟢 VEREDITO: Lote aprovado para doação e compatibilidade universal.',
-            metrics: cardMetrics
-          }
-        );
-        setInputValue('');
-        return;
-      }
-
-      if (isRarosMsg) {
-        const cardMetrics = [
-          { id: 'B1', name: 'B1 • IMUNOGENICIDADE ESTENDIDA (Kell/Duffy/Kidd)', val: '0.0%', pct: 100, badge: 'NEUTRO', color: '#a855f7' },
-          { id: 'B2', name: 'B2 • PUREZA DA RECONSTITUIÇÃO', val: '99.7%', pct: 99, badge: 'MÁXIMA', color: '#00d8ff' },
-          { id: 'B3', name: 'B3 • FRAÇÃO VOLUMÉTRICA (EQUIVALENTE DE HEMATÓCRITO)', val: '40.0%', pct: 80, badge: 'ÓTIMO', color: '#00ff9d' },
-          { id: 'B4', name: 'B4 • RESISTÊNCIA À HEMÓLISE INDUZIDA', val: '99.5%', pct: 99, badge: 'ALTA', color: '#ffb703' }
-        ];
-
-        const respostaRaros = `Laudo da IA para Manejo Clínico de Pacientes com Raros Fenótipos Sanguíneos (Lote ${selectedLot}):
-• B1 Imunogenicidade Estendida (Kell/Duffy/Kidd): 0.0% (NEUTRO)
-• B2 Pureza da Reconstituição: 99.7% (MÁXIMA)
-• B3 Fração Volumétrica (Equivalente de Hematócrito): 40.0% (ÓTIMO)
-• B4 Resistência à Hemólise Induzida: 99.5% (ALTA)`;
-
-        addMessagesToBatch(selectedLot, 
-          { role: 'user', content: text },
-          { 
-            role: 'assistant', 
-            content: respostaRaros,
-            cardType: 'laudo_raros',
-            loteId: selectedLot,
-            tagTitle: 'RAROS FENÓTIPOS',
-            veredit: '🟢 VEREDITO: Lote aprovado para manejo de raros fenótipos sanguíneos.',
-            metrics: cardMetrics
-          }
-        );
-        setInputValue('');
-        return;
-      }
-
-      const respostaFinal = respostaPadrao;
-
-      addMessagesToBatch(selectedLot, 
+      setMessages(prev => [...prev, 
         { role: 'user', content: text },
-        { role: 'assistant', content: respostaFinal }
-      );
+        { role: 'assistant', content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.` }
+      ]);
       setInputValue('');
       return;
     }
 
-    const currentLotId = selectedLot;
     const userMsg = { role: 'user', content: text };
-    addMessagesToBatch(currentLotId, userMsg);
+    setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setIsTyping(true);
 
@@ -690,32 +297,32 @@ ${barExtr} ${pctExtr}%  [ALTO]
       if (res.ok) {
         const data = await res.json();
         setTimeout(() => {
-          addMessagesToBatch(currentLotId, { 
+          setMessages(prev => [...prev, { 
             role: 'assistant', 
             content: data.resposta, 
             explicabilidade: data.explicabilidade 
-          });
+          }]);
           setIsTyping(false);
           
           const match = text.toUpperCase().match(/SA-\d{3}/);
           if (match) {
             setSelectedLot(match[0]);
           }
-        }, 1000);
+        }, 800);
       } else {
         setIsTyping(false);
       }
     } catch (err) {
       console.log("Erro no chat:", err);
       setIsTyping(false);
-      addMessagesToBatch(currentLotId, { 
+      setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico. Verifique se o servidor backend FastAPI está rodando na porta 8000.'
-      });
+        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico FastAPI. Verifique se o backend está ativo.'
+      }]);
     }
   };
 
-  // Valores de exibição atuais (último do histórico ou simulados se vazio)
+  // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
     oxigenacao_limpa: 0.95,
     temperatura_c: 36.5,
@@ -724,25 +331,12 @@ ${barExtr} ${pctExtr}%  [ALTO]
     viscosidade_cp: 3.8,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
-    alerta_mensagem: "Sem sinal ativo de sensores. Iniciando ponte..."
+    alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
   };
 
-  // Obter array de valores históricos para o Sparkline
   const getSparkValues = (key) => {
-    if (history.length === 0) return [0, 0];
+    if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
     return history.map(item => item[key]);
-  };
-
-  const getStatusColor = (status) => {
-    if (status === "CRÍTICO") return "text-biotech-crimson border-biotech-crimson glow-crimson";
-    if (status === "ALERTA") return "text-yellow-400 border-yellow-400";
-    return "text-biotech-neon border-biotech-neon glow-neon";
-  };
-
-  const getStatusBg = (status) => {
-    if (status === "CRÍTICO") return "bg-biotech-crimson/10 border-biotech-crimson/30";
-    if (status === "ALERTA") return "bg-yellow-500/10 border-yellow-500/30";
-    return "bg-biotech-neon/10 border-biotech-neon/30";
   };
 
   const pythonScript = `import time
@@ -751,13 +345,14 @@ import random
 import requests
 
 API_URL = "${import.meta.env.VITE_API_URL || (window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : ''))}/api/sensor-data"
-LOTE_ID = "${selectedLot}"
+LOTE_ID = "SA-025"
 
 print("Ponte de Dados Iniciada. Enviando para:", API_URL)
 t = 0
 while True:
-    ox = 94.0 + 3.0 * random.uniform(-0.5, 0.5)
-    temp = 36.5 + random.uniform(-0.2, 0.2)
+    # Leitura ou simulação de sensores físicos
+    ox = 95.0 + random.uniform(-1.0, 1.0)
+    temp = 36.5 + random.uniform(-0.3, 0.3)
     vaz = 4.8 + random.uniform(-0.1, 0.1)
     
     payload = {
@@ -770,7 +365,7 @@ while True:
         r = requests.post(API_URL, json=payload, timeout=2.0)
         print(f"POST {r.status_code} | Lote {LOTE_ID} | Ox: {ox:.1f}% | Temp: {temp:.1f}°C")
     except Exception as e:
-        print("Erro ao enviar:", e)
+        print("Erro ao enviar telemetria:", e)
     
     time.sleep(2.0)
     t += 2`;
@@ -781,255 +376,144 @@ while True:
     setTimeout(() => setCopiedScript(false), 2000);
   };
 
-  const selectedLotObj = lots.find(l => l.id === selectedLot) || lots[0];
-  const isEmergencia = selectedLotObj && (
-    (selectedLotObj.finalidade && selectedLotObj.finalidade.toLowerCase().includes("emergência")) ||
-    (selectedLotObj.destino && selectedLotObj.destino.toLowerCase().includes("emergência")) ||
-    selectedLot === "SA-023"
-  );
-  const isTransplante = selectedLotObj && !isEmergencia && (
-    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("transplante") || selectedLotObj.finalidade.toLowerCase().includes("órgãos"))) ||
-    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("transplante") || selectedLotObj.destino.toLowerCase().includes("órgãos"))) ||
-    selectedLot === "SA-024"
-  );
-  const isAltitude = selectedLotObj && !isEmergencia && !isTransplante && (
-    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("altitude") || selectedLotObj.finalidade.toLowerCase().includes("altitudes"))) ||
-    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("altitude") || selectedLotObj.destino.toLowerCase().includes("altitudes"))) ||
-    selectedLot === "SA-025"
-  );
-  const isMonoxido = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && (
-    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("monóxido") || selectedLotObj.finalidade.toLowerCase().includes("envenenamento"))) ||
-    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("monóxido") || selectedLotObj.destino.toLowerCase().includes("envenenamento")))
-  );
-  const isQueimaduras = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && !isMonoxido && (
-    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("queimaduras") || selectedLotObj.finalidade.toLowerCase().includes("choque"))) ||
-    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("queimaduras") || selectedLotObj.destino.toLowerCase().includes("choque")))
-  );
-  const isDoacao = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && !isMonoxido && !isQueimaduras && (
-    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("doação") || selectedLotObj.finalidade.toLowerCase().includes("doacao") || selectedLotObj.finalidade.toLowerCase().includes("compatibilidade"))) ||
-    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("doação") || selectedLotObj.destino.toLowerCase().includes("doacao") || selectedLotObj.destino.toLowerCase().includes("compatibilidade")))
-  );
-  const isRaros = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && !isMonoxido && !isQueimaduras && !isDoacao && (
-    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("raros") || selectedLotObj.finalidade.toLowerCase().includes("fenótipos") || selectedLotObj.finalidade.toLowerCase().includes("fenotipos"))) ||
-    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("raros") || selectedLotObj.destino.toLowerCase().includes("fenótipos") || selectedLotObj.destino.toLowerCase().includes("fenotipos")))
-  );
+  // Se a aba for Landing Page, renderiza a tela de apresentação
+  if (activeTab === 'landing') {
+    return (
+      <LandingPage
+        onNavigate={setActiveTab}
+        onInjectReading={handleInjectReading}
+        apiBase={API_BASE}
+      />
+    );
+  }
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans relative overflow-x-hidden overflow-y-auto">
-      
-      {/* Detalhe de Malha de Circuitos no Background */}
+    <div className="min-h-screen bg-slate-950 flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white">
+      {/* Background Decorativo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
       
-      {/* 1. TOPO / CABEÇALHO */}
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 flex items-center justify-center">
-            <svg viewBox="0 0 100 100" className="w-full h-full fill-biotech-crimson drop-shadow-[0_0_8px_rgba(255,42,66,0.6)]">
-              <path d="M50,10 C50,10 85,45 85,68 C85,85 70,95 50,95 C30,95 15,85 15,68 C15,45 50,10 50,10 Z" />
-              <path d="M50,30 L50,60 M35,55 L50,55 M50,45 L65,45 M35,70 L50,70 M50,70 L65,75" stroke="#00E5A3" strokeWidth="3" fill="none" opacity="0.8" />
-              <circle cx="35" cy="55" r="4" fill="#00E5A3" />
-              <circle cx="65" cy="45" r="4" fill="#00E5A3" />
-              <circle cx="35" cy="70" r="4" fill="#00E5A3" />
-            </svg>
+      {/* HEADER PRINCIPAL */}
+      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+        {/* Logo & Marca */}
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('landing')}>
+          <div className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-red-600 to-rose-700 shadow-[0_0_12px_rgba(255,42,66,0.5)]">
+            <Droplets className="w-5 h-5 text-white" />
           </div>
-          
           <div>
-            <h1 className="text-xl font-bold tracking-wider text-slate-100 flex items-center gap-2">
-              FLOWTIFICIAL <span className="text-[10px] bg-biotech-crimson/20 border border-biotech-crimson/50 text-biotech-crimson px-1.5 py-0.5 rounded font-mono">PROTÓTIPO</span>
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2 font-display">
+              FLOW<span className="text-rose-500">TIFICIAL</span>
+              <span className="text-[10px] bg-rose-500/10 border border-rose-500/30 text-rose-400 px-1.5 py-0.5 rounded font-mono">
+                FECART 2026
+              </span>
             </h1>
-            <p className="text-xs text-slate-400 font-mono tracking-tight">TRADUTOR CIENTÍFICO E IA EXPLICÁVEL PARA SANGUE ARTIFICIAL</p>
+            <p className="text-[10px] text-slate-400 font-mono tracking-tight hidden sm:block">
+              SANGUE ARTIFICIAL • IA EXPLICÁVEL & TELEMETRIA IoT
+            </p>
           </div>
         </div>
 
-        {/* Barra de Conexão de Hardware */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1">
-            <button 
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'dashboard' ? 'bg-slate-800 text-biotech-neon' : 'text-slate-400 hover:text-slate-200'}`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              Monitor Clínico
-            </button>
-            <button 
-              onClick={() => setActiveTab('tecnico')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'tecnico' ? 'bg-slate-800 text-biotech-neon' : 'text-slate-400 hover:text-slate-200'}`}
-            >
-              <Terminal className="w-3.5 h-3.5" />
-              Console Técnico
-            </button>
+        {/* Navegação entre Abas */}
+        <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 shadow-inner">
+          <button 
+            onClick={() => setActiveTab('landing')}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Apresentação</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'dashboard' 
+                ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 text-rose-500" />
+            <span>Monitor Clínico</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('forecast')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'forecast' 
+                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
+            <span>Previsão de Demanda</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('tecnico')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'tecnico' 
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Console Técnico</span>
+          </button>
+        </div>
+
+        {/* Status de Conexão & Ações */}
+        <div className="flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-2.5 bg-slate-900/60 border border-slate-800 px-3.5 py-1.5 rounded-xl font-mono text-xs text-slate-400">
+            <Clock className="w-3.5 h-3.5 text-sky-400" />
+            <span>{clock}</span>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800/80 px-4 py-2 rounded-xl">
-            <div className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-biotech-neon opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-biotech-neon animate-pulse-green"></span>
-            </div>
+          <div className="flex items-center gap-2.5 bg-slate-900/60 border border-slate-800/80 px-3.5 py-1.5 rounded-xl">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 animate-pulse-green"></span>
+            </span>
             <div className="text-right">
-              <p className="text-[10px] text-slate-400 font-mono">SISTEMA CONECTADO</p>
-              <p className="text-xs text-biotech-neon font-bold font-mono">Arduino Nano • Porta COM3</p>
+              <p className="text-[9px] text-slate-400 font-mono leading-none">HARDWARE ATIVO</p>
+              <p className="text-xs text-emerald-400 font-bold font-mono leading-tight">Arduino Nano</p>
             </div>
           </div>
+
+          <QuickEntryModal onInjectReading={handleInjectReading} apiBase={API_BASE} />
         </div>
       </header>
 
-      {/* ========================================================
-         MODAL: CRIAR NOVO LOTE
-         ======================================================== */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-5 relative animate-in fade-in zoom-in duration-200">
-            
-            {/* Header do Modal */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-biotech-neon" />
-                <h2 className="text-base font-bold text-white font-mono tracking-wide">➕ CRIAR NOVO LOTE DE SANGUE</h2>
-              </div>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleConfirmCreateLot} className="flex flex-col gap-4">
-              
-              {/* Campo 1: Nome do Lote */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-mono text-slate-300 font-semibold flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-biotech-neon" /> NOME DO LOTE</span>
-                  <span className="text-[10px] text-slate-500 font-sans">(Defina um nome)</span>
-                </label>
-                <input 
-                  type="text" 
-                  value={newLotName}
-                  onChange={(e) => setNewLotName(e.target.value)}
-                  placeholder="Ex: Lote Emergência Alpha"
-                  required
-                  className="bg-slate-950 border border-slate-700 focus:border-biotech-neon rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none transition-colors"
-                />
-              </div>
-
-              {/* Campo 2: Código do Lote (Gerado Automático) */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-mono text-slate-300 font-semibold flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Cpu className="w-3.5 h-3.5 text-biotech-crimson" /> CÓDIGO DO LOTE</span>
-                  <span className="text-[10px] bg-biotech-neon/10 border border-biotech-neon/30 text-biotech-neon px-2 py-0.5 rounded font-mono">GERADO AUTOMATICAMENTE</span>
-                </label>
-                <input 
-                  type="text" 
-                  value={newLotCode}
-                  readOnly
-                  className="bg-slate-950/60 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-biotech-neon font-mono font-bold cursor-not-allowed select-all"
-                />
-              </div>
-
-              {/* Campo 3: Data e Hora da Criação (Sistema do Computador) */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-mono text-slate-300 font-semibold flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-cyan-400" /> DATA E HORA DA CRIAÇÃO</span>
-                  <span className="text-[10px] text-cyan-400 font-mono">SISTEMA DO COMPUTADOR</span>
-                </label>
-                <input 
-                  type="text" 
-                  value={newLotCreatedAt}
-                  readOnly
-                  className="bg-slate-950/60 border border-slate-800 rounded-lg px-3.5 py-2.5 text-sm text-cyan-400 font-mono cursor-not-allowed select-all"
-                />
-              </div>
-
-              {/* Campo 4: Finalidade (Dropdown com as 7 opções) */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-mono text-slate-300 font-semibold flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-amber-400" /> FINALIDADE CLÍNICA DO LOTE
-                </label>
-                <select 
-                  value={newLotFinalidade}
-                  onChange={(e) => setNewLotFinalidade(e.target.value)}
-                  className="bg-slate-950 border border-slate-700 focus:border-biotech-neon rounded-lg px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none transition-colors cursor-pointer"
-                >
-                  {FINALIDADES_OPCOES.map((opcao, idx) => (
-                    <option key={idx} value={opcao} className="bg-slate-900 text-slate-100 py-1">
-                      {opcao}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Botoes de Acao */}
-              <div className="flex justify-end gap-3 mt-3 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-mono text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  CANCELAR
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-mono font-bold bg-biotech-neon text-slate-950 hover:bg-emerald-400 rounded-lg transition-all shadow-lg shadow-biotech-neon/20 flex items-center gap-1.5"
-                >
-                  <Plus className="w-4 h-4" /> CRIAR LOTE
-                </button>
-              </div>
-
-            </form>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'dashboard' ? (
-        /* ========================================================
-           TELA PRINCIPAL: DASHBOARD BIOMÉDICO
-           ======================================================== */
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 sm:p-6 z-10 overflow-visible">
+      {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
+      {activeTab === 'dashboard' && (
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* COLUNA ESQUERDA (MÉTRICAS RÁPIDAS - 1/3) */}
-          <section className="lg:col-span-1 flex flex-col gap-4">
+          {/* COLUNA ESQUERDA (MÉTRICAS & LOTES - 5/12) */}
+          <section className="lg:col-span-5 flex flex-col gap-4">
             
-            {/* Lotes em Monitoramento */}
-            <div className="glass-panel rounded-xl p-4 flex flex-col gap-3">
+            {/* Seletor de Lotes */}
+            <div className="glass-panel rounded-xl p-4 flex flex-col gap-3 border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5 text-biotech-crimson" />
-                  LOTES DE SANGUE EM ENSAIO
+                  <Database className="w-3.5 h-3.5 text-rose-500" />
+                  LOTES DE SANGUE EM MONITORAMENTO
                 </h2>
                 <button 
-                  onClick={openCreateLotModal}
-                  className="text-[10px] text-biotech-neon border border-biotech-neon/30 hover:border-biotech-neon hover:bg-biotech-neon/10 px-2 py-1 rounded transition-all font-mono flex items-center gap-1 font-bold"
+                  onClick={() => handleAddLot()}
+                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold"
                 >
-                  <Plus className="w-3 h-3" /> NOVO LOTE
+                  + NOVO LOTE
                 </button>
               </div>
 
-              {/* Informações detalhadas do Lote Selecionado */}
-              {selectedLotObj && (
-                <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 text-xs flex flex-col gap-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-biotech-neon font-mono">{selectedLotObj.id} • {selectedLotObj.name || selectedLotObj.nome}</span>
-                    <span className="text-[9px] text-slate-500 font-mono">{selectedLotObj.createdAt || selectedLotObj.data_criacao}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-300 font-sans line-clamp-2">
-                    🎯 <span className="font-semibold text-amber-300">Finalidade:</span> {selectedLotObj.finalidade || selectedLotObj.destino}
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {lots.map(l => (
                   <div key={l.id} className="relative group">
                     <button
                       onClick={() => setSelectedLot(l.id)}
-                      className={`w-full p-2 rounded-lg border text-center font-mono transition-all ${
+                      className={`w-full p-2.5 rounded-xl border text-center font-mono transition-all ${
                         selectedLot === l.id
-                          ? 'bg-slate-800 border-biotech-neon text-biotech-neon font-bold shadow-lg shadow-biotech-neon/10'
-                          : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700'
+                          ? 'bg-slate-800/90 border-rose-500 text-rose-400 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
+                          : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                       }`}
                     >
-                      <span className="block text-xs">{l.id}</span>
-                      <span className="block text-[9px] text-slate-400 truncate mt-0.5">{l.name || l.nome || 'Lote de Sangue'}</span>
+                      <span className="block text-xs font-bold">{l.id}</span>
+                      <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote Biológico'}</span>
+                      <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
                     </button>
 
                     {lots.length > 1 && (
@@ -1038,8 +522,8 @@ while True:
                           e.stopPropagation();
                           handleDeleteLot(l.id);
                         }}
-                        title="Excluir este lote"
-                        className="absolute -top-1.5 -right-1.5 bg-red-950/80 text-red-400 hover:bg-red-600 hover:text-white border border-red-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20"
+                        title="Excluir lote"
+                        className="absolute -top-1.5 -right-1.5 bg-rose-950 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20"
                       >
                         ✕
                       </button>
@@ -1049,1016 +533,212 @@ while True:
               </div>
             </div>
 
-            {/* 5 Variáveis Fisiológicas */}
-            <div className="flex-1 flex flex-col gap-3 justify-between">
+            {/* Grid dos Novos MetricCards do Lovable */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               
-              {isEmergencia ? (
-                <>
-                  {/* B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          {((currentReading.oxigenacao_limpa || 0.98) * 100).toFixed(1)}
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
-                          ÓTIMO
-                        </span>
-                        <Sparkline data={getSparkValues('oxigenacao_limpa')} color="#00E5A3" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Garante aporte imediato de oxigênio em quadros de trauma e choque volumétrico.
-                    </p>
-                  </div>
+              {/* CARD 1: OXIGENAÇÃO */}
+              <MetricCard
+                title="Saturação de O₂"
+                subtitle="Transporte de oxigênio do lote"
+                value={(currentReading.oxigenacao_limpa * 100).toFixed(1)}
+                unit="%"
+                percent={currentReading.oxigenacao_limpa * 100}
+                level={currentReading.oxigenacao_limpa < 0.90 ? 'critical' : 'success'}
+                detail={currentReading.oxigenacao_limpa < 0.90 ? 'SATURAÇÃO BAIXA' : 'SpO₂ Equivalente Ideal'}
+                icon={Waves}
+                sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00e5a3'} />}
+              />
 
-                  {/* B2 • RESISTÊNCIA DE FLUXO (VISCOSIDADE) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • RESISTÊNCIA DE FLUXO (VISCOSIDADE)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          {(currentReading.viscosidade_cp ? Math.min(3.0, currentReading.viscosidade_cp) : 2.3).toFixed(1)}
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">cP</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
-                          FLUIDO
-                        </span>
-                        <Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Permite rápida infusão sob pressão em acessos venosos periféricos.
-                    </p>
-                  </div>
+              {/* CARD 2: TEMPERATURA */}
+              <MetricCard
+                title="Estabilidade Térmica"
+                subtitle="Sensor DS18B20 em bancada"
+                value={currentReading.temperatura_c.toFixed(1)}
+                unit="°C"
+                percent={Math.min(100, (currentReading.temperatura_c / 42) * 100)}
+                level={currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'critical' : currentReading.temperatura_c > 37.5 ? 'warning' : 'success'}
+                detail={currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA CRÍTICA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'Faixa Fisiológica'}
+                icon={Thermometer}
+                sparkline={<Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />}
+              />
 
-                  {/* B3 • ESTABILIDADE TÉRMICA (ARMAZENAMENTO) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • ESTABILIDADE TÉRMICA (ARMAZENAMENTO)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          {(currentReading.temperatura_c && currentReading.temperatura_c < 30 ? currentReading.temperatura_c : 22.0).toFixed(1)}
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-amber-400 border-amber-400 bg-amber-500/10">
-                          ESTÁVEL
-                        </span>
-                        <Sparkline data={getSparkValues('temperatura_c')} color="#f59e0b" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Conserva a integridade funcional fora de refrigeração, ideal para ambulâncias.
-                    </p>
-                  </div>
+              {/* CARD 3: pH */}
+              <MetricCard
+                title="Potencial pH"
+                subtitle="Equilíbrio ácido-base"
+                value={currentReading.ph.toFixed(2)}
+                unit="pH"
+                percent={Math.min(100, (currentReading.ph / 8.5) * 100)}
+                level={currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'warning' : 'success'}
+                detail={currentReading.ph < 7.35 ? 'Tendência à Acidose' : currentReading.ph > 7.45 ? 'Tendência à Alcalose' : 'pH 7.40 Fisiológico'}
+                icon={FlaskConical}
+                sparkline={<Sparkline data={getSparkValues('ph')} color="#38bdf8" />}
+              />
 
-                  {/* B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          24.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">h</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
-                          SUFICIENTE
-                        </span>
-                        <Sparkline data={[24.0, 24.1, 23.9, 24.0, 24.2, 24.0]} color="#22d3ee" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Mantém a oxigenação até que o paciente chegue ao hospital.
-                    </p>
-                  </div>
-
-                  {/* B5 • ÍNDICE DE EXTRAÇÃO DE O₂ (TISULAR) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B5 • ÍNDICE DE EXTRAÇÃO DE O₂ (TISULAR)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          42.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
-                          ALTO
-                        </span>
-                        <Sparkline data={[42.0, 42.2, 41.8, 42.1, 42.0]} color="#10b981" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Facilidade com que o oxigênio se solta do composto para ir direto aos tecidos.
-                    </p>
-                  </div>
-                </>
-              ) : isTransplante ? (
-                <>
-                  {/* B1 • PRESSÃO OSMÓTICA (ONCÓTICA) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • PRESSÃO OSMÓTICA (ONCÓTICA)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          25.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
-                          FISIOLÓGICO
-                        </span>
-                        <Sparkline data={[25.0, 25.1, 24.9, 25.0, 25.2, 25.0]} color="#22d3ee" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Previne inchaço e danos celulares no órgão mantido fora do corpo.
-                    </p>
-                  </div>
-
-                  {/* B2 • CAPACIDADE ANTIOXIDANTE (REPERFUSÃO) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • CAPACIDADE ANTIOXIDANTE (REPERFUSÃO)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          94.5
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
-                          ALTÍSSIMO
-                        </span>
-                        <Sparkline data={[94.5, 94.8, 94.2, 94.6, 94.5]} color="#00E5A3" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Neutraliza radicais livres no momento de religar o órgão ao receptor.
-                    </p>
-                  </div>
-
-                  {/* B3 • POTENCIAL HIDROGENIÔNICO (pH) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • POTENCIAL HIDROGENIÔNICO (pH)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          7.38
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
-                          ESTÁVEL
-                        </span>
-                        <Sparkline data={[7.38, 7.39, 7.37, 7.38, 7.38]} color="#10b981" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Conserva o equilíbrio ácido-base do tecido durante a perfusão.
-                    </p>
-                  </div>
-
-                  {/* B4 • PRESSÃO PARCIAL DE DIÓXIDO DE CARBONO (pCO₂) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • PRESSÃO PARCIAL DE DIÓXIDO DE CARBONO (pCO₂)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          40.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
-                          NORMAL
-                        </span>
-                        <Sparkline data={[40.0, 40.3, 39.8, 40.1, 40.0]} color="#a855f7" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Avalia a remoção eficiente dos resíduos metabólicos do órgão.
-                    </p>
-                  </div>
-
-                  {/* B5 • CONCENTRAÇÃO DE GLICOSE */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B5 • CONCENTRAÇÃO DE GLICOSE</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          100.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mg/dL</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-amber-400 border-amber-400 bg-amber-500/10">
-                          NUTRITIVO
-                        </span>
-                        <Sparkline data={[100.0, 100.5, 99.5, 100.2, 100.0]} color="#f59e0b" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Mantém as células do órgão vivas e metabolicamente ativas.
-                    </p>
-                  </div>
-                </>
-              ) : isAltitude ? (
-                <>
-                  {/* B1 • PRESSÃO PARCIAL P50 (AFINIDADE O₂) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • PRESSÃO PARCIAL P50 (AFINIDADE O₂)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          34.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
-                          ADAPTADO
-                        </span>
-                        <Sparkline data={[34.0, 34.2, 33.8, 34.1, 34.0]} color="#22d3ee" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Garante liberação de oxigênio mesmo sob baixa pressão atmosférica.
-                    </p>
-                  </div>
-
-                  {/* B2 • PONTO DE CONGELAMENTO */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • PONTO DE CONGELAMENTO</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          -2.5
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-blue-400 border-blue-400 bg-blue-500/10">
-                          RESISTENTE
-                        </span>
-                        <Sparkline data={[-2.5, -2.4, -2.6, -2.5, -2.5]} color="#3b82f6" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Evita cristalização e perda de fluidez em ambientes de frio extremo.
-                    </p>
-                  </div>
-
-                  {/* B3 • SATURAÇÃO DE O₂ (OXIGENAÇÃO) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          96.5
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
-                          ÓTIMO
-                        </span>
-                        <Sparkline data={[96.5, 96.7, 96.3, 96.5, 96.5]} color="#00E5A3" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Compensa a menor oferta de oxigênio no ar rarefeito.
-                    </p>
-                  </div>
-
-                  {/* B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          92.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
-                          ELEVADO
-                        </span>
-                        <Sparkline data={[92.0, 92.3, 91.8, 92.1, 92.0]} color="#10b981" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Força de impulsão para difundir O₂ nos tecidos em altitude.
-                    </p>
-                  </div>
-                </>
-              ) : isMonoxido ? (
-                <>
-                  {/* B1 • TAXA DE DESLOCAMENTO DE CO */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-crimson" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • TAXA DE DESLOCAMENTO DE CO</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          88.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse">
-                          CRÍTICO / ALTO
-                        </span>
-                        <Sparkline data={[88.0, 88.4, 87.6, 88.2, 88.0]} color="#ff2a42" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Remove o monóxido de carbono ligado às hemácias do paciente.
-                    </p>
-                  </div>
-
-                  {/* B2 • EFFLUENCE DE DEPURANTES */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • EFFLUENCE DE DEPURANTES</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          91.2
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
-                          EFICIENTE
-                        </span>
-                        <Sparkline data={[91.2, 91.5, 90.9, 91.3, 91.2]} color="#00E5A3" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Auxilia na varredura e eliminação celular do gás tóxico.
-                    </p>
-                  </div>
-
-                  {/* B3 • POTENCIAL HIDROGENIÔNICO (pH) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • POTENCIAL HIDROGENIÔNICO (pH)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          7.42
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
-                          FISIOLÓGICO
-                        </span>
-                        <Sparkline data={[7.42, 7.43, 7.41, 7.42, 7.42]} color="#22d3ee" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Reverte o quadro de acidose metabólica provocado por sufocamento.
-                    </p>
-                  </div>
-
-                  {/* B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          2.1
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
-                          SEGURO
-                        </span>
-                        <Sparkline data={[2.1, 2.2, 2.0, 2.1, 2.1]} color="#10b981" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Indica sucesso no expurgo da toxina do sistema circulatório.
-                    </p>
-                  </div>
-                </>
-              ) : isQueimaduras ? (
-                <>
-                  {/* B1 • PRESSÃO COLOIDOSMÓTICA */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • PRESSÃO COLOIDOSMÓTICA</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          28.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mmHg</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
-                          ÓTIMO
-                        </span>
-                        <Sparkline data={[28.0, 28.1, 27.9, 28.0, 28.2, 28.0]} color="#00E5A3" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Impede a perda de líquidos para os tecidos, combatendo o edema.
-                    </p>
-                  </div>
-
-                  {/* B2 • CONCENTRAÇÃO DE ENDOTOXINAS */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • CONCENTRAÇÃO DE ENDOTOXINAS</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          &lt; 0.05
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">EU/mL</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
-                          ISENTO
-                        </span>
-                        <Sparkline data={[0.04, 0.03, 0.04, 0.03, 0.04]} color="#10b981" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Evita a piora do quadro inflamatório severo e da sepse.
-                    </p>
-                  </div>
-
-                  {/* B3 • MARCADOR DE INTEGRIDADE ENDOTELIAL */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • MARCADOR DE INTEGRIDADE ENDOTELIAL</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          97.8
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
-                          PROTEGIDO
-                        </span>
-                        <Sparkline data={[97.8, 97.9, 97.7, 97.8, 97.8]} color="#00E5A3" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Preserva os microvasos contra o colapso estrutural.
-                    </p>
-                  </div>
-
-                  {/* B4 • LIGAÇÃO A CITOCINAS INFLAMATÓRIAS */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • LIGAÇÃO A CITOCINAS INFLAMATÓRIAS</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          78.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
-                          ATIVO
-                        </span>
-                        <Sparkline data={[78.0, 78.2, 77.8, 78.1, 78.0]} color="#a855f7" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Ajuda a absorver moléculas inflamatórias em excesso na corrente sanguínea.
-                    </p>
-                  </div>
-
-                  {/* B5 • SÓDIO SÉRICO (Na+) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B5 • SÓDIO SÉRICO (Na+)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          140.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">mEq/L</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-amber-400 border-amber-400 bg-amber-500/10">
-                          EQUILIBRADO
-                        </span>
-                        <Sparkline data={[140.0, 140.2, 139.8, 140.1, 140.0]} color="#f59e0b" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Previne paradas cardíacas e arritmias decorrentes de queimaduras.
-                    </p>
-                  </div>
-                </>
-              ) : isDoacao ? (
-                <>
-                  {/* B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          0.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
-                          ISENTO
-                        </span>
-                        <Sparkline data={[0.0, 0.0, 0.0, 0.0, 0.0]} color="#10b981" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Lote totalmente universal, sem risco de reação transfusional.
-                    </p>
-                  </div>
-
-                  {/* B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          0.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
-                          NULA
-                        </span>
-                        <Sparkline data={[0.0, 0.0, 0.0, 0.0, 0.0]} color="#00E5A3" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Dispensa a necessidade de teste de cruzamento prévio.
-                    </p>
-                  </div>
-
-                  {/* B3 • PUREZA MOLECULAR */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • PUREZA MOLECULAR</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          99.9
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
-                          EXCELENTE
-                        </span>
-                        <Sparkline data={[99.9, 99.9, 99.8, 99.9, 99.9]} color="#22d3ee" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Garante a ausência de fragmentos de membranas e impurezas.
-                    </p>
-                  </div>
-
-                  {/* B4 • ESTERILIDADE BIOLÓGICA */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • ESTERILIDADE BIOLÓGICA</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          100.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
-                          LIVRE
-                        </span>
-                        <Sparkline data={[100.0, 100.0, 100.0, 100.0, 100.0]} color="#a855f7" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Garantia absoluta contra a transmissão de vírus ou bactérias.
-                    </p>
-                  </div>
-                </>
-              ) : isRaros ? (
-                <>
-                  {/* B1 • IMUNOGENICIDADE ESTENDIDA (Kell/Duffy/Kidd) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • IMUNOGENICIDADE ESTENDIDA (Kell/Duffy/Kidd)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          0.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
-                          NEUTRO
-                        </span>
-                        <Sparkline data={[0.0, 0.0, 0.0, 0.0, 0.0]} color="#22d3ee" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Compatível com receptores altamente sensibilizados.
-                    </p>
-                  </div>
-
-                  {/* B2 • PUREZA DA RECONSTITUIÇÃO */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • PUREZA DA RECONSTITUIÇÃO</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          99.7
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
-                          MÁXIMA
-                        </span>
-                        <Sparkline data={[99.7, 99.8, 99.6, 99.7, 99.7]} color="#00E5A3" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Impede a formação de novos anticorpos em transfusões frequentes.
-                    </p>
-                  </div>
-
-                  {/* B3 • FRAÇÃO VOLUMÉTRICA (EQUIVALENTE DE HEMATÓCRITO) */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • FRAÇÃO VOLUMÉTRICA (EQUIVALENTE DE HEMATÓCRITO)</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          40.0
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
-                          ÓTIMO
-                        </span>
-                        <Sparkline data={[40.0, 40.2, 39.8, 40.1, 40.0]} color="#10b981" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Restaura a capacidade de transporte de O₂ com volume ideal.
-                    </p>
-                  </div>
-
-                  {/* B4 • RESISTÊNCIA À HEMÓLISE INDUZIDA */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • RESISTÊNCIA À HEMÓLISE INDUZIDA</span>
-                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
-                          99.5
-                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
-                          ALTA
-                        </span>
-                        <Sparkline data={[99.5, 99.6, 99.4, 99.5, 99.5]} color="#a855f7" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
-                      Estrutura estável que não se rompe na circulação do paciente.
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* CARD 1: OXIGENAÇÃO */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">01 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)</span>
-                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                        {(currentReading.oxigenacao_limpa * 100).toFixed(1)}
-                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                        currentReading.oxigenacao_limpa < 0.85 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
-                        currentReading.oxigenacao_limpa < 0.90 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                      }`}>
-                        {currentReading.oxigenacao_limpa < 0.90 ? 'SAT BAIXA' : 'ÓTIMO'}
-                      </span>
-                      <Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00E5A3'} />
-                    </div>
-                  </div>
-
-                  {/* CARD 2: TEMPERATURA */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">02 • ESTABILIDADE TÉRMICA</span>
-                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                        {currentReading.temperatura_c.toFixed(1)}
-                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">°C</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                        currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10 animate-pulse' :
-                        currentReading.temperatura_c > 37.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                      }`}>
-                        {currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'NORMAL'}
-                      </span>
-                      <Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />
-                    </div>
-                  </div>
-
-                  {/* CARD 3: pH */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">03 • POTENCIAL HIDROGENIÔNICO (pH)</span>
-                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                        {currentReading.ph.toFixed(2)}
-                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">pH</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                        currentReading.ph < 7.30 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
-                        currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                      }`}>
-                        {currentReading.ph < 7.35 ? 'ACIDOSE' : currentReading.ph > 7.45 ? 'ALCALOSE' : 'FISIOLÓGICO'}
-                      </span>
-                      <Sparkline data={getSparkValues('ph')} color="#22d3ee" />
-                    </div>
-                  </div>
-
-                  {/* CARD 4: VISCOSIDADE */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">04 • RESISTÊNCIA DE FLUXO (VISCOSIDADE)</span>
-                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                        {currentReading.viscosidade_cp.toFixed(1)}
-                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">cP</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                        currentReading.viscosidade_cp > 5.0 ? 'text-biotech-crimson border-biotech-crimson bg-biotech-crimson/10' :
-                        currentReading.viscosidade_cp < 3.5 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                      }`}>
-                        {currentReading.viscosidade_cp > 4.5 ? 'ESPESSO' : currentReading.viscosidade_cp < 3.5 ? 'FLUIDO' : 'ESTÁVEL'}
-                      </span>
-                      <Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />
-                    </div>
-                  </div>
-
-                  {/* CARD 5: HEMATÓCRITO */}
-                  <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-400" />
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-mono tracking-wider block">05 • FRAÇÃO VOLUMÉTRICA (HEMATÓCRITO)</span>
-                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                        {currentReading.hematocrito_pct.toFixed(1)}
-                        <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold ${
-                        currentReading.hematocrito_pct < 35.0 ? 'text-yellow-400 border-yellow-400 bg-yellow-500/10' : 'text-biotech-neon border-biotech-neon bg-biotech-neon/10'
-                      }`}>
-                        {currentReading.hematocrito_pct < 37.0 ? 'MÉDIO-BAIXO' : 'ÓTIMO'}
-                      </span>
-                      <Sparkline data={getSparkValues('hematocrito_pct')} color="#f87171" />
-                    </div>
-                  </div>
-                </>
-              )}
+              {/* CARD 4: VISCOSIDADE */}
+              <MetricCard
+                title="Viscosidade"
+                subtitle="Resistência ao fluxo"
+                value={currentReading.viscosidade_cp.toFixed(1)}
+                unit="cP"
+                percent={Math.min(100, (currentReading.viscosidade_cp / 6) * 100)}
+                level={currentReading.viscosidade_cp > 5.0 ? 'critical' : currentReading.viscosidade_cp < 3.2 ? 'warning' : 'success'}
+                detail={currentReading.viscosidade_cp > 4.5 ? 'Composto Espesso' : 'Fluidez Adequada'}
+                icon={Droplets}
+                sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
+              />
 
             </div>
 
             {/* Status do Hardware Arduino */}
-            <div className="glass-panel rounded-xl p-3 flex items-center justify-between bg-slate-900/40">
-              <div className="flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-biotech-neon" />
+            <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between bg-slate-900/40 border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <Cpu className="w-4 h-4 text-emerald-400" />
                 <div>
-                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO FÍSICA ARDUINO</p>
-                  <p className="text-xs font-mono font-bold">115200 baud • {packetCount} packets rx</p>
+                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO ARDUINO SERIAL</p>
+                  <p className="text-xs font-mono font-bold text-slate-200">115200 baud • {packetCount} pacotes rx</p>
                 </div>
               </div>
-              <span className="text-[9px] bg-slate-800 border border-slate-700 text-slate-400 font-mono px-2 py-0.5 rounded">
-                DRV: CH340G
+              <span className="text-[9px] bg-slate-800 border border-slate-700 text-emerald-400 font-mono px-2.5 py-1 rounded-md font-semibold">
+                DRIVER: CH340G / COM3
               </span>
             </div>
+
           </section>
 
-          {/* COLUNA CENTRAL/DIREITA (CHATBOT PRINCIPAL - 2/3) */}
-          <section className="lg:col-span-2 flex flex-col gap-4">
+          {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
+          <section className="lg:col-span-7 flex flex-col gap-4">
             
-            {/* Status Alerta Geral */}
-            <div className={`border rounded-xl p-4 flex items-center gap-4 transition-all duration-300 ${getStatusBg(currentReading.status)}`}>
-              <div className={`p-2.5 rounded-lg border bg-slate-950/80 ${getStatusColor(currentReading.status)}`}>
-                {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
-                 currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+            {/* Veredito Geral Semáforo */}
+            <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
+              currentReading.status === "CRÍTICO" 
+                ? 'bg-rose-950/30 border-rose-500/40' 
+                : currentReading.status === "ALERTA"
+                ? 'bg-amber-950/30 border-amber-500/40'
+                : 'bg-emerald-950/20 border-emerald-500/40'
+            }`}>
+              <div className="flex items-center gap-3.5">
+                <div className={`p-3 rounded-xl border bg-slate-950/80 ${
+                  currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
+                  currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
+                }`}>
+                  {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
+                   currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                    VEREDITO DO SISTEMA • LOTE {selectedLot}
+                  </p>
+                  <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                    STATUS: {currentReading.status}
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                    {currentReading.alerta_mensagem}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-slate-400 font-mono">VEREDITO GERAL DA CAMADA 2 & 3 • LOTE {selectedLot}</p>
-                <h3 className="text-lg font-bold text-white tracking-wide">STATUS DO SISTEMA: {currentReading.status}</h3>
-                <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">{currentReading.alerta_mensagem}</p>
+
+              <div className="hidden sm:flex items-center gap-2 pr-2">
+                <Button
+                  onClick={() => setActiveTab('forecast')}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-xs text-slate-200"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
+                  Previsão
+                </Button>
               </div>
             </div>
 
-            {/* Janela de Chat Conversacional */}
-            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative">
+            {/* Chatbot Conversacional com IA Explicável */}
+            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
+              
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
               
               {/* Header do Chat */}
-              <div className="z-10 bg-slate-900/60 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+              <div className="z-10 bg-slate-900/70 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-biotech-crimson animate-pulse" />
-                  <span className="text-xs font-bold font-mono tracking-widest text-slate-400">CAMADA 4: TRADUTOR CIENTÍFICO CONVERSACIONAL</span>
+                  <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
+                  <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
+                    CAMADA 4: TRADUTOR CIENTÍFICO CONVERSACIONAL
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
-                  <span className="h-1.5 w-1.5 rounded-full bg-biotech-neon"></span>
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   ONLINE
                 </div>
               </div>
 
-              {/* Corpo de Mensagens */}
-              <div className="z-10 flex-1 min-h-[360px] max-h-[480px] overflow-y-auto p-4 flex flex-col gap-4">
+              {/* Mensagens do Chat */}
+              <div className="z-10 flex-1 max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5">
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
-                    className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
+                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' || msg.cardType === 'laudo_monoxido' || msg.cardType === 'laudo_queimaduras' || msg.cardType === 'laudo_doacao' || msg.cardType === 'laudo_raros' ? (
-                      <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xl select-text">
-                        {/* Título do Laudo em Destaque */}
-                        <div className="border-b border-slate-800/80 pb-2.5 flex items-center justify-between">
-                          <h3 className="text-xs font-bold font-mono text-white tracking-wider flex items-center gap-2">
-                            <span>🩺</span> LAUDO TÉCNICO • LOTE {msg.loteId} ({msg.tagTitle || 'EMERGÊNCIA'})
-                          </h3>
-                          <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                            APROVADO
-                          </span>
-                        </div>
-
-                        {/* Lista dos 5 Parâmetros com Cores Neon */}
-                        <div className="flex flex-col gap-3">
-                          {msg.metrics?.map((m) => (
-                            <div key={m.id} className="flex flex-col gap-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-850">
-                              <div className="flex justify-between items-center text-[11px] font-mono">
-                                <span className="text-slate-200 font-semibold">{m.name}</span>
-                                <span className="text-white font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-mono">
-                                  [{m.val}]
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-2.5">
-                                <div 
-                                  className="flex-1 border border-slate-800/80 h-3 rounded-full overflow-hidden p-0.5"
-                                  style={{ background: '#111827' }}
-                                >
-                                  <div 
-                                    className="h-full rounded-full transition-all duration-500"
-                                    style={{ 
-                                      width: `${m.pct}%`, 
-                                      backgroundColor: m.color,
-                                      boxShadow: `0 0 8px ${m.color}aa`
-                                    }}
-                                  />
-                                </div>
-                                <span className="text-[11px] font-mono font-bold text-slate-300 min-w-[36px] text-right">
-                                  {m.pct}%
-                                </span>
-                                <span 
-                                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all min-w-[75px] text-center"
-                                  style={{
-                                    color: m.color,
-                                    borderColor: `${m.color}80`,
-                                    backgroundColor: `${m.color}18`,
-                                    boxShadow: `0 0 6px ${m.color}30`
-                                  }}
-                                >
-                                  [{m.badge}]
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Linha Final de Veredito em Destaque Verde */}
-                        <div className="border-t border-slate-800 pt-2.5 mt-1 bg-emerald-500/10 border-emerald-500/30 p-2.5 rounded-xl border">
-                          <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5">
-                            {msg.veredit || '🟢 VEREDITO: Lote aprovado para atendimento pré-hospitalar.'}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div 
-                        className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
-                          msg.role === 'user' 
-                            ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
-                            : 'bg-slate-900/90 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
-                        }`}
-                      >
-                        <div className="whitespace-pre-line font-sans">{msg.content}</div>
-                      </div>
-                    )}
+                    <div 
+                      className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
+                        msg.role === 'user' 
+                          ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
+                          : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
+                      }`}
+                    >
+                      <div className="whitespace-pre-line font-sans">{msg.content}</div>
+                    </div>
                     
                     <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
                       {msg.role === 'user' ? 'Visitante' : 'Tradutor Clínico EcoSanguis'}
                     </span>
 
+                    {/* Bloco de IA Explicável Integrado */}
                     {msg.role === 'assistant' && msg.explicabilidade && (
-                      <div className="mt-3 w-full bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+                      <div className="mt-2.5 w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-2.5">
                         <div className="flex items-center justify-between border-b border-slate-900 pb-2">
-                          <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <Cpu className="w-3.5 h-3.5 text-biotech-crimson" />
-                            DETALHAMENTO DE INFERÊNCIA DA IA EXPLICÁVEL
+                          <span className="text-[10px] font-mono font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
+                            <Cpu className="w-3.5 h-3.5 text-rose-500" />
+                            DETALHAMENTO DA IA EXPLICÁVEL
                           </span>
-                          <span className={`text-xs font-mono font-bold ${getStatusColor(msg.explicabilidade.nivel_risco)}`}>
+                          <span className="text-xs font-mono font-bold text-rose-400">
                             RISCO: {msg.explicabilidade.risco_degradacao_pct}%
                           </span>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
-                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                          <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-850">
                             <div className="flex justify-between text-[10px] font-mono mb-1">
-                              <span className="text-slate-400">Oxigenação (Ideal &gt;= 90%)</span>
+                              <span className="text-slate-400">Oxigenação (&ge;90%)</span>
                               <span className="text-white font-bold">{(msg.explicabilidade.valores_sensores.oxigenacao*100).toFixed(0)}%</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                               <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.oxigenacao < 0.90 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.oxigenacao < 0.90 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
                                 style={{ width: `${msg.explicabilidade.valores_sensores.oxigenacao * 100}%` }}
                               />
                             </div>
                           </div>
 
-                          <div className="bg-slate-900/40 p-2 rounded border border-slate-900">
+                          <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-850">
                             <div className="flex justify-between text-[10px] font-mono mb-1">
-                              <span className="text-slate-400">Temperatura (Ideal 35.5 - 37.5)</span>
+                              <span className="text-slate-400">Temperatura (35.5-37.5°C)</span>
                               <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.temperatura.toFixed(1)}°C</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                               <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.temperatura > 38.0 || msg.explicabilidade.valores_sensores.temperatura < 35.0 ? 'bg-biotech-crimson animate-pulse' : 'bg-biotech-neon'}`}
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.temperatura > 38.0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
                                 style={{ width: `${Math.min(100, (msg.explicabilidade.valores_sensores.temperatura / 45) * 100)}%` }}
                               />
                             </div>
+                          </div>
+                        </div>
+
+                        <div className="text-[10px] text-slate-400 leading-relaxed bg-slate-900/30 p-2 rounded-lg border border-slate-850">
+                          <p className="font-bold text-slate-300 font-mono mb-1">PESOS DAS FEATURES:</p>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                            <span>• Oxigenação: +{msg.explicabilidade.pesos_atribuicao.oxigenacao}%</span>
+                            <span>• Temperatura: +{msg.explicabilidade.pesos_atribuicao.temperatura}%</span>
+                            <span>• pH: +{msg.explicabilidade.pesos_atribuicao.ph}%</span>
+                            <span>• Viscosidade: +{msg.explicabilidade.pesos_atribuicao.viscosidade}%</span>
                           </div>
                         </div>
                       </div>
@@ -2066,13 +746,22 @@ while True:
                   </div>
                 ))}
 
+                {/* Loading Heartbeat */}
                 {isTyping && (
                   <div className="flex flex-col max-w-[85%] self-start items-start">
                     <div className="p-3.5 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none flex flex-col gap-2 min-w-[280px]">
                       <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                        <Activity className="w-3.5 h-3.5 text-biotech-crimson animate-heartbeat" />
+                        <Activity className="w-3.5 h-3.5 text-rose-500 animate-heartbeat" />
                         <span>Analisando dados mais recentes do Arduino...</span>
                       </div>
+                      
+                      <svg width="240" height="24" className="stroke-rose-500" fill="none">
+                        <path
+                          className="ecg-path"
+                          strokeWidth="2"
+                          d="M 0 12 L 40 12 L 50 12 L 55 2 L 60 22 L 65 12 L 70 12 L 110 12 L 120 12 L 125 2 L 130 22 L 135 12 L 140 12 L 180 12 L 190 12 L 195 2 L 200 22 L 205 12 L 240 12"
+                        />
+                      </svg>
                     </div>
                   </div>
                 )}
@@ -2081,27 +770,34 @@ while True:
               </div>
 
               {/* Botões de Ações Rápidas (Pills) */}
-              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto">
+              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/40">
                 <button
                   type="button"
                   onClick={() => handleSendMessage('Qual o status atual do lote?')}
-                  className="whitespace-nowrap text-[11px] text-biotech-neon border border-biotech-neon px-3 py-1.5 rounded-md hover:bg-biotech-neon/10 transition-colors"
+                  className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
                 >
                   Status atual
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSendMessage('O que é sangue artificial?')}
-                  className="whitespace-nowrap text-[11px] text-biotech-crimson border border-biotech-crimson px-3 py-1.5 rounded-md hover:bg-biotech-crimson/10 transition-colors"
+                  className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
                 >
                   O que é sangue artificial?
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSendMessage('Por que o lote está em risco?')}
-                  className="whitespace-nowrap text-[11px] text-cyan-400 border border-cyan-400 px-3 py-1.5 rounded-md hover:bg-cyan-400/10 transition-colors"
+                  className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
                 >
                   Por que o lote está em risco?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
+                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
+                >
+                  Limpeza de Ruído & pH
                 </button>
               </div>
 
@@ -2114,82 +810,229 @@ while True:
                   type="text" 
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Faça uma pergunta sobre o lote de sangue ou sobre a IA do sistema..."
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-slate-700 text-slate-100 placeholder-slate-500 transition-all font-sans"
+                  placeholder="Pergunte sobre os lotes, sensores ou previsões..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
                 />
-                <button 
+                <Button 
                   type="submit"
-                  className="bg-slate-850 hover:bg-slate-800 text-biotech-neon p-2.5 rounded-xl border border-slate-700/60 hover:border-biotech-neon transition-all"
+                  className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
                 >
-                  <Send className="w-4.5 h-4.5" />
-                </button>
+                  <Send className="w-4 h-4" />
+                </Button>
               </form>
 
             </div>
 
           </section>
         </main>
-      ) : (
-        /* ========================================================
-           TELA SECUNDÁRIA: CONSOLE TÉCNICO
-           ======================================================== */
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6 z-10 overflow-visible">
+      )}
+
+      {/* ABA 2: PREVISÃO DE DEMANDA HOSPITALAR (LOVABLE RECHARTS) */}
+      {activeTab === 'forecast' && (
+        <main className="flex-1 max-w-[1480px] w-full mx-auto p-4 sm:p-6 z-10 space-y-6">
+          
+          <div className="glass-panel rounded-2xl p-6 border-slate-800">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="rounded-xl border border-sky-500/40 bg-sky-500/12 p-3 text-sky-400">
+                  <TrendingUp className="h-6 w-6" />
+                </span>
+                <div>
+                  <h2 className="font-display text-xl font-bold text-white">
+                    Previsão de Demanda Hospitalar por IA
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Histórico de 7 dias e projeção preditiva da IA para os próximos 4 dias
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-widest text-slate-400 bg-slate-900/60 border border-slate-800 px-4 py-2 rounded-xl">
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-sky-400" /> Demanda Histórica
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-rose-500" /> Previsão IA
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-emerald-400" /> Estoque Projetado
+                </span>
+              </div>
+            </div>
+
+            <DemandChart />
+
+            <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-xs text-amber-300 flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
+              <span>
+                <strong>Alerta Clínico Preditivo:</strong> A IA estima 92 unidades de demanda em D+3, enquanto o estoque projetado cai para 43 unidades — reposição recomendada em até 48h para evitar desabastecimento crítico no pronto-socorro.
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
+              <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
+                Capacidade de Produção
+              </p>
+              <p className="mt-2 font-mono text-3xl font-bold text-sky-400">
+                120 <span className="text-xs text-slate-400 font-sans">unid/dia</span>
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Turno de esterilização e síntese de PFCs</p>
+            </div>
+
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
+              <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
+                Lead Time de Reposição
+              </p>
+              <p className="mt-2 font-mono text-3xl font-bold text-emerald-400">
+                18 <span className="text-xs text-slate-400 font-sans">horas</span>
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Tempo médio de validação biológica e entrega</p>
+            </div>
+
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
+              <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
+                Acurácia do Modelo
+              </p>
+              <p className="mt-2 font-mono text-3xl font-bold text-rose-400">
+                94.8<span className="text-xs text-slate-400 font-sans">%</span>
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Score R² com base em séries temporais</p>
+            </div>
+          </div>
+
+        </main>
+      )}
+
+      {/* ABA 3: CONSOLE TÉCNICO & AUDITORIA */}
+      {activeTab === 'tecnico' && (
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* COLUNA ESQUERDA: SCRIPT PYTHON E ENDPOINT */}
           <section className="flex flex-col gap-4">
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1">
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1 border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
-                  <Terminal className="w-3.5 h-3.5 text-biotech-neon" />
+                  <Terminal className="w-3.5 h-3.5 text-emerald-400" />
                   SCRIPT DE SUPORTE: PONTE PYTHON (ARDUINO PARA API)
                 </h2>
                 <button 
                   onClick={copyToClipboard}
-                  className="text-[10px] text-biotech-neon border border-biotech-neon/30 hover:border-biotech-neon hover:bg-biotech-neon/10 px-2.5 py-1.5 rounded transition-all font-mono flex items-center gap-1"
+                  className="text-[10px] text-emerald-400 border border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-all font-mono flex items-center gap-1.5"
                 >
                   <Copy className="w-3 h-3" />
                   {copiedScript ? "COPIADO!" : "COPIAR SCRIPT"}
                 </button>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                Rode este script Python no computador do estande conectado ao Arduino. O script lê as leituras da porta serial e faz requisições HTTP POST para a API do site.
+                Rode este script Python no computador do estande conectado ao Arduino. O script lê as leituras da porta serial e faz requisições HTTP POST para a API do site, alimentando o painel em tempo real.
               </p>
-              <div className="flex-1 bg-slate-950 border border-slate-900 rounded-lg p-3 overflow-auto max-h-[300px]">
-                <pre className="text-[10px] text-slate-400 font-mono select-text">{pythonScript}</pre>
+              
+              <div className="flex-1 bg-slate-950 border border-slate-900 rounded-xl p-3.5 overflow-auto max-h-[320px]">
+                <pre className="text-[11px] text-slate-300 font-mono select-text">{pythonScript}</pre>
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
+              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-rose-500" />
+                DOCUMENTAÇÃO DO ENDPOINT DE TELEMETRIA
+              </h2>
+              
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded font-mono font-bold">POST</span>
+                  <span className="text-xs font-mono text-white">/api/sensor-data</span>
+                </div>
+                <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                  O Arduino ou ponte envia leituras brutas em JSON. O backend limpa erros de digitação e calcula as variáveis secundárias.
+                </p>
+                <div className="bg-slate-950 border border-slate-900 rounded-xl p-3 mt-1">
+                  <p className="text-[9px] text-slate-500 font-mono mb-1">PAYLOAD DE ENTRADA EXIGIDO:</p>
+                  <pre className="text-[10px] text-slate-400 font-mono select-text">{JSON.stringify({
+                    "lote_id": "SA-025",
+                    "oxigenacao": "95%",
+                    "temperatura": "36.8C",
+                    "vazao": "4.8"
+                  }, null, 2)}</pre>
+                </div>
               </div>
             </div>
           </section>
 
+          {/* COLUNA DIREITA: ARQUITETURA E AUDITORIA */}
           <section className="flex flex-col gap-4">
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3">
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
+              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
+                <Cpu className="w-3.5 h-3.5 text-sky-400" />
+                FLUXO OPERACIONAL DE 4 CAMADAS
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px] font-mono mt-1">
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-emerald-400">1. DADOS</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Coleta e armazena</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-sky-400">2. PROCESS.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Limpa e normaliza</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-amber-400">3. IA EXPL.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Inferência de risco</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-rose-500">4. INTERM.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Chat de conversa</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Trilha de Auditoria */}
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800 flex-1">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2 uppercase">
-                  <Database className="w-3.5 h-3.5 text-biotech-crimson" />
-                  LOGS DE AUDITORIA E RASTREABILIDADE
+                  <Database className="w-3.5 h-3.5 text-rose-500" />
+                  CAMADA 1: LOGS DE AUDITORIA E RASTREABILIDADE
                 </h2>
-                <RefreshCw className="w-3 h-3 text-slate-400 animate-spin" />
+                <RefreshCw className="w-3.5 h-3.5 text-slate-400 cursor-pointer hover:text-white transition-colors" onClick={fetchAudits} />
               </div>
 
-              <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[350px]">
-                {audits.map((a, index) => (
-                  <div
-                    key={a.id || index}
-                    className="p-2.5 rounded bg-slate-900/50 border border-slate-800/80 text-xs flex flex-col gap-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 font-bold">[{a.acao || a.action || 'Log'}]</span>
-                      <span className="text-slate-500">{a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : ''}</span>
-                    </div>
-                    <p className="text-slate-300 text-xs font-sans">{a.descricao || a.details}</p>
+              <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[380px]">
+                {audits.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-500">
+                    Nenhum log de auditoria pendente no banco local.
                   </div>
-                ))}
+                ) : (
+                  audits.map((a, index) => (
+                    <div
+                      key={a.id || index}
+                      className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs flex flex-col gap-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-300 font-bold font-mono">[{a.action}]</span>
+                        <span className="text-slate-500 font-mono text-[10px]">
+                          {a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : "--:--"}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-xs font-sans">{a.details}</p>
+                      <div className="flex items-center gap-1 text-[9px] text-slate-500 font-mono">
+                        <span>Operador:</span>
+                        <span className="text-slate-400 font-bold">{a.operator || "SISTEMA"}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </section>
         </main>
       )}
 
-      <footer className="z-10 py-3 border-t border-slate-900 bg-slate-950/50">
+      {/* Footer */}
+      <footer className="z-10 py-3.5 border-t border-slate-900 bg-slate-950/80 px-6">
         <p className="text-[10px] text-slate-500 font-mono tracking-wider text-center">
-          CONCEPÇÃO CIENTÍFICA: ARQUITETURA INTELIGENTE PARA UM SISTEMA DE SANGUE ARTIFICIAL
+          FLOWTIFICIAL • PROJETO FECART 2026 • ARQUITETURA INTELIGENTE PARA SANGUE ARTIFICIAL
         </p>
       </footer>
     </div>
