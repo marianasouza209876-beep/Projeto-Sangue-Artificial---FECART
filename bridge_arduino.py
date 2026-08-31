@@ -155,8 +155,8 @@ def enviar_dados(url, payload):
 
 def ler_serial_com_tratamento_excecao(ser):
     """
-    Leitura ultra-resiliente da porta serial do Arduino com tratamento específico de erros de Timeout
-    e exceções físicas para evitar travamento na transmissão de dados.
+    Leitura ultra-resiliente da porta serial do Arduino com tratamento específico de erros de Timeout,
+    filtragem de ruídos eletromagnéticos e exceções físicas para evitar travamento na transmissão de dados.
     """
     if not ser:
         return None
@@ -165,9 +165,18 @@ def ler_serial_com_tratamento_excecao(ser):
         if hasattr(ser, 'in_waiting') and ser.in_waiting > 0:
             linha_bytes = ser.readline()
             if linha_bytes:
-                return linha_bytes.decode("utf-8", errors="ignore").strip()
+                texto_bruto = linha_bytes.decode("utf-8", errors="ignore").strip()
+                # Filtrar ruídos de transmissão e caracteres de controle corrompidos
+                texto_limpo = "".join(c for c in texto_bruto if c.isprintable())
+                if texto_limpo:
+                    return texto_limpo
     except (getattr(serial, 'SerialTimeoutException', Exception), TimeoutError, OSError) as timeout_err:
-        print(f"⏱️ [ALERTA DE TIMEOUT SERIAL]: Tempo limite excedido na leitura do Arduino ({timeout_err}). Reciclando buffer.")
+        print(f"⏱️ [ALERTA DE TIMEOUT SERIAL]: Conexão lenta / tempo limite excedido ({timeout_err}). Ativando fallback de buffer.")
+        try:
+            if hasattr(ser, 'reset_input_buffer'):
+                ser.reset_input_buffer()
+        except Exception:
+            pass
         return None
     except (getattr(serial, 'SerialException', Exception), AttributeError, TypeError) as ser_err:
         print(f"⚠️ [EXCEÇÃO SERIAL CAPTURADA]: Comunicação com porta física interrompida ({ser_err}). Ativando fallback resiliente.")

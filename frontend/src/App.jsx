@@ -30,7 +30,7 @@ const FINALIDADES_OPCOES = [
   "Resgate e Cirurgia em Altas Altitudes",
   "Vítimas de Envenenamento por Monóxido de Carbono",
   "Tratamento de Queimaduras Graves e Choque Séptico",
-  "Doação de sangue",
+  "Doação de Sangue e Compatibilidade Universal",
   "Manejo Clínico de Pacientes com Raros Fenótipos Sanguíneos"
 ];
 
@@ -102,7 +102,7 @@ const PROTOCOLOS_CLINICOS = {
     viscosidade: { normal: [2.8, 4.0], seguro: [2.5, 4.5], criticoMin: 2.2, criticoMax: 5.0 },
     hematocrito: { normal: [32, 42], seguro: [30, 45], criticoMin: 28, criticoMax: 48 }
   },
-  "Doação de sangue": {
+  "Doação de Sangue e Compatibilidade Universal": {
     o2: { normal: [95, 100], seguro: [93, 100], critico: 90 },
     temp: { normal: [36.5, 37.5], seguro: [36.0, 37.8], criticoMin: 35.0, criticoMax: 38.5 },
     ph: { normal: [7.35, 7.45], seguro: [7.31, 7.49], criticoMin: 7.30, criticoMax: 7.50 },
@@ -555,6 +555,10 @@ while True:
   const isQueimaduras = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && !isMonoxido && (
     (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("queimaduras") || selectedLotObj.finalidade.toLowerCase().includes("choque"))) ||
     (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("queimaduras") || selectedLotObj.destino.toLowerCase().includes("choque")))
+  );
+  const isDoacao = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && !isMonoxido && !isQueimaduras && (
+    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("doação") || selectedLotObj.finalidade.toLowerCase().includes("doacao") || selectedLotObj.finalidade.toLowerCase().includes("compatibilidade"))) ||
+    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("doação") || selectedLotObj.destino.toLowerCase().includes("doacao") || selectedLotObj.destino.toLowerCase().includes("compatibilidade")))
   );
 
   return (
@@ -1331,6 +1335,100 @@ while True:
                     </div>
                     <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
                       Previne paradas cardíacas e arritmias decorrentes de queimaduras.
+                    </p>
+                  </div>
+                </>
+              ) : isDoacao ? (
+                <>
+                  {/* B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          0.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
+                          ISENTO
+                        </span>
+                        <Sparkline data={[0.0, 0.0, 0.0, 0.0, 0.0]} color="#10b981" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Lote totalmente universal, sem risco de reação transfusional.
+                    </p>
+                  </div>
+
+                  {/* B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          0.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
+                          NULA
+                        </span>
+                        <Sparkline data={[0.0, 0.0, 0.0, 0.0, 0.0]} color="#00E5A3" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Dispensa a necessidade de teste de cruzamento prévio.
+                    </p>
+                  </div>
+
+                  {/* B3 • PUREZA MOLECULAR */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • PUREZA MOLECULAR</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          99.9
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
+                          EXCELENTE
+                        </span>
+                        <Sparkline data={[99.9, 99.9, 99.8, 99.9, 99.9]} color="#22d3ee" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Garante a ausência de fragmentos de membranas e impurezas.
+                    </p>
+                  </div>
+
+                  {/* B4 • ESTERILIDADE BIOLÓGICA */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • ESTERILIDADE BIOLÓGICA</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          100.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
+                          LIVRE
+                        </span>
+                        <Sparkline data={[100.0, 100.0, 100.0, 100.0, 100.0]} color="#a855f7" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Garantia absoluta contra a transmissão de vírus ou bactérias.
                     </p>
                   </div>
                 </>
