@@ -301,7 +301,7 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
       if (res.ok) {
         const data = await res.json();
-        setHistory(data);
+        setHistory(Array.isArray(data) ? data.slice(-30) : []);
       }
     } catch (err) {
       console.log("Erro ao carregar histórico:", err);
@@ -559,6 +559,10 @@ while True:
   const isDoacao = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && !isMonoxido && !isQueimaduras && (
     (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("doação") || selectedLotObj.finalidade.toLowerCase().includes("doacao") || selectedLotObj.finalidade.toLowerCase().includes("compatibilidade"))) ||
     (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("doação") || selectedLotObj.destino.toLowerCase().includes("doacao") || selectedLotObj.destino.toLowerCase().includes("compatibilidade")))
+  );
+  const isRaros = selectedLotObj && !isEmergencia && !isTransplante && !isAltitude && !isMonoxido && !isQueimaduras && !isDoacao && (
+    (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("raros") || selectedLotObj.finalidade.toLowerCase().includes("fenótipos") || selectedLotObj.finalidade.toLowerCase().includes("fenotipos"))) ||
+    (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("raros") || selectedLotObj.destino.toLowerCase().includes("fenótipos") || selectedLotObj.destino.toLowerCase().includes("fenotipos")))
   );
 
   return (
@@ -1429,6 +1433,100 @@ while True:
                     </div>
                     <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
                       Garantia absoluta contra a transmissão de vírus ou bactérias.
+                    </p>
+                  </div>
+                </>
+              ) : isRaros ? (
+                <>
+                  {/* B1 • IMUNOGENICIDADE ESTENDIDA (Kell/Duffy/Kidd) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B1 • IMUNOGENICIDADE ESTENDIDA (Kell/Duffy/Kidd)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          0.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-cyan-400 border-cyan-400 bg-cyan-500/10">
+                          NEUTRO
+                        </span>
+                        <Sparkline data={[0.0, 0.0, 0.0, 0.0, 0.0]} color="#22d3ee" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Compatível com receptores altamente sensibilizados.
+                    </p>
+                  </div>
+
+                  {/* B2 • PUREZA DA RECONSTITUIÇÃO */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-biotech-neon" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B2 • PUREZA DA RECONSTITUIÇÃO</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          99.7
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-biotech-neon border-biotech-neon bg-biotech-neon/10">
+                          MÁXIMA
+                        </span>
+                        <Sparkline data={[99.7, 99.8, 99.6, 99.7, 99.7]} color="#00E5A3" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Impede a formação de novos anticorpos em transfusões frequentes.
+                    </p>
+                  </div>
+
+                  {/* B3 • FRAÇÃO VOLUMÉTRICA (EQUIVALENTE DE HEMATÓCRITO) */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B3 • FRAÇÃO VOLUMÉTRICA (EQUIVALENTE DE HEMATÓCRITO)</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          40.0
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-emerald-400 border-emerald-400 bg-emerald-500/10">
+                          ÓTIMO
+                        </span>
+                        <Sparkline data={[40.0, 40.2, 39.8, 40.1, 40.0]} color="#10b981" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Restaura a capacidade de transporte de O₂ com volume ideal.
+                    </p>
+                  </div>
+
+                  {/* B4 • RESISTÊNCIA À HEMÓLISE INDUZIDA */}
+                  <div className="glass-panel glass-panel-hover rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-wider block">B4 • RESISTÊNCIA À HEMÓLISE INDUZIDA</span>
+                        <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white">
+                          99.5
+                          <span className="text-xs text-slate-400 ml-1 font-sans font-normal">%</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] px-2 py-0.5 border rounded-full font-mono font-bold text-purple-400 border-purple-400 bg-purple-500/10">
+                          ALTA
+                        </span>
+                        <Sparkline data={[99.5, 99.6, 99.4, 99.5, 99.5]} color="#a855f7" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-sans mt-1.5 border-t border-slate-800/80 pt-1 leading-snug">
+                      Estrutura estável que não se rompe na circulação do paciente.
                     </p>
                   </div>
                 </>
