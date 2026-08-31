@@ -387,6 +387,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
         (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("monóxido") || selectedLotObj.finalidade.toLowerCase().includes("envenenamento"))) ||
         (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("monóxido") || selectedLotObj.destino.toLowerCase().includes("envenenamento")))
       );
+
+      const isQueim = selectedLotObj && !isEmerg && !isTransp && !isAlt && !isMonox && (
+        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("queimaduras") || selectedLotObj.finalidade.toLowerCase().includes("séptico") || selectedLotObj.finalidade.toLowerCase().includes("septico"))) ||
+        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("queimaduras") || selectedLotObj.destino.toLowerCase().includes("séptico") || selectedLotObj.destino.toLowerCase().includes("septico")))
+      );
       
       const valO2 = ((currentReading?.oxigenacao_limpa || 0.98) * 100).toFixed(1);
       const pctO2 = Math.round(parseFloat(valO2));
@@ -539,6 +544,38 @@ ${barExtr} ${pctExtr}%  [ALTO]
             loteId: selectedLot,
             tagTitle: 'ENVENENAMENTO POR CO',
             veredit: '🟢 VEREDITO: Lote aprovado para tratamento de envenenamento por CO.',
+            metrics: cardMetrics
+          }
+        ]);
+        setInputValue('');
+        return;
+      }
+
+      if (isQueim) {
+        const cardMetrics = [
+          { id: 'B1', name: 'B1 • PRESSÃO COLOIDOSMÓTICA', val: '28.0 mmHg', pct: 95, badge: 'ÓTIMO', color: '#ff9f1c' },
+          { id: 'B2', name: 'B2 • CONCENTRAÇÃO DE ENDOTOXINAS', val: '< 0.05 EU/mL', pct: 100, badge: 'ISENTO', color: '#00ff9d' },
+          { id: 'B3', name: 'B3 • MARCADOR DE INTEGRIDADE ENDOTELIAL', val: '99.2%', pct: 99, badge: 'MÁXIMA', color: '#00d8ff' },
+          { id: 'B4', name: 'B4 • CAPACIDADE DE LIGAÇÃO DE CITOCINAS', val: '92.5%', pct: 93, badge: 'ELEVADA', color: '#a855f7' },
+          { id: 'B5', name: 'B5 • EQUILÍBRIO HIDROELETROLÍTICO (Na+)', val: '140.0 mEq/L', pct: 100, badge: 'NORMAL', color: '#3a86ef' }
+        ];
+
+        const respostaQueim = `Laudo da IA para Tratamento de Queimaduras Graves e Choque Séptico (Lote ${selectedLot}):
+• B1 Pressão Coloidosmótica: 28.0 mmHg (ÓTIMO)
+• B2 Concentração de Endotoxinas: < 0.05 EU/mL (ISENTO)
+• B3 Marcador de Integridade Endotelial: 99.2% (MÁXIMA)
+• B4 Capacidade de Ligação de Citocinas: 92.5% (ELEVADA)
+• B5 Equilíbrio Hidroeletrolítico (Na+): 140.0 mEq/L (NORMAL)`;
+
+        setMessages(prev => [...prev, 
+          { role: 'user', content: text },
+          { 
+            role: 'assistant', 
+            content: respostaQueim,
+            cardType: 'laudo_queimaduras',
+            loteId: selectedLot,
+            tagTitle: 'QUEIMADURAS E SEPSE',
+            veredit: '🟢 VEREDITO: Lote aprovado para tratamento de queimaduras graves e choque séptico.',
             metrics: cardMetrics
           }
         ]);
@@ -1824,7 +1861,7 @@ while True:
                     key={index}
                     className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' || msg.cardType === 'laudo_monoxido' ? (
+                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' || msg.cardType === 'laudo_monoxido' || msg.cardType === 'laudo_queimaduras' ? (
                       <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xl select-text">
                         {/* Título do Laudo em Destaque */}
                         <div className="border-b border-slate-800/80 pb-2.5 flex items-center justify-between">
