@@ -392,6 +392,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
         (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("queimaduras") || selectedLotObj.finalidade.toLowerCase().includes("séptico") || selectedLotObj.finalidade.toLowerCase().includes("septico"))) ||
         (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("queimaduras") || selectedLotObj.destino.toLowerCase().includes("séptico") || selectedLotObj.destino.toLowerCase().includes("septico")))
       );
+
+      const isDoacaoMsg = selectedLotObj && !isEmerg && !isTransp && !isAlt && !isMonox && !isQueim && (
+        (selectedLotObj.finalidade && (selectedLotObj.finalidade.toLowerCase().includes("doação") || selectedLotObj.finalidade.toLowerCase().includes("doacao") || selectedLotObj.finalidade.toLowerCase().includes("compatibilidade"))) ||
+        (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("doação") || selectedLotObj.destino.toLowerCase().includes("doacao") || selectedLotObj.destino.toLowerCase().includes("compatibilidade")))
+      );
       
       const valO2 = ((currentReading?.oxigenacao_limpa || 0.98) * 100).toFixed(1);
       const pctO2 = Math.round(parseFloat(valO2));
@@ -576,6 +581,36 @@ ${barExtr} ${pctExtr}%  [ALTO]
             loteId: selectedLot,
             tagTitle: 'QUEIMADURAS E SEPSE',
             veredit: '🟢 VEREDITO: Lote aprovado para tratamento de queimaduras graves e choque séptico.',
+            metrics: cardMetrics
+          }
+        ]);
+        setInputValue('');
+        return;
+      }
+
+      if (isDoacaoMsg) {
+        const cardMetrics = [
+          { id: 'B1', name: 'B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh)', val: '0.0%', pct: 100, badge: 'ISENTO', color: '#00ff9d' },
+          { id: 'B2', name: 'B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA)', val: '0.0%', pct: 100, badge: 'NULA', color: '#02c39a' },
+          { id: 'B3', name: 'B3 • PUREZA MOLECULAR', val: '99.9%', pct: 99, badge: 'EXCELENTE', color: '#00d8ff' },
+          { id: 'B4', name: 'B4 • ESTERILIDADE BIOLÓGICA', val: '100.0%', pct: 100, badge: 'LIVRE', color: '#39ff14' }
+        ];
+
+        const respostaDoacao = `Laudo da IA para Doação de Sangue e Compatibilidade Universal (Lote ${selectedLot}):
+• B1 Expressão Antigênica (ABO/Rh): 0.0% (ISENTO)
+• B2 Reatividade em Crossmatch: 0.0% (NULA)
+• B3 Pureza Molecular: 99.9% (EXCELENTE)
+• B4 Esterilidade Biológica: 100.0% (LIVRE)`;
+
+        setMessages(prev => [...prev, 
+          { role: 'user', content: text },
+          { 
+            role: 'assistant', 
+            content: respostaDoacao,
+            cardType: 'laudo_doacao',
+            loteId: selectedLot,
+            tagTitle: 'DOAÇÃO E COMPATIBILIDADE',
+            veredit: '🟢 VEREDITO: Lote aprovado para doação e compatibilidade universal.',
             metrics: cardMetrics
           }
         ]);
@@ -1861,7 +1896,7 @@ while True:
                     key={index}
                     className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' || msg.cardType === 'laudo_monoxido' || msg.cardType === 'laudo_queimaduras' ? (
+                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' || msg.cardType === 'laudo_monoxido' || msg.cardType === 'laudo_queimaduras' || msg.cardType === 'laudo_doacao' ? (
                       <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xl select-text">
                         {/* Título do Laudo em Destaque */}
                         <div className="border-b border-slate-800/80 pb-2.5 flex items-center justify-between">
