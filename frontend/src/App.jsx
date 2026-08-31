@@ -23,13 +23,21 @@ import {
   Layers,
   Clock,
   Sparkles,
-  Info
+  Info,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
 import { DemandChart } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
 import { QuickEntryModal } from '@/components/QuickEntryModal';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
 
@@ -62,6 +70,17 @@ const Sparkline = ({ data, color = "#00e5a3" }) => {
     </svg>
   );
 };
+
+// Lista Oficial das 7 Finalidades Clínicas
+const FINALIDADES_OPCOES = [
+  "Atendimento Pré-Hospitalar de Emergência",
+  "Preservação Avançada de Órgãos para Transplante",
+  "Resgate e Cirurgias em Altas Altitudes",
+  "Vítimas de Envenenamento por Monóxido de Carbono (CO)",
+  "Tratamento de Queimaduras Graves e Choque Séptico",
+  "Doação de Sangue e Compatibilidade Universal",
+  "Manejo Clínico de Pacientes com Raros Fenótipos Sanguíneos"
+];
 
 // Protocolos Clínicos Médicos
 const PROTOCOLOS_CLINICOS = {
@@ -195,24 +214,98 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Criação de novos lotes
-  const handleAddLot = (customName, destinoSelecionado = "Simulação Fisiológica Humana") => {
-    const nextNumber = lots.length + 25;
-    const newLotId = `SA-${String(nextNumber).padStart(3, '0')}`;
-    const now = new Date();
+  // Estados do Modal de Criação de Novo Lote
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newLotName, setNewLotName] = useState("");
+  const [newLotCode, setNewLotCode] = useState("");
+  const [newLotCreatedAt, setNewLotCreatedAt] = useState("");
+  const [newLotFinalidade, setNewLotFinalidade] = useState(FINALIDADES_OPCOES[0]);
+  const [formError, setFormError] = useState("");
+
+  // Função para abrir o modal de criação de lote com campos auto-preenchidos
+  const openCreateLotModal = () => {
+    const existingNumbers = lots.map(l => {
+      const match = String(l.id).match(/SA-(\d+)/i);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+    const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 24) : 25;
+    const nextNum = maxNum + 1;
+    const autoCode = `SA-${String(nextNum).padStart(3, '0')}`;
     
-    const newLot = {
-      id: newLotId,
-      name: customName || `Lote ${newLotId}`,
-      createdAt: now.toLocaleString('pt-BR'),
+    // Data e Hora do sistema em formato DD/MM/AAAA, HH:mm:ss
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const formattedDateTime = `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
+
+    setNewLotCode(autoCode);
+    setNewLotName(`Lote ${autoCode}`);
+    setNewLotCreatedAt(formattedDateTime);
+    setNewLotFinalidade(FINALIDADES_OPCOES[0]);
+    setFormError("");
+    setIsModalOpen(true);
+  };
+
+  // Função para confirmar e cadastrar o lote
+  const handleConfirmCreateLot = async (e) => {
+    if (e) e.preventDefault();
+
+    if (!newLotName || !newLotName.trim()) {
+      setFormError("Por favor, informe o Nome do Lote.");
+      return;
+    }
+
+    if (!newLotFinalidade) {
+      setFormError("Por favor, selecione a Finalidade Clínica.");
+      return;
+    }
+
+    const finalCode = newLotCode.trim() || `SA-${String(lots.length + 25).padStart(3, '0')}`;
+    const finalName = newLotName.trim();
+    const finalCreatedAt = newLotCreatedAt || new Date().toLocaleString('pt-BR');
+    const finalFinalidade = newLotFinalidade;
+    const finalProtocolo = PROTOCOLOS_CLINICOS[finalFinalidade] || PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"];
+
+    const newLotObj = {
+      id: finalCode,
+      name: finalName,
+      nome: finalName,
+      createdAt: finalCreatedAt,
+      data_criacao: finalCreatedAt,
+      finalidade: finalFinalidade,
+      destino: finalFinalidade,
       responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
-      destino: destinoSelecionado,
       intervaloLeitura: "5s",
-      protocolo: PROTOCOLOS_CLINICOS[destinoSelecionado]
+      protocolo: finalProtocolo,
+      status: "ESTÁVEL"
     };
 
-    setLots(prev => [...prev, newLot]);
-    setSelectedLot(newLot.id);
+    setLots(prev => [...prev, newLotObj]);
+    setSelectedLot(finalCode);
+    setIsModalOpen(false);
+
+    // Integrar com o backend FastAPI
+    try {
+      await fetch(`${API_BASE}/api/lots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: finalCode,
+          nome: finalName,
+          data_criacao: new Date().toISOString(),
+          finalidade: finalFinalidade,
+          composicao: `Fórmula Biomédica para ${finalFinalidade}`,
+          status_inicial: "ESTÁVEL"
+        })
+      });
+      fetchLots();
+    } catch (err) {
+      console.log("Servidor offline: lote adicionado localmente no estado React.");
+    }
   };
 
   // Deletar lote
@@ -493,10 +586,11 @@ while True:
                   LOTES DE SANGUE EM MONITORAMENTO
                 </h2>
                 <button 
-                  onClick={() => handleAddLot()}
-                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold"
+                  onClick={openCreateLotModal}
+                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1"
                 >
-                  + NOVO LOTE
+                  <Plus className="w-3 h-3" />
+                  NOVO LOTE
                 </button>
               </div>
 
@@ -1028,6 +1122,115 @@ while True:
           </section>
         </main>
       )}
+
+      {/* Modal de Criação de Novo Lote */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="glass-panel border-slate-700 sm:max-w-md bg-slate-950/95 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-white">
+              <Plus className="h-5 w-5 text-rose-500" />
+              Criar Novo Lote de Sangue Artificial
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Preencha os dados do lote biomédico. O lote será vinculado às métricas e faixas ideais da finalidade selecionada.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleConfirmCreateLot} className="grid gap-4 mt-2">
+            {formError && (
+              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono">
+                ⚠️ {formError}
+              </div>
+            )}
+
+            {/* ID do Lote (Fixo / Gerado Automático) */}
+            <div className="grid gap-1.5 text-left">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-slate-400 flex items-center justify-between">
+                <span>ID do Lote (Gerado Automático)</span>
+                <span className="text-rose-400 font-bold">SEQUENCIAL/ÚNICO</span>
+              </span>
+              <input
+                type="text"
+                value={newLotCode}
+                disabled
+                className="h-9 rounded-lg border border-slate-800 bg-slate-900/60 px-3 text-xs text-slate-400 font-mono font-bold cursor-not-allowed"
+              />
+            </div>
+
+            {/* Nome do Lote (Obrigatório) */}
+            <div className="grid gap-1.5 text-left">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
+                Nome do Lote *
+              </span>
+              <input
+                type="text"
+                value={newLotName}
+                onChange={(e) => {
+                  setNewLotName(e.target.value);
+                  if (formError) setFormError("");
+                }}
+                placeholder="Ex: Lote Alfa Trauma"
+                required
+                className="h-9 rounded-lg border border-slate-700 bg-slate-900/80 px-3 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-rose-500/80 transition-colors"
+              />
+            </div>
+
+            {/* Data e Hora de Criação (Fixa pelo sistema) */}
+            <div className="grid gap-1.5 text-left">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
+                Data e Hora de Criação (Sistema)
+              </span>
+              <input
+                type="text"
+                value={newLotCreatedAt}
+                disabled
+                className="h-9 rounded-lg border border-slate-800 bg-slate-900/60 px-3 text-xs text-slate-400 font-mono cursor-not-allowed"
+              />
+            </div>
+
+            {/* Finalidade Clínica (Dropdown Obrigatório com 7 opções) */}
+            <div className="grid gap-1.5 text-left">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
+                Finalidade Clínica *
+              </span>
+              <select
+                value={newLotFinalidade}
+                onChange={(e) => {
+                  setNewLotFinalidade(e.target.value);
+                  if (formError) setFormError("");
+                }}
+                required
+                className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-3 text-xs text-slate-100 outline-none focus:border-rose-500/80 transition-colors cursor-pointer"
+              >
+                {FINALIDADES_OPCOES.map((opcao, idx) => (
+                  <option key={idx} value={opcao} className="bg-slate-950 text-slate-100 py-1">
+                    {opcao}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Botões de Ação */}
+            <div className="flex gap-2 justify-end mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-medium text-xs gap-1.5 shadow-lg shadow-rose-500/20"
+              >
+                <Plus className="h-4 w-4" />
+                Confirmar e Cadastrar Lote
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="z-10 py-3.5 border-t border-slate-900 bg-slate-950/80 px-6">
