@@ -388,12 +388,46 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
         (selectedLotObj.destino && (selectedLotObj.destino.toLowerCase().includes("monóxido") || selectedLotObj.destino.toLowerCase().includes("envenenamento")))
       );
       
-      const respostaEmerg = `Laudo da IA para Atendimento Pré-Hospitalar de Emergência (Lote ${selectedLot}):
-• B1 Saturação de O2: 98.0% (ÓTIMO) - Garante aporte imediato em trauma e choque volumétrico.
-• B2 Viscosidade: 2.3 cP (FLUIDO) - Permite rápida infusão sob pressão em acessos periféricos.
-• B3 Estabilidade Térmica: 22.0 °C (ESTÁVEL) - Conserva integridade fora de refrigeração em ambulâncias.
-• B4 Meia-vida Circulatória: 24.0 h (SUFICIENTE) - Mantém a oxigenação até a chegada ao hospital.
-• B5 Índice de Extração de O2: 42.0% (ALTO) - Facilidade de liberação de oxigênio direto aos tecidos.`;
+      const valO2 = ((currentReading?.oxigenacao_limpa || 0.98) * 100).toFixed(1);
+      const pctO2 = Math.round(parseFloat(valO2));
+      const barO2 = "█".repeat(Math.round((pctO2 / 100) * 20)) + "░".repeat(20 - Math.round((pctO2 / 100) * 20));
+
+      const valVisc = (currentReading?.viscosidade_cp ? Math.min(3.0, currentReading.viscosidade_cp) : 2.3).toFixed(1);
+      const pctVisc = Math.round((parseFloat(valVisc) / 5.0) * 100);
+      const barVisc = "█".repeat(Math.round((pctVisc / 100) * 20)) + "░".repeat(20 - Math.round((pctVisc / 100) * 20));
+
+      const valTemp = (currentReading?.temperatura_c && currentReading.temperatura_c < 30 ? currentReading.temperatura_c : 22.0).toFixed(1);
+      const pctTemp = Math.round((parseFloat(valTemp) / 37.0) * 100);
+      const barTemp = "█".repeat(Math.round((pctTemp / 100) * 20)) + "░".repeat(20 - Math.round((pctTemp / 100) * 20));
+
+      const valVida = "24.0";
+      const pctVida = 100;
+      const barVida = "█".repeat(20);
+
+      const valExtr = "42.0";
+      const pctExtr = 42;
+      const barExtr = "█".repeat(Math.round((pctExtr / 100) * 20)) + "░".repeat(20 - Math.round((pctExtr / 100) * 20));
+
+      const respostaEmerg = `🩺 LAUDO TÉCNICO • LOTE ${selectedLot} (EMERGÊNCIA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+B1 • SATURAÇÃO DE O₂      [${valO2}% ]  
+${barO2} ${pctO2}%  [ÓTIMO]
+
+B2 • VISCOSIDADE DE FLUXO [${valVisc} cP]  
+${barVisc} ${pctVisc}%  [FLUIDO]
+
+B3 • ESTABILIDADE TÉRMICA [${valTemp} °C]  
+${barTemp} ${pctTemp}%  [ESTÁVEL]
+
+B4 • MEIA-VIDA CIRCUL.    [${valVida} h]  
+${barVida} ${pctVida}%  [SUFICIENTE]
+
+B5 • EXTRAÇÃO DE O₂       [${valExtr}% ]  
+${barExtr} ${pctExtr}%  [ALTO]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟢 VEREDITO: Lote aprovado para atendimento pré-hospitalar.`;
 
       const respostaTransp = `Laudo da IA para Preservação Avançada de Órgãos para Transplante (Lote ${selectedLot}):
 • B1 Pressão Osmótica (Oncótica): 25.0 mmHg (FISIOLÓGICO) - Previne inchaço e danos celulares no órgão fora do corpo.
