@@ -473,7 +473,32 @@ ${barExtr} ${pctExtr}%  [ALTO]
         return;
       }
 
-      const respostaFinal = isTransp ? respostaTransp : (isAlt ? respostaAlt : (isMonox ? respostaMonox : respostaPadrao));
+      if (isTransp) {
+        const cardMetrics = [
+          { id: 'B1', name: 'B1 • PRESSÃO OSMÓTICA (ONCÓTICA)', val: '25.0 mmHg', pct: 100, badge: 'FISIOLÓGICO', color: '#00d8ff' },
+          { id: 'B2', name: 'B2 • CAPACIDADE ANTIOXIDANTE (REPERFUSÃO)', val: '94.5%', pct: 95, badge: 'ALTÍSSIMO', color: '#00ff9d' },
+          { id: 'B3', name: 'B3 • POTENCIAL HIDROGENIÔNICO (pH)', val: '7.38 pH', pct: 98, badge: 'ESTÁVEL', color: '#02c39a' },
+          { id: 'B4', name: 'B4 • PRESSÃO PARCIAL DE CO₂ (pCO₂)', val: '40.0 mmHg', pct: 80, badge: 'NORMAL', color: '#a855f7' },
+          { id: 'B5', name: 'B5 • CONCENTRAÇÃO DE GLICOSE', val: '100.0 mg/dL', pct: 100, badge: 'NUTRITIVO', color: '#ffb703' }
+        ];
+
+        setMessages(prev => [...prev, 
+          { role: 'user', content: text },
+          { 
+            role: 'assistant', 
+            content: respostaTransp,
+            cardType: 'laudo_transplante',
+            loteId: selectedLot,
+            tagTitle: 'TRANSPLANTE',
+            veredit: '🟢 VEREDITO: Lote aprovado para preservação de órgãos para transplante.',
+            metrics: cardMetrics
+          }
+        ]);
+        setInputValue('');
+        return;
+      }
+
+      const respostaFinal = isAlt ? respostaAlt : (isMonox ? respostaMonox : respostaPadrao);
 
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
@@ -1751,12 +1776,12 @@ while True:
                     key={index}
                     className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    {msg.cardType === 'laudo_emergencia' ? (
+                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' ? (
                       <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xl select-text">
                         {/* Título do Laudo em Destaque */}
                         <div className="border-b border-slate-800/80 pb-2.5 flex items-center justify-between">
                           <h3 className="text-xs font-bold font-mono text-white tracking-wider flex items-center gap-2">
-                            <span>🩺</span> LAUDO TÉCNICO • LOTE {msg.loteId} (EMERGÊNCIA)
+                            <span>🩺</span> LAUDO TÉCNICO • LOTE {msg.loteId} ({msg.tagTitle || 'EMERGÊNCIA'})
                           </h3>
                           <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
                             APROVADO
@@ -1775,7 +1800,10 @@ while True:
                               </div>
 
                               <div className="flex items-center gap-2.5">
-                                <div className="flex-1 bg-slate-950 border border-slate-800/80 h-3 rounded-full overflow-hidden p-0.5">
+                                <div 
+                                  className="flex-1 border border-slate-800/80 h-3 rounded-full overflow-hidden p-0.5"
+                                  style={{ background: '#111827' }}
+                                >
                                   <div 
                                     className="h-full rounded-full transition-all duration-500"
                                     style={{ 
@@ -1807,7 +1835,7 @@ while True:
                         {/* Linha Final de Veredito em Destaque Verde */}
                         <div className="border-t border-slate-800 pt-2.5 mt-1 bg-emerald-500/10 border-emerald-500/30 p-2.5 rounded-xl border">
                           <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5">
-                            🟢 VEREDITO: Lote aprovado para atendimento pré-hospitalar.
+                            {msg.veredit || '🟢 VEREDITO: Lote aprovado para atendimento pré-hospitalar.'}
                           </span>
                         </div>
                       </div>
