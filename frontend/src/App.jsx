@@ -498,7 +498,31 @@ ${barExtr} ${pctExtr}%  [ALTO]
         return;
       }
 
-      const respostaFinal = isAlt ? respostaAlt : (isMonox ? respostaMonox : respostaPadrao);
+      if (isAlt) {
+        const cardMetrics = [
+          { id: 'B1', name: 'B1 • PRESSÃO PARCIAL P50 (AFINIDADE O₂)', val: '34.0 mmHg', pct: 85, badge: 'ADAPTADO', color: '#00d8ff' },
+          { id: 'B2', name: 'B2 • PONTO DE CONGELAMENTO', val: '-2.5 °C', pct: 95, badge: 'RESISTENTE', color: '#7c3aed' },
+          { id: 'B3', name: 'B3 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)', val: '96.5%', pct: 97, badge: 'ÓTIMO', color: '#00ff9d' },
+          { id: 'B4', name: 'B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂)', val: '92.0 mmHg', pct: 92, badge: 'ELEVADO', color: '#02c39a' }
+        ];
+
+        setMessages(prev => [...prev, 
+          { role: 'user', content: text },
+          { 
+            role: 'assistant', 
+            content: respostaAlt,
+            cardType: 'laudo_altitude',
+            loteId: selectedLot,
+            tagTitle: 'ALTITUDE',
+            veredit: '🟢 VEREDITO: Lote aprovado para uso em alta altitude.',
+            metrics: cardMetrics
+          }
+        ]);
+        setInputValue('');
+        return;
+      }
+
+      const respostaFinal = isMonox ? respostaMonox : respostaPadrao;
 
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
@@ -1776,7 +1800,7 @@ while True:
                     key={index}
                     className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' ? (
+                    {msg.cardType === 'laudo_emergencia' || msg.cardType === 'laudo_transplante' || msg.cardType === 'laudo_altitude' ? (
                       <div className="w-full bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xl select-text">
                         {/* Título do Laudo em Destaque */}
                         <div className="border-b border-slate-800/80 pb-2.5 flex items-center justify-between">
