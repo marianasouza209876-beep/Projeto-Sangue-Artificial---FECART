@@ -169,13 +169,25 @@ export default function App() {
   ]);
   const [history, setHistory] = useState([]);
   const [audits, setAudits] = useState([]);
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Olá! Sou o assistente clínico EcoSanguis. Pergunte-me sobre o estado de qualquer lote ou escolha uma das perguntas rápidas abaixo!',
-      explicabilidade: null
-    }
-  ]);
+  const WELCOME_MESSAGE = {
+    role: 'assistant',
+    content: 'Olá! Sou o assistente clínico EcoSanguis. Pergunte-me sobre o estado de qualquer lote ou escolha uma das perguntas rápidas abaixo!',
+    explicabilidade: null
+  };
+
+  const [chatHistories, setChatHistories] = useState({});
+
+  const messages = chatHistories[selectedLot] || [WELCOME_MESSAGE];
+
+  const addMessagesToBatch = (batchId, ...newMsgs) => {
+    setChatHistories(prev => {
+      const existing = prev[batchId] || [WELCOME_MESSAGE];
+      return {
+        ...prev,
+        [batchId]: [...existing, ...newMsgs].slice(-50)
+      };
+    });
+  };
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
@@ -355,11 +367,10 @@ Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Per
 
 Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
 
-      setMessages(prev => [
-        ...prev, 
+      addMessagesToBatch(selectedLot, 
         { role: 'user', content: text },
         { role: 'assistant', content: respostaPronta }
-      ]);
+      );
       setInputValue('');
       return;
     }
@@ -474,7 +485,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
           { id: 'B5', name: 'B5 • EXTRAÇÃO DE O₂', val: `${valExtr}%`, pct: pctExtr, badge: 'ALTO', color: '#02c39a' }
         ];
 
-        setMessages(prev => [...prev, 
+        addMessagesToBatch(selectedLot, 
           { role: 'user', content: text },
           { 
             role: 'assistant', 
@@ -483,7 +494,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
             loteId: selectedLot,
             metrics: cardMetrics
           }
-        ]);
+        );
         setInputValue('');
         return;
       }
@@ -497,7 +508,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
           { id: 'B5', name: 'B5 • CONCENTRAÇÃO DE GLICOSE', val: '100.0 mg/dL', pct: 100, badge: 'NUTRITIVO', color: '#ffb703' }
         ];
 
-        setMessages(prev => [...prev, 
+        addMessagesToBatch(selectedLot, 
           { role: 'user', content: text },
           { 
             role: 'assistant', 
@@ -508,7 +519,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
             veredit: '🟢 VEREDITO: Lote aprovado para preservação de órgãos para transplante.',
             metrics: cardMetrics
           }
-        ]);
+        );
         setInputValue('');
         return;
       }
@@ -521,7 +532,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
           { id: 'B4', name: 'B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂)', val: '92.0 mmHg', pct: 92, badge: 'ELEVADO', color: '#02c39a' }
         ];
 
-        setMessages(prev => [...prev, 
+        addMessagesToBatch(selectedLot, 
           { role: 'user', content: text },
           { 
             role: 'assistant', 
@@ -532,7 +543,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
             veredit: '🟢 VEREDITO: Lote aprovado para uso em alta altitude.',
             metrics: cardMetrics
           }
-        ]);
+        );
         setInputValue('');
         return;
       }
@@ -545,7 +556,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
           { id: 'B4', name: 'B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb)', val: '2.1%', pct: 98, badge: 'SEGURO', color: '#00ff9d' }
         ];
 
-        setMessages(prev => [...prev, 
+        addMessagesToBatch(selectedLot, 
           { role: 'user', content: text },
           { 
             role: 'assistant', 
@@ -556,7 +567,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
             veredit: '🟢 VEREDITO: Lote aprovado para tratamento de envenenamento por CO.',
             metrics: cardMetrics
           }
-        ]);
+        );
         setInputValue('');
         return;
       }
@@ -577,7 +588,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
 • B4 Capacidade de Ligação de Citocinas: 92.5% (ELEVADA)
 • B5 Equilíbrio Hidroeletrolítico (Na+): 140.0 mEq/L (NORMAL)`;
 
-        setMessages(prev => [...prev, 
+        addMessagesToBatch(selectedLot, 
           { role: 'user', content: text },
           { 
             role: 'assistant', 
@@ -588,7 +599,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
             veredit: '🟢 VEREDITO: Lote aprovado para tratamento de queimaduras graves e choque séptico.',
             metrics: cardMetrics
           }
-        ]);
+        );
         setInputValue('');
         return;
       }
@@ -607,7 +618,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
 • B3 Pureza Molecular: 99.9% (EXCELENTE)
 • B4 Esterilidade Biológica: 100.0% (LIVRE)`;
 
-        setMessages(prev => [...prev, 
+        addMessagesToBatch(selectedLot, 
           { role: 'user', content: text },
           { 
             role: 'assistant', 
@@ -618,7 +629,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
             veredit: '🟢 VEREDITO: Lote aprovado para doação e compatibilidade universal.',
             metrics: cardMetrics
           }
-        ]);
+        );
         setInputValue('');
         return;
       }
@@ -637,7 +648,7 @@ ${barExtr} ${pctExtr}%  [ALTO]
 • B3 Fração Volumétrica (Equivalente de Hematócrito): 40.0% (ÓTIMO)
 • B4 Resistência à Hemólise Induzida: 99.5% (ALTA)`;
 
-        setMessages(prev => [...prev, 
+        addMessagesToBatch(selectedLot, 
           { role: 'user', content: text },
           { 
             role: 'assistant', 
@@ -648,23 +659,24 @@ ${barExtr} ${pctExtr}%  [ALTO]
             veredit: '🟢 VEREDITO: Lote aprovado para manejo de raros fenótipos sanguíneos.',
             metrics: cardMetrics
           }
-        ]);
+        );
         setInputValue('');
         return;
       }
 
       const respostaFinal = respostaPadrao;
 
-      setMessages(prev => [...prev, 
+      addMessagesToBatch(selectedLot, 
         { role: 'user', content: text },
         { role: 'assistant', content: respostaFinal }
-      ]);
+      );
       setInputValue('');
       return;
     }
 
+    const currentLotId = selectedLot;
     const userMsg = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMsg]);
+    addMessagesToBatch(currentLotId, userMsg);
     setInputValue('');
     setIsTyping(true);
 
@@ -678,11 +690,11 @@ ${barExtr} ${pctExtr}%  [ALTO]
       if (res.ok) {
         const data = await res.json();
         setTimeout(() => {
-          setMessages(prev => [...prev, { 
+          addMessagesToBatch(currentLotId, { 
             role: 'assistant', 
             content: data.resposta, 
             explicabilidade: data.explicabilidade 
-          }]);
+          });
           setIsTyping(false);
           
           const match = text.toUpperCase().match(/SA-\d{3}/);
@@ -696,10 +708,10 @@ ${barExtr} ${pctExtr}%  [ALTO]
     } catch (err) {
       console.log("Erro no chat:", err);
       setIsTyping(false);
-      setMessages(prev => [...prev, { 
+      addMessagesToBatch(currentLotId, { 
         role: 'assistant', 
         content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico. Verifique se o servidor backend FastAPI está rodando na porta 8000.'
-      }]);
+      });
     }
   };
 
