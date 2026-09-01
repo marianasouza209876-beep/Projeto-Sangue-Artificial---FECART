@@ -169,6 +169,30 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "oxigenacao": f"{multiorganico:.1f}%",
             "temperatura": f"{variancia_termica:.1f}C",
             "vazao": "4.8 L/min"
+    elif "Doação" in finalidade or "Doacao" in finalidade:
+        # B1-B5 Doação de Sangue
+        isencao = 100.0
+        purificacao = 99.9 + random.uniform(-0.05, 0.05)
+        conservacao = 42.0 + random.uniform(-0.2, 0.2)
+        osmotica = 290.0 + random.uniform(-0.5, 0.5)
+        fluidez = 2.5 + random.uniform(-0.1, 0.1)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Doação de Sangue",
+            "b1_isencao_antigenica": f"{isencao:.1f}%",
+            "b2_purificacao_biologica": f"{purificacao:.1f}%",
+            "b3_conservabilidade_estoque": f"{conservacao:.1f} dias",
+            "b4_estabilidade_osmotica": f"{osmotica:.1f} mOsm",
+            "b5_fluidez_fracionamento": f"{fluidez:.1f} cP",
+            "b1_status": "ISENTO",
+            "b2_status": "ESTÉRIL",
+            "b3_status": "EXTENSA",
+            "b4_status": "EQUILIBRADA",
+            "b5_status": "IDEAL",
+            "oxigenacao": "99.0%",
+            "temperatura": "4.0C",
+            "vazao": "4.8 L/min"
         }
         # B1-B4 Vítimas de Envenenamento por Monóxido de Carbono (CO)
         deslocamento_co = 88.0 + random.uniform(-0.4, 0.4)

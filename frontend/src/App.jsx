@@ -1188,64 +1188,79 @@ while True:
                 </>
               ) : isDoacaoActive ? (
                 <>
-                  {/* CARD B1: EXPRESSÃO ANTIGÊNICA (ABO/Rh) */}
+                  {/* CARD B1: ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE) */}
                   <MetricCard
-                    title="B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh)"
-                    subtitle="Lote totalmente universal sem reação"
-                    value={(currentReading.expressao_antigenica_pct !== undefined ? currentReading.expressao_antigenica_pct : 0.0).toFixed(1)}
+                    title="B1 • ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE)"
+                    subtitle="Universalidade sem reação hemolítica"
+                    value={(currentReading.isencao_antigenica_pct || 100.0).toFixed(1)}
                     unit="%"
-                    percent={100}
+                    percent={currentReading.isencao_antigenica_pct || 100.0}
                     level="success"
                     badgeText="ISENTO"
-                    detail="Lote totalmente universal, sem risco de reação transfusional."
+                    detail="Ausência de antígenos A, B e Rh, permitindo transfusão sem reação hemolítica."
                     icon={Waves}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('expressao_antigenica_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('isencao_antigenica_pct')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B2: REATIVIDADE EM CROSSMATCH */}
+                  {/* CARD B2: PURIFICAÇÃO BIOLÓGICA */}
                   <MetricCard
-                    title="B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA)"
-                    subtitle="Dispensa teste de cruzamento prévio"
-                    value={(currentReading.reatividade_crossmatch_pct !== undefined ? currentReading.reatividade_crossmatch_pct : 0.0).toFixed(1)}
+                    title="B2 • PURIFICAÇÃO BIOLÓGICA"
+                    subtitle="Livre de patógenos, vírus ou bactérias"
+                    value={(currentReading.purificacao_biologica_pct || 99.9).toFixed(1)}
                     unit="%"
-                    percent={100}
+                    percent={currentReading.purificacao_biologica_pct || 99.9}
                     level="success"
-                    badgeText="NULA"
-                    detail="Dispensa a necessidade de teste de cruzamento prévio."
+                    badgeText="ESTÉRIL"
+                    detail="Totalmente livre de agentes patogênicos, vírus ou bactérias."
                     icon={ShieldCheck}
                     accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#02c39a" />}
+                    sparkline={<Sparkline data={getSparkValues('purificacao_biologica_pct')} color="#02c39a" />}
                   />
 
-                  {/* CARD B3: PUREZA MOLECULAR */}
+                  {/* CARD B3: CONSERVABILIDADE EM ESTOQUE */}
                   <MetricCard
-                    title="B3 • PUREZA MOLECULAR"
-                    subtitle="Ausência de impurezas e membranas"
-                    value={(currentReading.pureza_molecular_pct || 99.9).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.pureza_molecular_pct || 99.9}
+                    title="B3 • CONSERVABILIDADE EM ESTOQUE"
+                    subtitle="Estocagem prolongada sob refrigeração"
+                    value={(currentReading.conservabilidade_estoque_dias || 42.0).toFixed(1)}
+                    unit="dias"
+                    percent={Math.min(100, ((currentReading.conservabilidade_estoque_dias || 42.0) / 60) * 100)}
                     level="success"
-                    badgeText="EXCELENTE"
-                    detail="Garante a ausência de fragmentos de membranas e impurezas."
-                    icon={FlaskConical}
+                    badgeText="EXTENSA"
+                    detail="Mantém propriedades funcionais por longos períodos sob refrigeração."
+                    icon={Clock}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('pureza_molecular_pct')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('conservabilidade_estoque_dias')} color="#00d8ff" />}
                   />
 
-                  {/* CARD B4: ESTERILIDADE BIOLÓGICA */}
+                  {/* CARD B4: ESTABILIDADE OSMÓTICA */}
                   <MetricCard
-                    title="B4 • ESTERILIDADE BIOLÓGICA"
-                    subtitle="Garantia contra vírus ou bactérias"
-                    value={(currentReading.esterilidade_biologica_pct || 100.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.esterilidade_biologica_pct || 100.0}
+                    title="B4 • ESTABILIDADE OSMÓTICA"
+                    subtitle="Manutenção da estrutura molecular na bolsa"
+                    value={(currentReading.estabilidade_osmotica_mosm || 290.0).toFixed(1)}
+                    unit="mOsm"
+                    percent={Math.min(100, ((currentReading.estabilidade_osmotica_mosm || 290.0) / 350) * 100)}
                     level="success"
-                    badgeText="LIVRE"
-                    detail="Garantia absoluta contra a transmissão de vírus ou bactérias."
+                    badgeText="EQUILIBRADA"
+                    detail="Mantém o volume e a estrutura molecular estáveis na bolsa de estocagem."
+                    icon={FlaskConical}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_osmotica_mosm')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: FLUIDEZ DE FRACIONAMENTO */}
+                  <MetricCard
+                    title="B5 • FLUIDEZ DE FRACIONAMENTO"
+                    subtitle="Divisão em alíquotas para uso clínico"
+                    value={(currentReading.fluidez_fracionamento_cp || 2.5).toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, ((currentReading.fluidez_fracionamento_cp || 2.5) / 5) * 100)}
+                    level="success"
+                    badgeText="IDEAL"
+                    detail="Facilita a mistura ou divisão em alíquotas para diferentes necessidades."
                     icon={Droplets}
                     accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('esterilidade_biologica_pct')} color="#39ff14" />}
+                    sparkline={<Sparkline data={getSparkValues('fluidez_fracionamento_cp')} color="#39ff14" />}
                   />
                 </>
               ) : isColetaReservaActive ? (
