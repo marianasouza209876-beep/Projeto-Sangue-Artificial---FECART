@@ -423,10 +423,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const isMonoxidoActive = activeFinalidade.includes("Monóxido") || activeFinalidade.includes("Monoxido") || activeFinalidade.includes("Envenenamento") || activeFinalidade.includes("CO");
   const isQueimadurasActive = activeFinalidade.includes("Queimaduras") || activeFinalidade.includes("Séptico") || activeFinalidade.includes("Septico") || activeFinalidade.includes("Choque");
   const isDoacaoActive = activeFinalidade.includes("Doação") || activeFinalidade.includes("Doacao") || activeFinalidade.includes("Compatibilidade") || activeFinalidade.includes("Universal");
+  const isFenotiposRarosActive = activeFinalidade.includes("Raros") || activeFinalidade.includes("Fenótipos") || activeFinalidade.includes("Fenotipos") || activeFinalidade.includes("Manejo");
 
   // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
-    oxigenacao_limpa: isEmergenciaActive ? 0.98 : isAltitudeActive ? 0.965 : isMonoxidoActive ? 0.88 : isDoacaoActive ? 0.98 : 0.95,
+    oxigenacao_limpa: isEmergenciaActive ? 0.98 : isAltitudeActive ? 0.965 : isMonoxidoActive ? 0.88 : isDoacaoActive ? 0.98 : isFenotiposRarosActive ? 0.975 : 0.95,
     temperatura_c: isEmergenciaActive ? 22.0 : isTransplanteActive ? 4.0 : isAltitudeActive ? -2.5 : isMonoxidoActive ? 37.0 : 36.5,
     vazao_l_min: isTransplanteActive ? 3.5 : 4.8,
     ph: isTransplanteActive ? 7.38 : isMonoxidoActive ? 7.42 : 7.40,
@@ -453,6 +454,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     reatividade_crossmatch_pct: 0.0,
     pureza_molecular_pct: 99.9,
     esterilidade_biologica_pct: 100.0,
+    imunogenicidade_pct: 0.0,
+    pureza_reconstituicao_pct: 99.7,
+    equiv_hematocrito_pct: 40.0,
+    resistencia_hemolise_pct: 99.5,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
     alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
@@ -1075,6 +1080,68 @@ while True:
                     icon={Droplets}
                     accentColor="bg-[#39ff14]"
                     sparkline={<Sparkline data={getSparkValues('esterilidade_biologica_pct')} color="#39ff14" />}
+                  />
+                </>
+              ) : isFenotiposRarosActive ? (
+                <>
+                  {/* CARD B1: IMUNOGENICIDADE ESTENDIDA (Kell/Duffy/Kidd) */}
+                  <MetricCard
+                    title="B1 • IMUNOGENICIDADE ESTENDIDA (Kell/Duffy/Kidd)"
+                    subtitle="Compatível com receptores sensibilizados"
+                    value={(currentReading.imunogenicidade_pct !== undefined ? currentReading.imunogenicidade_pct : 0.0).toFixed(1)}
+                    unit="%"
+                    percent={100}
+                    level="success"
+                    badgeText="NEUTRO"
+                    detail="Compatível com receptores altamente sensibilizados."
+                    icon={Waves}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('imunogenicidade_pct')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B2: PUREZA DA RECONSTITUIÇÃO */}
+                  <MetricCard
+                    title="B2 • PUREZA DA RECONSTITUIÇÃO"
+                    subtitle="Prevenção de novos anticorpos"
+                    value={(currentReading.pureza_reconstituicao_pct || 99.7).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.pureza_reconstituicao_pct || 99.7}
+                    level="success"
+                    badgeText="MÁXIMA"
+                    detail="Impede a formação de novos anticorpos em transfusões frequentes."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('pureza_reconstituicao_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B3: FRAÇÃO VOLUMÉTRICA (EQUIVALENTE DE HEMATÓCRITO) */}
+                  <MetricCard
+                    title="B3 • FRAÇÃO VOLUMÉTRICA (EQUIVALENTE DE HEMATÓCRITO)"
+                    subtitle="Capacidade de transporte de O₂ ideal"
+                    value={(currentReading.equiv_hematocrito_pct || 40.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.equiv_hematocrito_pct || 40.0}
+                    level="success"
+                    badgeText="ÓTIMO"
+                    detail="Restaura a capacidade de transporte de O₂ com volume ideal."
+                    icon={FlaskConical}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('equiv_hematocrito_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B4: RESISTÊNCIA À HEMÓLISE INDUZIDA */}
+                  <MetricCard
+                    title="B4 • RESISTÊNCIA À HEMÓLISE INDUZIDA"
+                    subtitle="Estabilidade estrutural na circulação"
+                    value={(currentReading.resistencia_hemolise_pct || 99.5).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.resistencia_hemolise_pct || 99.5}
+                    level="success"
+                    badgeText="ALTA"
+                    detail="Estrutura estável que não se rompe na circulação do paciente."
+                    icon={Droplets}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('resistencia_hemolise_pct')} color="#ffb703" />}
                   />
                 </>
               ) : (
