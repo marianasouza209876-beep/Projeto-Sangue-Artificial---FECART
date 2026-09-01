@@ -421,6 +421,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const isTransplanteActive = activeFinalidade.includes("Transplante") || activeFinalidade.includes("Órgãos") || activeFinalidade.includes("Orgaos") || selectedLot === "SA-024";
   const isAltitudeActive = activeFinalidade.includes("Altitude") || activeFinalidade.includes("Altitudes") || selectedLot === "SA-025";
   const isMonoxidoActive = activeFinalidade.includes("Monóxido") || activeFinalidade.includes("Monoxido") || activeFinalidade.includes("Envenenamento") || activeFinalidade.includes("CO");
+  const isQueimadurasActive = activeFinalidade.includes("Queimaduras") || activeFinalidade.includes("Séptico") || activeFinalidade.includes("Septico") || activeFinalidade.includes("Choque");
 
   // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
@@ -442,6 +443,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     deslocamento_co_pct: 88.0,
     effluence_depurantes_pct: 91.2,
     cohb_residual_pct: 2.1,
+    p_coloidosmotica_mmhg: 28.0,
+    endotoxinas_val: "< 0.05 EU/mL",
+    integridade_endotelial_pct: 97.8,
+    ligacao_citocinas_pct: 78.0,
+    sodio_serico_meql: 140.0,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
     alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
@@ -925,6 +931,83 @@ while True:
                     icon={Droplets}
                     accentColor="bg-[#00ff9d]"
                     sparkline={<Sparkline data={getSparkValues('cohb_residual_pct')} color="#00ff9d" />}
+                  />
+                </>
+              ) : isQueimadurasActive ? (
+                <>
+                  {/* CARD B1: PRESSÃO COLOIDOSMÓTICA */}
+                  <MetricCard
+                    title="B1 • PRESSÃO COLOIDOSMÓTICA"
+                    subtitle="Prevenção de extravasamento para tecidos"
+                    value={(currentReading.p_coloidosmotica_mmhg || 28.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.p_coloidosmotica_mmhg || 28.0) / 35) * 100)}
+                    level="success"
+                    badgeText="ÓTIMO"
+                    detail="Impede a perda de líquidos para os tecidos, combatendo o edema."
+                    icon={Waves}
+                    accentColor="bg-[#ff9f1c]"
+                    sparkline={<Sparkline data={getSparkValues('p_coloidosmotica_mmhg')} color="#ff9f1c" />}
+                  />
+
+                  {/* CARD B2: CONCENTRAÇÃO DE ENDOTOXINAS */}
+                  <MetricCard
+                    title="B2 • CONCENTRAÇÃO DE ENDOTOXINAS"
+                    subtitle="Controle do quadro inflamatório e sepse"
+                    value={currentReading.endotoxinas_val || "< 0.05"}
+                    unit="EU/mL"
+                    percent={100}
+                    level="success"
+                    badgeText="ISENTO"
+                    detail="Evita a piora do quadro inflamatório severo e da sepse."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('integridade_endotelial_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B3: MARCADOR DE INTEGRIDADE ENDOTELIAL */}
+                  <MetricCard
+                    title="B3 • MARCADOR DE INTEGRIDADE ENDOTELIAL"
+                    subtitle="Preservação da estrutura microvascular"
+                    value={(currentReading.integridade_endotelial_pct || 97.8).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.integridade_endotelial_pct || 97.8}
+                    level="success"
+                    badgeText="PROTEGIDO"
+                    detail="Preserva os microvasos contra o colapso estrutural."
+                    icon={FlaskConical}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('integridade_endotelial_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: LIGAÇÃO A CITOCINAS INFLAMATÓRIAS */}
+                  <MetricCard
+                    title="B4 • LIGAÇÃO A CITOCINAS INFLAMATÓRIAS"
+                    subtitle="Absorção de moléculas inflamatórias"
+                    value={(currentReading.ligacao_citocinas_pct || 78.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.ligacao_citocinas_pct || 78.0}
+                    level="success"
+                    badgeText="ATIVO"
+                    detail="Ajuda a absorver moléculas inflamatórias em excesso na corrente sanguínea."
+                    icon={Droplets}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('ligacao_citocinas_pct')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: SÓDIO SÉRICO (Na+) */}
+                  <MetricCard
+                    title="B5 • SÓDIO SÉRICO (Na+)"
+                    subtitle="Equilíbrio eletrolítico e prevenção de arritmias"
+                    value={(currentReading.sodio_serico_meql || 140.0).toFixed(1)}
+                    unit="mEq/L"
+                    percent={Math.min(100, ((currentReading.sodio_serico_meql || 140.0) / 160) * 100)}
+                    level="success"
+                    badgeText="EQUILIBRADO"
+                    detail="Previne paradas cardíacas e arritmias decorrentes de queimaduras."
+                    icon={Thermometer}
+                    accentColor="bg-[#3a86ef]"
+                    sparkline={<Sparkline data={getSparkValues('sodio_serico_meql')} color="#3a86ef" />}
                   />
                 </>
               ) : (
