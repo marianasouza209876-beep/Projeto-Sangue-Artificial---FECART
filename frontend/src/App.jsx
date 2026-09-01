@@ -420,13 +420,14 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const isEmergenciaActive = activeFinalidade.includes("Emergência") || activeFinalidade.includes("Emergencia") || activeFinalidade.includes("Pre-Hospitalar") || activeFinalidade.includes("Pré-Hospitalar") || selectedLot === "SA-023";
   const isTransplanteActive = activeFinalidade.includes("Transplante") || activeFinalidade.includes("Órgãos") || activeFinalidade.includes("Orgaos") || selectedLot === "SA-024";
   const isAltitudeActive = activeFinalidade.includes("Altitude") || activeFinalidade.includes("Altitudes") || selectedLot === "SA-025";
+  const isMonoxidoActive = activeFinalidade.includes("Monóxido") || activeFinalidade.includes("Monoxido") || activeFinalidade.includes("Envenenamento") || activeFinalidade.includes("CO");
 
   // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
-    oxigenacao_limpa: isEmergenciaActive ? 0.98 : isAltitudeActive ? 0.965 : 0.95,
-    temperatura_c: isEmergenciaActive ? 22.0 : isTransplanteActive ? 4.0 : isAltitudeActive ? -2.5 : 36.5,
+    oxigenacao_limpa: isEmergenciaActive ? 0.98 : isAltitudeActive ? 0.965 : isMonoxidoActive ? 0.88 : 0.95,
+    temperatura_c: isEmergenciaActive ? 22.0 : isTransplanteActive ? 4.0 : isAltitudeActive ? -2.5 : isMonoxidoActive ? 37.0 : 36.5,
     vazao_l_min: isTransplanteActive ? 3.5 : 4.8,
-    ph: isTransplanteActive ? 7.38 : 7.40,
+    ph: isTransplanteActive ? 7.38 : isMonoxidoActive ? 7.42 : 7.40,
     viscosidade_cp: isEmergenciaActive ? 2.3 : 3.8,
     meia_vida_h: 24.0,
     extracao_o2_pct: 42.0,
@@ -438,6 +439,9 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     ponto_congelamento_c: -2.5,
     saturacao_o2_pct: 96.5,
     po2_mmhg: 92.0,
+    deslocamento_co_pct: 88.0,
+    effluence_depurantes_pct: 91.2,
+    cohb_residual_pct: 2.1,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
     alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
@@ -859,6 +863,68 @@ while True:
                     icon={Droplets}
                     accentColor="bg-[#02c39a]"
                     sparkline={<Sparkline data={getSparkValues('po2_mmhg')} color="#02c39a" />}
+                  />
+                </>
+              ) : isMonoxidoActive ? (
+                <>
+                  {/* CARD B1: TAXA DE DESLOCAMENTO DE CO */}
+                  <MetricCard
+                    title="B1 • TAXA DE DESLOCAMENTO DE CO"
+                    subtitle="Remoção do monóxido de carbono ligado às hemácias"
+                    value={(currentReading.deslocamento_co_pct || 88.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.deslocamento_co_pct || 88.0}
+                    level="warning"
+                    badgeText="CRÍTICO / ALTO"
+                    detail="Remove o monóxido de carbono ligado às hemácias do paciente."
+                    icon={Waves}
+                    accentColor="bg-[#ff4d4d]"
+                    sparkline={<Sparkline data={getSparkValues('deslocamento_co_pct')} color="#ff4d4d" />}
+                  />
+
+                  {/* CARD B2: EFFLUENCE DE DEPURANTES */}
+                  <MetricCard
+                    title="B2 • EFFLUENCE DE DEPURANTES"
+                    subtitle="Varredura e eliminação celular de gás tóxico"
+                    value={(currentReading.effluence_depurantes_pct || 91.2).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.effluence_depurantes_pct || 91.2}
+                    level="success"
+                    badgeText="EFICIENTE"
+                    detail="Auxilia na varredura e eliminação celular do gás tóxico."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('effluence_depurantes_pct')} color="#ffb703" />}
+                  />
+
+                  {/* CARD B3: POTENCIAL HIDROGENIÔNICO (pH) */}
+                  <MetricCard
+                    title="B3 • POTENCIAL HIDROGENIÔNICO (pH)"
+                    subtitle="Reversão de acidose por sufocamento"
+                    value={(currentReading.ph || 7.42).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.ph || 7.42) / 8.5) * 100)}
+                    level="success"
+                    badgeText="FISIOLÓGICO"
+                    detail="Reverte o quadro de acidose metabólica provocado por sufocamento."
+                    icon={FlaskConical}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('ph')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B4: CARBOXI-HEMOGLOBINA RESIDUAL (COHb) */}
+                  <MetricCard
+                    title="B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb)"
+                    subtitle="Nível residual da toxina no sangue"
+                    value={(currentReading.cohb_residual_pct || 2.1).toFixed(1)}
+                    unit="%"
+                    percent={Math.min(100, ((currentReading.cohb_residual_pct || 2.1) / 10) * 100)}
+                    level="success"
+                    badgeText="SEGURO"
+                    detail="Indica sucesso no expurgo da toxina do sistema circulatório."
+                    icon={Droplets}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('cohb_residual_pct')} color="#00ff9d" />}
                   />
                 </>
               ) : (
