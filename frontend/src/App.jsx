@@ -24,13 +24,15 @@ import {
   Clock,
   Sparkles,
   Info,
-  Plus
+  Plus,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
 import { DemandChart } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
 import { QuickEntryModal } from '@/components/QuickEntryModal';
+import { EmergencySimulator } from '@/components/EmergencySimulator';
 import {
   Dialog,
   DialogContent,
@@ -592,7 +594,21 @@ while True:
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
-            <span>Previsão de Demanda</span>
+            <span className="hidden sm:inline">Previsão Demanda</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('emergency')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'emergency' 
+                ? 'bg-gradient-to-r from-red-600/30 to-fuchsia-600/30 border border-rose-500/60 text-rose-300 font-semibold shadow-[0_0_15px_rgba(255,42,66,0.35)]' 
+                : 'text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/30'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
+            <span>Simulador de Urgência</span>
+            <span className="hidden md:inline-block text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1 py-0.2 rounded font-mono font-bold">
+              IA
+            </span>
           </button>
           <button 
             onClick={() => setActiveTab('tecnico')}
@@ -603,7 +619,7 @@ while True:
             }`}
           >
             <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Console Técnico</span>
+            <span className="hidden sm:inline">Console Técnico</span>
           </button>
         </div>
 
@@ -1805,6 +1821,13 @@ while True:
               </div>
             </div>
           </section>
+        </main>
+      )}
+
+      {/* ABA 4: SIMULADOR DE URGÊNCIA COM IA */}
+      {activeTab === 'emergency' && (
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10">
+          <EmergencySimulator />
         </main>
       )}
 
