@@ -193,6 +193,30 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "oxigenacao": "99.0%",
             "temperatura": "4.0C",
             "vazao": "4.8 L/min"
+    elif "Coleta" in finalidade or "Reserva" in finalidade:
+        # B1-B5 Coleta e Reserva de Sangue
+        longevidade = 60.0 + random.uniform(-0.2, 0.2)
+        cristalizacao = 4.0 + random.uniform(-0.1, 0.1)
+        ph_estocagem = 7.40 + random.uniform(-0.02, 0.02)
+        integridade_membrana = 95.0 + random.uniform(-0.2, 0.2)
+        reatividade_pos = 98.0 + random.uniform(-0.2, 0.2)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Coleta e Reserva de Sangue",
+            "b1_longevidade_armazenamento": f"{longevidade:.1f} dias",
+            "b2_resistencia_cristalizacao": f"{cristalizacao:.1f}°C",
+            "b3_manutencao_ph_estocagem": f"{ph_estocagem:.2f} pH",
+            "b4_integridade_membrana": f"{integridade_membrana:.1f}%",
+            "b5_reatividade_pos_descongelamento": f"{reatividade_pos:.1f}%",
+            "b1_status": "MÁXIMA",
+            "b2_status": "PROTEGIDO",
+            "b3_status": "ESTÁVEL",
+            "b4_status": "PRESERVADA",
+            "b5_status": "INVIOLADA",
+            "oxigenacao": f"{reatividade_pos:.1f}%",
+            "temperatura": f"{cristalizacao:.1f}C",
+            "vazao": "4.8 L/min"
         }
         # B1-B4 Vítimas de Envenenamento por Monóxido de Carbono (CO)
         deslocamento_co = 88.0 + random.uniform(-0.4, 0.4)

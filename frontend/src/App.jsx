@@ -1265,64 +1265,79 @@ while True:
                 </>
               ) : isColetaReservaActive ? (
                 <>
-                  {/* CARD B1: INTEGRALIDADE DE CONSERVAÇÃO */}
+                  {/* CARD B1: LONGEVIDADE DE ARMAZENAMENTO */}
                   <MetricCard
-                    title="B1 • INTEGRALIDADE DE CONSERVAÇÃO"
-                    subtitle="Preservação da estrutura molecular em estoque"
-                    value={(currentReading.integralidade_conservacao_pct || 100.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.integralidade_conservacao_pct || 100.0}
+                    title="B1 • LONGEVIDADE DE ARMAZENAMENTO"
+                    subtitle="Estocagem prolongada em bancos de reserva"
+                    value={(currentReading.longevidade_armazenamento_dias || 60.0).toFixed(1)}
+                    unit="dias"
+                    percent={Math.min(100, ((currentReading.longevidade_armazenamento_dias || 60.0) / 90) * 100)}
                     level="success"
-                    badgeText="PRESERVADA"
-                    detail="Conserva a integridade funcional do composto por longos períodos."
-                    icon={ShieldCheck}
+                    badgeText="MÁXIMA"
+                    detail="Formulado para suportar longos períodos em bancos de reserva sem degradação."
+                    icon={Clock}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('integralidade_conservacao_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('longevidade_armazenamento_dias')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B2: PRAZO DE VALIDADE EM ESTOQUE */}
+                  {/* CARD B2: RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA */}
                   <MetricCard
-                    title="B2 • PRAZO DE VALIDADE EM ESTOQUE"
-                    subtitle="Estabilidade prolongada fora da refrigeração"
-                    value={currentReading.validade_estoque_meses || "24 Meses"}
-                    unit=""
-                    percent={100}
+                    title="B2 • RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA"
+                    subtitle="Refrigeração profunda sem danos moleculares"
+                    value={(currentReading.resistencia_cristalizacao_termica_c || 4.0).toFixed(1)}
+                    unit="°C"
+                    percent={Math.min(100, ((currentReading.resistencia_cristalizacao_termica_c || 4.0) / 10) * 100)}
+                    level="success"
+                    badgeText="PROTEGIDO"
+                    detail="Previne danos moleculares sob congelamento ou refrigeração profunda."
+                    icon={Thermometer}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('resistencia_cristalizacao_termica_c')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B3: MANUTENÇÃO DE pH EM ESTOCAGEM */}
+                  <MetricCard
+                    title="B3 • MANUTENÇÃO DE pH EM ESTOCAGEM"
+                    subtitle="Estabilidade do pH ao longo do tempo"
+                    value={(currentReading.manutencao_ph_estocagem || 7.40).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.manutencao_ph_estocagem || 7.40) / 8.5) * 100)}
                     level="success"
                     badgeText="ESTÁVEL"
-                    detail="Permite estocagem prolongada em bancos de sangue hospitalares e militares."
-                    icon={Clock}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('integralidade_conservacao_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B3: TOLERÂNCIA A CONGELAMENTO */}
-                  <MetricCard
-                    title="B3 • TOLERÂNCIA A CONGELAMENTO"
-                    subtitle="Resistência ao armazenamento criogênico"
-                    value={(currentReading.tolerancia_congelamento_c || -80.0).toFixed(1)}
-                    unit="°C"
-                    percent={100}
-                    level="success"
-                    badgeText="CRIO-PROTEGIDO"
-                    detail="Permite criopreservação em temperaturas extremamente baixas sem precipitação."
-                    icon={Thermometer}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('tolerancia_congelamento_c')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B4: ESTABILIDADE DE SUSPENSÃO */}
-                  <MetricCard
-                    title="B4 • ESTABILIDADE DE SUSPENSÃO"
-                    subtitle="Distribuição homogênea das moléculas carreadoras"
-                    value={(currentReading.estabilidade_suspensao_pct || 99.9).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.estabilidade_suspensao_pct || 99.9}
-                    level="success"
-                    badgeText="HOMOGÊNEA"
-                    detail="Evita decantação ou separação de fases durante a estocagem."
+                    detail="Evita a acidificação da amostra durante o tempo de reserva."
                     icon={FlaskConical}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_suspensao_pct')} color="#02c39a" />}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('manutencao_ph_estocagem')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: INTEGRIDADE DA MEMBRANA SINTÉTICA */}
+                  <MetricCard
+                    title="B4 • INTEGRIDADE DA MEMBRANA SINTÉTICA"
+                    subtitle="Ausência de agregação ou precipitação"
+                    value={(currentReading.integridade_membrana_sintetica_pct || 95.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.integridade_membrana_sintetica_pct || 95.0}
+                    level="success"
+                    badgeText="PRESERVADA"
+                    detail="Mantém a estrutura das micropartículas sem agregação ou precipitação."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('integridade_membrana_sintetica_pct')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: REATIVIDADE PÓS-DESCONGELAMENTO */}
+                  <MetricCard
+                    title="B5 • REATIVIDADE PÓS-DESCONGELAMENTO"
+                    subtitle="Capacidade de O₂ após aquecimento"
+                    value={(currentReading.reatividade_pos_descongelamento_pct || 98.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.reatividade_pos_descongelamento_pct || 98.0}
+                    level="success"
+                    badgeText="INVIOLADA"
+                    detail="Retoma a capacidade total de transporte de O₂ após o aquecimento."
+                    icon={Waves}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('reatividade_pos_descongelamento_pct')} color="#39ff14" />}
                   />
                 </>
               ) : isTipagemCompatibilidadeActive ? (
