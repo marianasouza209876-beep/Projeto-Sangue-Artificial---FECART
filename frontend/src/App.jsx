@@ -73,15 +73,17 @@ const Sparkline = ({ data, color = "#00e5a3" }) => {
   );
 };
 
-// Lista Oficial das 7 Finalidades Clínicas
+// Lista Oficial das 9 Finalidades Clínicas
 const FINALIDADES_OPCOES = [
   "Atendimento Pré-Hospitalar de Emergência",
-  "Preservação Avançada de Órgãos para Transplante",
-  "Resgate e Cirurgias em Altas Altitudes",
-  "Vítimas de Envenenamento por Monóxido de Carbono (CO)",
-  "Tratamento de Queimaduras Graves e Choque Séptico",
-  "Doação de Sangue e Compatibilidade Universal",
-  "Manejo Clínico de Pacientes com Raros Fenótipos Sanguíneos"
+  "Trauma e Hemorragia Grave",
+  "Cirurgia Cardíaca e Cardiovascular",
+  "Tratamento de Anemias Graves",
+  "Tratamento Oncológico",
+  "Atendimento a Pacientes Politraumatizados",
+  "Doação de Sangue",
+  "Coleta e Reserva de Sangue",
+  "Tipagem Sanguínea e Testes de Compatibilidade"
 ];
 
 // Protocolos Clínicos Médicos
@@ -419,42 +421,64 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
   const activeLotObj = lots.find(l => l.id === selectedLot) || lots[0];
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
-  const isEmergenciaActive = activeFinalidade.includes("Emergência") || activeFinalidade.includes("Emergencia") || activeFinalidade.includes("Pre-Hospitalar") || activeFinalidade.includes("Pré-Hospitalar") || selectedLot === "SA-023";
-  const isTransplanteActive = activeFinalidade.includes("Transplante") || activeFinalidade.includes("Órgãos") || activeFinalidade.includes("Orgaos") || selectedLot === "SA-024";
-  const isAltitudeActive = activeFinalidade.includes("Altitude") || activeFinalidade.includes("Altitudes") || selectedLot === "SA-025";
-  const isMonoxidoActive = activeFinalidade.includes("Monóxido") || activeFinalidade.includes("Monoxido") || activeFinalidade.includes("Envenenamento") || activeFinalidade.includes("CO");
-  const isQueimadurasActive = activeFinalidade.includes("Queimaduras") || activeFinalidade.includes("Séptico") || activeFinalidade.includes("Septico") || activeFinalidade.includes("Choque");
-  const isDoacaoActive = activeFinalidade.includes("Doação") || activeFinalidade.includes("Doacao") || activeFinalidade.includes("Compatibilidade") || activeFinalidade.includes("Universal");
+
+  const isEmergenciaActive = activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023";
+  const isTraumaActive = activeFinalidade.includes("Trauma") || activeFinalidade.includes("Hemorragia");
+  const isCirurgiaCardiacaActive = activeFinalidade.includes("Cirurgia") || activeFinalidade.includes("Cardíaca") || activeFinalidade.includes("Cardiaca") || activeFinalidade.includes("Cardiovascular");
+  const isAnemiaActive = activeFinalidade.includes("Anemias") || activeFinalidade.includes("Anemia");
+  const isOncologicoActive = activeFinalidade.includes("Oncológico") || activeFinalidade.includes("Oncologico");
+  const isPolitraumatizadosActive = activeFinalidade.includes("Politraumatizados") || activeFinalidade.includes("Politrauma");
+  const isDoacaoActive = activeFinalidade.includes("Doação") || activeFinalidade.includes("Doacao");
+  const isColetaReservaActive = activeFinalidade.includes("Coleta") || activeFinalidade.includes("Reserva");
+  const isTipagemCompatibilidadeActive = activeFinalidade.includes("Tipagem") || activeFinalidade.includes("Compatibilidade");
 
   // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
-    oxigenacao_limpa: isEmergenciaActive ? 0.98 : isAltitudeActive ? 0.965 : isMonoxidoActive ? 0.88 : isDoacaoActive ? 0.98 : 0.95,
-    temperatura_c: isEmergenciaActive ? 22.0 : isTransplanteActive ? 4.0 : isAltitudeActive ? -2.5 : isMonoxidoActive ? 37.0 : 36.5,
-    vazao_l_min: isTransplanteActive ? 3.5 : 4.8,
-    ph: isTransplanteActive ? 7.38 : isMonoxidoActive ? 7.42 : 7.40,
-    viscosidade_cp: isEmergenciaActive ? 2.3 : 3.8,
-    meia_vida_h: 24.0,
+    oxigenacao_limpa: (isEmergenciaActive || isTraumaActive || isCirurgiaCardiacaActive || isPolitraumatizadosActive) ? 0.98 : 0.95,
+    temperatura_c: isPolitraumatizadosActive ? 37.0 : 36.5,
+    vazao_l_min: isPolitraumatizadosActive ? 2.1 : 4.8,
+    ph: (isCirurgiaCardiacaActive || isPolitraumatizadosActive) ? 7.40 : 7.42,
+    viscosidade_cp: isEmergenciaActive ? 2.3 : isPolitraumatizadosActive ? 2.1 : 3.8,
+    meia_vida_h: isAnemiaActive ? 36.0 : 24.0,
     extracao_o2_pct: 42.0,
     pressao_osmotica_mmhg: 25.0,
     antioxidante_pct: 94.5,
     pco2_mmhg: 40.0,
     glicose_mgdl: 100.0,
-    p50_mmhg: 34.0,
-    ponto_congelamento_c: -2.5,
-    saturacao_o2_pct: 96.5,
-    po2_mmhg: 92.0,
-    deslocamento_co_pct: 88.0,
-    effluence_depurantes_pct: 91.2,
-    cohb_residual_pct: 2.1,
-    p_coloidosmotica_mmhg: 28.0,
-    endotoxinas_val: "< 0.05 EU/mL",
-    integridade_endotelial_pct: 97.8,
-    ligacao_citocinas_pct: 78.0,
-    sodio_serico_meql: 140.0,
+    expansao_volemica_pct: 100.0,
+    carga_o2_pct: 99.2,
+    tempo_reconstituicao_s: 0.0,
+    coagulabilidade_pct: 0.0,
+    pressao_perfusao_mmhg: 95.0,
+    suporte_cec_pct: 100.0,
+    resistencia_cisalhamento_pct: 99.8,
+    preservacao_hemostasia_pct: 98.5,
+    estabilidade_osmotica_cec_mmhg: 25.0,
+    controle_acidose_lactica_ph: 7.40,
+    liberacao_o2_pct: 45.0,
+    resposta_imunologica_pct: 0.0,
+    compatibilidade_serica_pct: 100.0,
+    erosao_quimioterapica_pct: 99.9,
+    biocompatibilidade_tecidual_pct: 100.0,
+    ph_tumoral: 7.35,
+    retencao_o2_celular_pct: 96.0,
+    reposicao_volemica_ultra_pct: 100.0,
+    prevencao_hipotermia_c: 37.0,
+    perfusao_cerebral_pct: 98.0,
+    capacidade_tampao_ph: 7.42,
+    baixa_viscosidade_cp: 2.1,
     expressao_antigenica_pct: 0.0,
     reatividade_crossmatch_pct: 0.0,
     pureza_molecular_pct: 99.9,
     esterilidade_biologica_pct: 100.0,
+    integralidade_conservacao_pct: 100.0,
+    validade_estoque_meses: "24 Meses",
+    tolerancia_congelamento_c: -80.0,
+    estabilidade_suspensao_pct: 99.9,
+    fator_compatibilidade_pct: 100.0,
+    ausencia_antigenos_pct: 0.0,
+    reacao_heterologa_pct: 0.0,
+    seguranca_sensibilizados_pct: 100.0,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
     alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
@@ -753,282 +777,359 @@ while True:
                     sparkline={<Sparkline data={getSparkValues('extracao_o2_pct')} color="#02c39a" />}
                   />
                 </>
-              ) : isTransplanteActive ? (
+              ) : isTraumaActive ? (
                 <>
-                  {/* CARD B1: PRESSÃO OSMÓTICA (ONCÓTICA) */}
+                  {/* CARD B1: TAXA DE EXPANSÃO VOLEMICA */}
                   <MetricCard
-                    title="B1 • PRESSÃO OSMÓTICA (ONCÓTICA)"
-                    subtitle="Equilíbrio celular fora do corpo"
-                    value={(currentReading.pressao_osmotica_mmhg || 25.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.pressao_osmotica_mmhg || 25.0) / 30) * 100)}
-                    level="success"
-                    badgeText="FISIOLÓGICO"
-                    detail="Previne inchaço e danos celulares no órgão mantido fora do corpo."
-                    icon={Waves}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('pressao_osmotica_mmhg')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B2: CAPACIDADE ANTIOXIDANTE (REPERFUSÃO) */}
-                  <MetricCard
-                    title="B2 • CAPACIDADE ANTIOXIDANTE (REPERFUSÃO)"
-                    subtitle="Neutralização de radicais livres"
-                    value={(currentReading.antioxidante_pct || 94.5).toFixed(1)}
+                    title="B1 • TAXA DE EXPANSÃO VOLEMICA"
+                    subtitle="Recuperação imediata do volume intravascular"
+                    value={(currentReading.expansao_volemica_pct || 100.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.antioxidante_pct || 94.5}
+                    percent={currentReading.expansao_volemica_pct || 100.0}
                     level="success"
-                    badgeText="ALTÍSSIMO"
-                    detail="Neutraliza radicais livres no momento de religar o órgão ao receptor."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('antioxidante_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B3: POTENCIAL HIDROGENIÔNICO (pH) */}
-                  <MetricCard
-                    title="B3 • POTENCIAL HIDROGENIÔNICO (pH)"
-                    subtitle="Equilíbrio ácido-base do tecido"
-                    value={(currentReading.ph || 7.38).toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, ((currentReading.ph || 7.38) / 8.5) * 100)}
-                    level="success"
-                    badgeText="ESTÁVEL"
-                    detail="Conserva o equilíbrio ácido-base do tecido durante a perfusão."
-                    icon={FlaskConical}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('ph')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B4: PRESSÃO PARCIAL DE DIÓXIDO DE CARBONO (pCO₂) */}
-                  <MetricCard
-                    title="B4 • PRESSÃO PARCIAL DE DIÓXIDO DE CARBONO (pCO₂)"
-                    subtitle="Remoção de resíduos metabólicos"
-                    value={(currentReading.pco2_mmhg || 40.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.pco2_mmhg || 40.0) / 60) * 100)}
-                    level="success"
-                    badgeText="NORMAL"
-                    detail="Avalia a remoção eficiente dos resíduos metabólicos do órgão."
-                    icon={Thermometer}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('pco2_mmhg')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: CONCENTRAÇÃO DE GLICOSE */}
-                  <MetricCard
-                    title="B5 • CONCENTRAÇÃO DE GLICOSE"
-                    subtitle="Manutenção nutricional celular"
-                    value={(currentReading.glicose_mgdl || 100.0).toFixed(1)}
-                    unit="mg/dL"
-                    percent={Math.min(100, ((currentReading.glicose_mgdl || 100.0) / 140) * 100)}
-                    level="success"
-                    badgeText="NUTRITIVO"
-                    detail="Mantém as células do órgão vivas e metabolicamente ativas."
-                    icon={Droplets}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('glicose_mgdl')} color="#ffb703" />}
-                  />
-                </>
-              ) : isAltitudeActive ? (
-                <>
-                  {/* CARD B1: PRESSÃO PARCIAL P50 (AFINIDADE O₂) */}
-                  <MetricCard
-                    title="B1 • PRESSÃO PARCIAL P50 (AFINIDADE O₂)"
-                    subtitle="Liberação de O₂ sob baixa pressão atmosférica"
-                    value={(currentReading.p50_mmhg || 34.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.p50_mmhg || 34.0) / 45) * 100)}
-                    level="success"
-                    badgeText="ADAPTADO"
-                    detail="Garante liberação de oxigênio mesmo sob baixa pressão atmosférica."
-                    icon={Waves}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('p50_mmhg')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B2: PONTO DE CONGELAMENTO */}
-                  <MetricCard
-                    title="B2 • PONTO DE CONGELAMENTO"
-                    subtitle="Resistência ao frio extremo"
-                    value={(currentReading.ponto_congelamento_c || -2.5).toFixed(1)}
-                    unit="°C"
-                    percent={Math.min(100, (Math.abs(currentReading.ponto_congelamento_c || -2.5) / 5) * 100)}
-                    level="success"
-                    badgeText="RESISTENTE"
-                    detail="Evita cristalização e perda de fluidez em ambientes de frio extremo."
-                    icon={Thermometer}
-                    accentColor="bg-[#7c3aed]"
-                    sparkline={<Sparkline data={getSparkValues('ponto_congelamento_c')} color="#7c3aed" />}
-                  />
-
-                  {/* CARD B3: SATURAÇÃO DE O₂ (OXIGENAÇÃO) */}
-                  <MetricCard
-                    title="B3 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)"
-                    subtitle="Compensação no ar rarefeito"
-                    value={(currentReading.saturacao_o2_pct || 96.5).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.saturacao_o2_pct || 96.5}
-                    level="success"
-                    badgeText="ÓTIMO"
-                    detail="Compensa a menor oferta de oxigênio no ar rarefeito."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('saturacao_o2_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂) */}
-                  <MetricCard
-                    title="B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂)"
-                    subtitle="Impulsão para difusão nos tecidos"
-                    value={(currentReading.po2_mmhg || 92.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.po2_mmhg || 92.0) / 100) * 100)}
-                    level="success"
-                    badgeText="ELEVADO"
-                    detail="Força de impulsão para difundir O₂ nos tecidos em altitude."
-                    icon={Droplets}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('po2_mmhg')} color="#02c39a" />}
-                  />
-                </>
-              ) : isMonoxidoActive ? (
-                <>
-                  {/* CARD B1: TAXA DE DESLOCAMENTO DE CO */}
-                  <MetricCard
-                    title="B1 • TAXA DE DESLOCAMENTO DE CO"
-                    subtitle="Remoção do monóxido de carbono ligado às hemácias"
-                    value={(currentReading.deslocamento_co_pct || 88.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.deslocamento_co_pct || 88.0}
-                    level="warning"
-                    badgeText="CRÍTICO / ALTO"
-                    detail="Remove o monóxido de carbono ligado às hemácias do paciente."
-                    icon={Waves}
-                    accentColor="bg-[#ff4d4d]"
-                    sparkline={<Sparkline data={getSparkValues('deslocamento_co_pct')} color="#ff4d4d" />}
-                  />
-
-                  {/* CARD B2: EFFLUENCE DE DEPURANTES */}
-                  <MetricCard
-                    title="B2 • EFFLUENCE DE DEPURANTES"
-                    subtitle="Varredura e eliminação celular de gás tóxico"
-                    value={(currentReading.effluence_depurantes_pct || 91.2).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.effluence_depurantes_pct || 91.2}
-                    level="success"
-                    badgeText="EFICIENTE"
-                    detail="Auxilia na varredura e eliminação celular do gás tóxico."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('effluence_depurantes_pct')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B3: POTENCIAL HIDROGENIÔNICO (pH) */}
-                  <MetricCard
-                    title="B3 • POTENCIAL HIDROGENIÔNICO (pH)"
-                    subtitle="Reversão de acidose por sufocamento"
-                    value={(currentReading.ph || 7.42).toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, ((currentReading.ph || 7.42) / 8.5) * 100)}
-                    level="success"
-                    badgeText="FISIOLÓGICO"
-                    detail="Reverte o quadro de acidose metabólica provocado por sufocamento."
-                    icon={FlaskConical}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('ph')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B4: CARBOXI-HEMOGLOBINA RESIDUAL (COHb) */}
-                  <MetricCard
-                    title="B4 • CARBOXI-HEMOGLOBINA RESIDUAL (COHb)"
-                    subtitle="Nível residual da toxina no sangue"
-                    value={(currentReading.cohb_residual_pct || 2.1).toFixed(1)}
-                    unit="%"
-                    percent={Math.min(100, ((currentReading.cohb_residual_pct || 2.1) / 10) * 100)}
-                    level="success"
-                    badgeText="SEGURO"
-                    detail="Indica sucesso no expurgo da toxina do sistema circulatório."
-                    icon={Droplets}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('cohb_residual_pct')} color="#00ff9d" />}
-                  />
-                </>
-              ) : isQueimadurasActive ? (
-                <>
-                  {/* CARD B1: PRESSÃO COLOIDOSMÓTICA */}
-                  <MetricCard
-                    title="B1 • PRESSÃO COLOIDOSMÓTICA"
-                    subtitle="Prevenção de extravasamento para tecidos"
-                    value={(currentReading.p_coloidosmotica_mmhg || 28.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.p_coloidosmotica_mmhg || 28.0) / 35) * 100)}
-                    level="success"
-                    badgeText="ÓTIMO"
-                    detail="Impede a perda de líquidos para os tecidos, combatendo o edema."
+                    badgeText="IMEDIATA"
+                    detail="Recupera instantaneamente a pressão arterial em choques hemorrágicos."
                     icon={Waves}
                     accentColor="bg-[#ff9f1c]"
-                    sparkline={<Sparkline data={getSparkValues('p_coloidosmotica_mmhg')} color="#ff9f1c" />}
+                    sparkline={<Sparkline data={getSparkValues('expansao_volemica_pct')} color="#ff9f1c" />}
                   />
 
-                  {/* CARD B2: CONCENTRAÇÃO DE ENDOTOXINAS */}
+                  {/* CARD B2: CAPACIDADE DE CARGA DE O₂ */}
                   <MetricCard
-                    title="B2 • CONCENTRAÇÃO DE ENDOTOXINAS"
-                    subtitle="Controle do quadro inflamatório e sepse"
-                    value={currentReading.endotoxinas_val || "< 0.05"}
-                    unit="EU/mL"
+                    title="B2 • CAPACIDADE DE CARGA DE O₂"
+                    subtitle="Oxigenação acelerada de órgãos vitais"
+                    value={(currentReading.carga_o2_pct || 99.2).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.carga_o2_pct || 99.2}
+                    level="success"
+                    badgeText="MÁXIMA"
+                    detail="Suporta rápida oxigenação tecidual sem necessidade de aquecimento prévio."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('carga_o2_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B3: TEMPO DE RECONSTITUIÇÃO */}
+                  <MetricCard
+                    title="B3 • TEMPO DE RECONSTITUIÇÃO"
+                    subtitle="Prontidão imediata para infusão"
+                    value={(currentReading.tempo_reconstituicao_s || 0.0).toFixed(1)}
+                    unit="s"
+                    percent={100}
+                    level="success"
+                    badgeText="INSTANTÂNEO"
+                    detail="Produto pronto para uso sem necessidade de descongelamento."
+                    icon={Clock}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('tempo_reconstituicao_s')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: ÍNDICE DE COAGULABILIDADE */}
+                  <MetricCard
+                    title="B4 • ÍNDICE DE COAGULABILIDADE"
+                    subtitle="Prevenção de tromboses e microcoágulos"
+                    value={(currentReading.coagulabilidade_pct || 0.0).toFixed(1)}
+                    unit="%"
+                    percent={100}
+                    level="success"
+                    badgeText="ISENTO DE TROMBOSE"
+                    detail="Inerte a microtrombos, permitindo infusão contínua em emergências."
+                    icon={Droplets}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('coagulabilidade_pct')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: PRESSÃO DE PERFUSÃO TECIDUAL */}
+                  <MetricCard
+                    title="B5 • PRESSÃO DE PERFUSÃO TECIDUAL"
+                    subtitle="Manutenção da microcirculação orgânica"
+                    value={(currentReading.pressao_perfusao_mmhg || 95.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.pressao_perfusao_mmhg || 95.0) / 120) * 100)}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Garante pressão suficiente para nutrir o cérebro e órgãos nobres."
+                    icon={Thermometer}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('pressao_perfusao_mmhg')} color="#02c39a" />}
+                  />
+                </>
+              ) : isCirurgiaCardiacaActive ? (
+                <>
+                  {/* CARD B1: SUPORTE A CIRCULAÇÃO CEC */}
+                  <MetricCard
+                    title="B1 • SUPORTE A CIRCULAÇÃO CEC"
+                    subtitle="Compatibilidade total com bombas de bypass"
+                    value={(currentReading.suporte_cec_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.suporte_cec_pct || 100.0}
+                    level="success"
+                    badgeText="CONTÍNUO"
+                    detail="Permite circulação extracorpórea sem formação de espumas ou hemólise."
+                    icon={Waves}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('suporte_cec_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B2: RESISTÊNCIA AO CISALHAMENTO */}
+                  <MetricCard
+                    title="B2 • RESISTÊNCIA AO CISALHAMENTO"
+                    subtitle="Tolerância à fricção mecânica das bombas"
+                    value={(currentReading.resistencia_cisalhamento_pct || 99.8).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.resistencia_cisalhamento_pct || 99.8}
+                    level="success"
+                    badgeText="ALTA"
+                    detail="Estabilidade molecular superior contra forças de cisalhamento da bomba CEC."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('resistencia_cisalhamento_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B3: PRESERVAÇÃO DE HEMOSTASIA */}
+                  <MetricCard
+                    title="B3 • PRESERVAÇÃO DE HEMOSTASIA"
+                    subtitle="Proteção dos fatores nativos de coagulação"
+                    value={(currentReading.preservacao_hemostasia_pct || 98.5).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.preservacao_hemostasia_pct || 98.5}
+                    level="success"
+                    badgeText="PROTEGIDO"
+                    detail="Preserva as plaquetas e proteínas plasmáticas durante procedimentos cirúrgicos longos."
+                    icon={FlaskConical}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('preservacao_hemostasia_pct')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B4: ESTABILIDADE OSMÓTICA EM CEC */}
+                  <MetricCard
+                    title="B4 • ESTABILIDADE OSMÓTICA EM CEC"
+                    subtitle="Manutenção do equilíbrio oncótico"
+                    value={(currentReading.estabilidade_osmotica_cec_mmhg || 25.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.estabilidade_osmotica_cec_mmhg || 25.0) / 30) * 100)}
+                    level="success"
+                    badgeText="NORMO-OSMÓTICO"
+                    detail="Evita edema miocárdico e pulmonar em perfusionistas e cirurgias abertas."
+                    icon={Droplets}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_osmotica_cec_mmhg')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: CONTROLE DE ACIDOSE LÁCTICA */}
+                  <MetricCard
+                    title="B5 • CONTROLE DE ACIDOSE LÁCTICA"
+                    subtitle="Equilíbrio ácido-base contínuo"
+                    value={(currentReading.controle_acidose_lactica_ph || 7.40).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.controle_acidose_lactica_ph || 7.40) / 8.5) * 100)}
+                    level="success"
+                    badgeText="FISIOLÓGICO"
+                    detail="Remove o lactato gerado por isquemia temporária do tecido cardíaco."
+                    icon={Thermometer}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('controle_acidose_lactica_ph')} color="#ffb703" />}
+                  />
+                </>
+              ) : isAnemiaActive ? (
+                <>
+                  {/* CARD B1: MEIA-VIDA RESTRITA EM CIRCULAÇÃO */}
+                  <MetricCard
+                    title="B1 • MEIA-VIDA EM CIRCULAÇÃO"
+                    subtitle="Duração estendida no leito vascular"
+                    value={(currentReading.meia_vida_h || 36.0).toFixed(1)}
+                    unit="h"
+                    percent={Math.min(100, ((currentReading.meia_vida_h || 36.0) / 48) * 100)}
+                    level="success"
+                    badgeText="PROLONGADA"
+                    detail="Assegura aporte contínuo de O₂ reduzindo a frequência de novas infusões."
+                    icon={Clock}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('meia_vida_h')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B2: EFICIÊNCIA DE LIBERAÇÃO DE O₂ */}
+                  <MetricCard
+                    title="B2 • EFICIÊNCIA DE LIBERAÇÃO DE O₂"
+                    subtitle="Transferência otimizada para tecidos anêmicos"
+                    value={(currentReading.liberacao_o2_pct || 45.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.liberacao_o2_pct || 45.0}
+                    level="success"
+                    badgeText="ALTA"
+                    detail="Cede oxigênio com facilidade nos tecidos com hipóxia crônica."
+                    icon={Waves}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('liberacao_o2_pct')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B3: AUSÊNCIA DE RESPOSTA IMUNOLÓGICA */}
+                  <MetricCard
+                    title="B3 • AUSÊNCIA DE RESPOSTA IMUNOLÓGICA"
+                    subtitle="Isenção de anticorpos anti-hemácias"
+                    value={(currentReading.resposta_imunologica_pct || 0.0).toFixed(1)}
+                    unit="%"
                     percent={100}
                     level="success"
                     badgeText="ISENTO"
-                    detail="Evita a piora do quadro inflamatório severo e da sepse."
+                    detail="Evita aloimunização em pacientes submetidos a esquemas de transfusão crônica."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('resposta_imunologica_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: COMPATIBILIDADE SÉRICA UNIVERSAL */}
+                  <MetricCard
+                    title="B4 • COMPATIBILIDADE SÉRICA UNIVERSAL"
+                    subtitle="Aceitação sem necessidade de prova cruzada"
+                    value={(currentReading.compatibilidade_serica_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.compatibilidade_serica_pct || 100.0}
+                    level="success"
+                    badgeText="TOTAL"
+                    detail="Totalmente seguro para doentes com múltiplos anticorpos raros."
+                    icon={Droplets}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('compatibilidade_serica_pct')} color="#39ff14" />}
+                  />
+                </>
+              ) : isOncologicoActive ? (
+                <>
+                  {/* CARD B1: RESISTÊNCIA A EROSÃO QUIMIOTERÁPICA */}
+                  <MetricCard
+                    title="B1 • RESISTÊNCIA A EROSÃO QUIMIOTERÁPICA"
+                    subtitle="Estabilidade diante de agentes citotóxicos"
+                    value={(currentReading.erosao_quimioterapica_pct || 99.9).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.erosao_quimioterapica_pct || 99.9}
+                    level="success"
+                    badgeText="INVIOLÁVEL"
+                    detail="Não sofre degradação ou hemólise quando em contato com quimioterápicos."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('erosao_quimioterapica_pct')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B2: BIOPATIBILIDADE TECIDUAL */}
+                  <MetricCard
+                    title="B2 • BIOPATIBILIDADE TECIDUAL"
+                    subtitle="Ausência de toxicidade renal ou hepática"
+                    value={(currentReading.biocompatibilidade_tecidual_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.biocompatibilidade_tecidual_pct || 100.0}
+                    level="success"
+                    badgeText="NÃO TÓXICO"
+                    detail="Não sobrecarrega o sistema de filtração hepático ou renal do paciente oncológico."
+                    icon={FlaskConical}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('biocompatibilidade_tecidual_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B3: ESTABILIDADE pH EM AMBIENTE TUMORAL */}
+                  <MetricCard
+                    title="B3 • ESTABILIDADE pH EM AMBIENTE TUMORAL"
+                    subtitle="Manutenção de transporte em meio ácido"
+                    value={(currentReading.ph_tumoral || 7.35).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.ph_tumoral || 7.35) / 8.5) * 100)}
+                    level="success"
+                    badgeText="TOLERANTE"
+                    detail="Preserva a afinidade de ligação com o oxigênio mesmo no microambiente ácido ao redor do tumor."
+                    icon={Thermometer}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('ph_tumoral')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B4: RETENÇÃO DE OXIGENAÇÃO CELULAR */}
+                  <MetricCard
+                    title="B4 • RETENÇÃO DE OXIGENAÇÃO CELULAR"
+                    subtitle="Aporte contínuo de gases aos tecidos saudáveis"
+                    value={(currentReading.retencao_o2_celular_pct || 96.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.retencao_o2_celular_pct || 96.0}
+                    level="success"
+                    badgeText="CONSTANTE"
+                    detail="Protege a oxigenação de tecidos sadios reduzindo a fadiga decorrente do tratamento."
+                    icon={Waves}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('retencao_o2_celular_pct')} color="#00d8ff" />}
+                  />
+                </>
+              ) : isPolitraumatizadosActive ? (
+                <>
+                  {/* CARD B1: REPOSIÇÃO VOLEMICA ULTRA-RÁPIDA */}
+                  <MetricCard
+                    title="B1 • REPOSIÇÃO VOLEMICA ULTRA-RÁPIDA"
+                    subtitle="Expansão imediata do leito intravascular"
+                    value={(currentReading.reposicao_volemica_ultra_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.reposicao_volemica_ultra_pct || 100.0}
+                    level="warning"
+                    badgeText="CRÍTICA"
+                    detail="Reverte o colapso circulatório grave em vítimas de politraumatismos."
+                    icon={Waves}
+                    accentColor="bg-[#ff4d4d]"
+                    sparkline={<Sparkline data={getSparkValues('reposicao_volemica_ultra_pct')} color="#ff4d4d" />}
+                  />
+
+                  {/* CARD B2: PREVENÇÃO DE HIPOTERMIA SEVERA */}
+                  <MetricCard
+                    title="B2 • PREVENÇÃO DE HIPOTERMIA SEVERA"
+                    subtitle="Estabilidade térmica da solução infundida"
+                    value={(currentReading.prevencao_hipotermia_c || 37.0).toFixed(1)}
+                    unit="°C"
+                    percent={Math.min(100, ((currentReading.prevencao_hipotermia_c || 37.0) / 40) * 100)}
+                    level="success"
+                    badgeText="TÉRMICO"
+                    detail="Evita o congelamento e a tríade da morte em politraumas."
+                    icon={Thermometer}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('prevencao_hipotermia_c')} color="#ffb703" />}
+                  />
+
+                  {/* CARD B3: MANUTENÇÃO DA PERFUSÃO CEREBRAL */}
+                  <MetricCard
+                    title="B3 • MANUTENÇÃO DA PERFUSÃO CEREBRAL"
+                    subtitle="Aporte de O₂ ao sistema nervoso central"
+                    value={(currentReading.perfusao_cerebral_pct || 98.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.perfusao_cerebral_pct || 98.0}
+                    level="success"
+                    badgeText="ÓTIMA"
+                    detail="Protege o tecido cerebral contra isquemia e hipóxia pós-traumática."
                     icon={ShieldCheck}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('integridade_endotelial_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('perfusao_cerebral_pct')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B3: MARCADOR DE INTEGRIDADE ENDOTELIAL */}
+                  {/* CARD B4: CAPACIDADE TAMPÃO ÁCIDO-BASE */}
                   <MetricCard
-                    title="B3 • MARCADOR DE INTEGRIDADE ENDOTELIAL"
-                    subtitle="Preservação da estrutura microvascular"
-                    value={(currentReading.integridade_endotelial_pct || 97.8).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.integridade_endotelial_pct || 97.8}
+                    title="B4 • CAPACIDADE TAMPÃO ÁCIDO-BASE"
+                    subtitle="Neutralização de acidose metabólica severa"
+                    value={(currentReading.capacidade_tampao_ph || 7.42).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.capacidade_tampao_ph || 7.42) / 8.5) * 100)}
                     level="success"
-                    badgeText="PROTEGIDO"
-                    detail="Preserva os microvasos contra o colapso estrutural."
+                    badgeText="ESTÁVEL"
+                    detail="Restaura o pH fisiológico perante choques hemorrágicos graves."
                     icon={FlaskConical}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('integridade_endotelial_pct')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('capacidade_tampao_ph')} color="#00d8ff" />}
                   />
 
-                  {/* CARD B4: LIGAÇÃO A CITOCINAS INFLAMATÓRIAS */}
+                  {/* CARD B5: BAIXA VISCOSIDADE DE INFUSÃO */}
                   <MetricCard
-                    title="B4 • LIGAÇÃO A CITOCINAS INFLAMATÓRIAS"
-                    subtitle="Absorção de moléculas inflamatórias"
-                    value={(currentReading.ligacao_citocinas_pct || 78.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.ligacao_citocinas_pct || 78.0}
+                    title="B5 • BAIXA VISCOSIDADE DE INFUSÃO"
+                    subtitle="Fluidez em acessos venosos periféricos"
+                    value={(currentReading.baixa_viscosidade_cp || 2.1).toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, ((currentReading.baixa_viscosidade_cp || 2.1) / 5) * 100)}
                     level="success"
-                    badgeText="ATIVO"
-                    detail="Ajuda a absorver moléculas inflamatórias em excesso na corrente sanguínea."
+                    badgeText="FLUIDO"
+                    detail="Permite infusões sob alta pressão sem resistência de fluxo."
                     icon={Droplets}
                     accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('ligacao_citocinas_pct')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: SÓDIO SÉRICO (Na+) */}
-                  <MetricCard
-                    title="B5 • SÓDIO SÉRICO (Na+)"
-                    subtitle="Equilíbrio eletrolítico e prevenção de arritmias"
-                    value={(currentReading.sodio_serico_meql || 140.0).toFixed(1)}
-                    unit="mEq/L"
-                    percent={Math.min(100, ((currentReading.sodio_serico_meql || 140.0) / 160) * 100)}
-                    level="success"
-                    badgeText="EQUILIBRADO"
-                    detail="Previne paradas cardíacas e arritmias decorrentes de queimaduras."
-                    icon={Thermometer}
-                    accentColor="bg-[#3a86ef]"
-                    sparkline={<Sparkline data={getSparkValues('sodio_serico_meql')} color="#3a86ef" />}
+                    sparkline={<Sparkline data={getSparkValues('baixa_viscosidade_cp')} color="#a855f7" />}
                   />
                 </>
               ) : isDoacaoActive ? (
@@ -1048,7 +1149,7 @@ while True:
                     sparkline={<Sparkline data={getSparkValues('expressao_antigenica_pct')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B2: REATIVIDADE EM CROSSMATCH (PROVA CRUZADA) */}
+                  {/* CARD B2: REATIVIDADE EM CROSSMATCH */}
                   <MetricCard
                     title="B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA)"
                     subtitle="Dispensa teste de cruzamento prévio"
@@ -1091,6 +1192,130 @@ while True:
                     icon={Droplets}
                     accentColor="bg-[#39ff14]"
                     sparkline={<Sparkline data={getSparkValues('esterilidade_biologica_pct')} color="#39ff14" />}
+                  />
+                </>
+              ) : isColetaReservaActive ? (
+                <>
+                  {/* CARD B1: INTEGRALIDADE DE CONSERVAÇÃO */}
+                  <MetricCard
+                    title="B1 • INTEGRALIDADE DE CONSERVAÇÃO"
+                    subtitle="Preservação da estrutura molecular em estoque"
+                    value={(currentReading.integralidade_conservacao_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.integralidade_conservacao_pct || 100.0}
+                    level="success"
+                    badgeText="PRESERVADA"
+                    detail="Conserva a integridade funcional do composto por longos períodos."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('integralidade_conservacao_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B2: PRAZO DE VALIDADE EM ESTOQUE */}
+                  <MetricCard
+                    title="B2 • PRAZO DE VALIDADE EM ESTOQUE"
+                    subtitle="Estabilidade prolongada fora da refrigeração"
+                    value={currentReading.validade_estoque_meses || "24 Meses"}
+                    unit=""
+                    percent={100}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Permite estocagem prolongada em bancos de sangue hospitalares e militares."
+                    icon={Clock}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('integralidade_conservacao_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B3: TOLERÂNCIA A CONGELAMENTO */}
+                  <MetricCard
+                    title="B3 • TOLERÂNCIA A CONGELAMENTO"
+                    subtitle="Resistência ao armazenamento criogênico"
+                    value={(currentReading.tolerancia_congelamento_c || -80.0).toFixed(1)}
+                    unit="°C"
+                    percent={100}
+                    level="success"
+                    badgeText="CRIO-PROTEGIDO"
+                    detail="Permite criopreservação em temperaturas extremamente baixas sem precipitação."
+                    icon={Thermometer}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('tolerancia_congelamento_c')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B4: ESTABILIDADE DE SUSPENSÃO */}
+                  <MetricCard
+                    title="B4 • ESTABILIDADE DE SUSPENSÃO"
+                    subtitle="Distribuição homogênea das moléculas carreadoras"
+                    value={(currentReading.estabilidade_suspensao_pct || 99.9).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.estabilidade_suspensao_pct || 99.9}
+                    level="success"
+                    badgeText="HOMOGÊNEA"
+                    detail="Evita decantação ou separação de fases durante a estocagem."
+                    icon={FlaskConical}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_suspensao_pct')} color="#02c39a" />}
+                  />
+                </>
+              ) : isTipagemCompatibilidadeActive ? (
+                <>
+                  {/* CARD B1: FATOR DE COMPATIBILIDADE UNIVERSAL */}
+                  <MetricCard
+                    title="B1 • FATOR DE COMPATIBILIDADE UNIVERSAL"
+                    subtitle="Isenção total de rejeição transfusional"
+                    value={(currentReading.fator_compatibilidade_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.fator_compatibilidade_pct || 100.0}
+                    level="success"
+                    badgeText="UNIVERSAL"
+                    detail="Compatível com qualquer tipo sanguíneo humano (A, B, AB, O, Rh+ ou Rh-)."
+                    icon={Waves}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('fator_compatibilidade_pct')} color="#39ff14" />}
+                  />
+
+                  {/* CARD B2: AUSÊNCIA DE ANTÍGENOS ABO/Rh */}
+                  <MetricCard
+                    title="B2 • AUSÊNCIA DE ANTÍGENOS ABO/Rh"
+                    subtitle="Inexistência de marcadores de membrana"
+                    value={(currentReading.ausencia_antigenos_pct !== undefined ? currentReading.ausencia_antigenos_pct : 0.0).toFixed(1)}
+                    unit="%"
+                    percent={100}
+                    level="success"
+                    badgeText="NEGATIVO"
+                    detail="Ausência completa de aglutinogênios A, B e Fator Rh."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('ausencia_antigenos_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B3: REAÇÃO HETERÓLOGA */}
+                  <MetricCard
+                    title="B3 • REAÇÃO HETERÓLOGA"
+                    subtitle="Isenção de reatividade plasmática"
+                    value={(currentReading.reacao_heterologa_pct !== undefined ? currentReading.reacao_heterologa_pct : 0.0).toFixed(1)}
+                    unit="%"
+                    percent={100}
+                    level="success"
+                    badgeText="INEXISTENTE"
+                    detail="Não reage com anticorpos anti-A ou anti-B do plasma receptor."
+                    icon={FlaskConical}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('reacao_heterologa_pct')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B4: SEGURANÇA EM RECEPTORES SENSIBILIZADOS */}
+                  <MetricCard
+                    title="B4 • SEGURANÇA EM RECEPTORES SENSIBILIZADOS"
+                    subtitle="Segurança em pacientes com múltiplos anticorpos"
+                    value={(currentReading.seguranca_sensibilizados_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.seguranca_sensibilizados_pct || 100.0}
+                    level="success"
+                    badgeText="SEGURO"
+                    detail="Pode ser infundido com segurança total em pacientes poli-transfundidos."
+                    icon={Droplets}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('seguranca_sensibilizados_pct')} color="#00d8ff" />}
                   />
                 </>
               ) : (
