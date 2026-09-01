@@ -418,16 +418,21 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const activeLotObj = lots.find(l => l.id === selectedLot) || lots[0];
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
   const isEmergenciaActive = activeFinalidade.includes("Emergência") || activeFinalidade.includes("Emergencia") || activeFinalidade.includes("Pre-Hospitalar") || activeFinalidade.includes("Pré-Hospitalar") || selectedLot === "SA-023";
+  const isTransplanteActive = activeFinalidade.includes("Transplante") || activeFinalidade.includes("Órgãos") || activeFinalidade.includes("Orgaos") || selectedLot === "SA-024";
 
   // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
     oxigenacao_limpa: isEmergenciaActive ? 0.98 : 0.95,
-    temperatura_c: isEmergenciaActive ? 22.0 : 36.5,
-    vazao_l_min: 4.8,
-    ph: 7.40,
+    temperatura_c: isEmergenciaActive ? 22.0 : isTransplanteActive ? 4.0 : 36.5,
+    vazao_l_min: isTransplanteActive ? 3.5 : 4.8,
+    ph: isTransplanteActive ? 7.38 : 7.40,
     viscosidade_cp: isEmergenciaActive ? 2.3 : 3.8,
     meia_vida_h: 24.0,
     extracao_o2_pct: 42.0,
+    pressao_osmotica_mmhg: 25.0,
+    antioxidante_pct: 94.5,
+    pco2_mmhg: 40.0,
+    glicose_mgdl: 100.0,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
     alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
@@ -710,6 +715,83 @@ while True:
                     icon={FlaskConical}
                     accentColor="bg-[#02c39a]"
                     sparkline={<Sparkline data={getSparkValues('extracao_o2_pct')} color="#02c39a" />}
+                  />
+                </>
+              ) : isTransplanteActive ? (
+                <>
+                  {/* CARD B1: PRESSÃO OSMÓTICA (ONCÓTICA) */}
+                  <MetricCard
+                    title="B1 • PRESSÃO OSMÓTICA (ONCÓTICA)"
+                    subtitle="Equilíbrio celular fora do corpo"
+                    value={(currentReading.pressao_osmotica_mmhg || 25.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.pressao_osmotica_mmhg || 25.0) / 30) * 100)}
+                    level="success"
+                    badgeText="FISIOLÓGICO"
+                    detail="Previne inchaço e danos celulares no órgão mantido fora do corpo."
+                    icon={Waves}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('pressao_osmotica_mmhg')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B2: CAPACIDADE ANTIOXIDANTE (REPERFUSÃO) */}
+                  <MetricCard
+                    title="B2 • CAPACIDADE ANTIOXIDANTE (REPERFUSÃO)"
+                    subtitle="Neutralização de radicais livres"
+                    value={(currentReading.antioxidante_pct || 94.5).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.antioxidante_pct || 94.5}
+                    level="success"
+                    badgeText="ALTÍSSIMO"
+                    detail="Neutraliza radicais livres no momento de religar o órgão ao receptor."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('antioxidante_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B3: POTENCIAL HIDROGENIÔNICO (pH) */}
+                  <MetricCard
+                    title="B3 • POTENCIAL HIDROGENIÔNICO (pH)"
+                    subtitle="Equilíbrio ácido-base do tecido"
+                    value={(currentReading.ph || 7.38).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.ph || 7.38) / 8.5) * 100)}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Conserva o equilíbrio ácido-base do tecido durante a perfusão."
+                    icon={FlaskConical}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('ph')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B4: PRESSÃO PARCIAL DE DIÓXIDO DE CARBONO (pCO₂) */}
+                  <MetricCard
+                    title="B4 • PRESSÃO PARCIAL DE DIÓXIDO DE CARBONO (pCO₂)"
+                    subtitle="Remoção de resíduos metabólicos"
+                    value={(currentReading.pco2_mmhg || 40.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.pco2_mmhg || 40.0) / 60) * 100)}
+                    level="success"
+                    badgeText="NORMAL"
+                    detail="Avalia a remoção eficiente dos resíduos metabólicos do órgão."
+                    icon={Thermometer}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('pco2_mmhg')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: CONCENTRAÇÃO DE GLICOSE */}
+                  <MetricCard
+                    title="B5 • CONCENTRAÇÃO DE GLICOSE"
+                    subtitle="Manutenção nutricional celular"
+                    value={(currentReading.glicose_mgdl || 100.0).toFixed(1)}
+                    unit="mg/dL"
+                    percent={Math.min(100, ((currentReading.glicose_mgdl || 100.0) / 140) * 100)}
+                    level="success"
+                    badgeText="NUTRITIVO"
+                    detail="Mantém as células do órgão vivas e metabolicamente ativas."
+                    icon={Droplets}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('glicose_mgdl')} color="#ffb703" />}
                   />
                 </>
               ) : (
