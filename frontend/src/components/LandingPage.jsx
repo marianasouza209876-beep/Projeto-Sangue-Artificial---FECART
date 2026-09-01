@@ -147,23 +147,33 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
                 preditiva para gestão inteligente de insumos críticos em saúde.
               </p>
 
-              <div className="flex flex-wrap gap-4 pt-2">
+              <div className="flex flex-wrap gap-3.5 pt-2">
                 <Button
                   size="lg"
-                  onClick={() => onNavigate("dashboard")}
-                  className="gap-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white shadow-[0_0_25px_rgba(225,29,72,0.4)] text-sm px-6 h-12"
+                  onClick={() => onNavigate("emergency")}
+                  className="gap-2 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white shadow-[0_0_25px_rgba(255,42,66,0.5)] text-sm px-6 h-12 font-bold border border-rose-400/30"
                 >
-                  Acessar Monitor Clínico
+                  <Zap className="h-4 w-4" />
+                  Simulador de Urgência (IA)
                   <ArrowRight className="h-4 w-4" />
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
+                  onClick={() => onNavigate("dashboard")}
+                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-5 h-12"
+                >
+                  <Activity className="h-4 w-4 text-rose-500" />
+                  Monitor Clínico
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
                   onClick={() => onNavigate("forecast")}
-                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-6 h-12"
+                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-5 h-12"
                 >
                   <BrainCircuit className="h-4 w-4 text-sky-400" />
-                  Previsão de Demanda IA
+                  Previsão IA
                 </Button>
               </div>
             </div>
