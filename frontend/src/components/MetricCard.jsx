@@ -44,7 +44,8 @@ export function MetricCard({
   detail,
   icon: Icon,
   sparkline,
-  accentColor
+  accentColor,
+  badgeText
 }) {
   const level = overrideLevel || levelFor(percent);
   const s = levelStyles[level] || levelStyles.success;
@@ -103,7 +104,7 @@ export function MetricCard({
             s.text
           )}
         >
-          {s.label}
+          {badgeText || s.label}
         </span>
       </div>
     </article>

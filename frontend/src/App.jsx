@@ -415,13 +415,19 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     }
   };
 
+  const activeLotObj = lots.find(l => l.id === selectedLot) || lots[0];
+  const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
+  const isEmergenciaActive = activeFinalidade.includes("Emergência") || activeFinalidade.includes("Emergencia") || activeFinalidade.includes("Pre-Hospitalar") || activeFinalidade.includes("Pré-Hospitalar") || selectedLot === "SA-023";
+
   // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
-    oxigenacao_limpa: 0.95,
-    temperatura_c: 36.5,
+    oxigenacao_limpa: isEmergenciaActive ? 0.98 : 0.95,
+    temperatura_c: isEmergenciaActive ? 22.0 : 36.5,
     vazao_l_min: 4.8,
     ph: 7.40,
-    viscosidade_cp: 3.8,
+    viscosidade_cp: isEmergenciaActive ? 2.3 : 3.8,
+    meia_vida_h: 24.0,
+    extracao_o2_pct: 42.0,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
     alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
@@ -629,59 +635,138 @@ while True:
 
             {/* Grid dos Novos MetricCards do Lovable */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              
-              {/* CARD 1: OXIGENAÇÃO */}
-              <MetricCard
-                title="Saturação de O₂"
-                subtitle="Transporte de oxigênio do lote"
-                value={(currentReading.oxigenacao_limpa * 100).toFixed(1)}
-                unit="%"
-                percent={currentReading.oxigenacao_limpa * 100}
-                level={currentReading.oxigenacao_limpa < 0.90 ? 'critical' : 'success'}
-                detail={currentReading.oxigenacao_limpa < 0.90 ? 'SATURAÇÃO BAIXA' : 'SpO₂ Equivalente Ideal'}
-                icon={Waves}
-                sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00e5a3'} />}
-              />
+              {isEmergenciaActive ? (
+                <>
+                  {/* CARD B1: SATURAÇÃO DE O₂ */}
+                  <MetricCard
+                    title="B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)"
+                    subtitle="Transporte imediato de oxigênio do lote"
+                    value={((currentReading.oxigenacao_limpa || 0.98) * 100).toFixed(1)}
+                    unit="%"
+                    percent={(currentReading.oxigenacao_limpa || 0.98) * 100}
+                    level="success"
+                    badgeText="ÓTIMO"
+                    detail="Garante aporte imediato de oxigênio em quadros de trauma e choque volumétrico."
+                    icon={Waves}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color="#00ff9d" />}
+                  />
 
-              {/* CARD 2: TEMPERATURA */}
-              <MetricCard
-                title="Estabilidade Térmica"
-                subtitle="Sensor DS18B20 em bancada"
-                value={currentReading.temperatura_c.toFixed(1)}
-                unit="°C"
-                percent={Math.min(100, (currentReading.temperatura_c / 42) * 100)}
-                level={currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'critical' : currentReading.temperatura_c > 37.5 ? 'warning' : 'success'}
-                detail={currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA CRÍTICA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'Faixa Fisiológica'}
-                icon={Thermometer}
-                sparkline={<Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />}
-              />
+                  {/* CARD B2: RESISTÊNCIA DE FLUXO (VISCOSIDADE) */}
+                  <MetricCard
+                    title="B2 • RESISTÊNCIA DE FLUXO (VISCOSIDADE)"
+                    subtitle="Viscosidade e rápida infusão sob pressão"
+                    value={(currentReading.viscosidade_cp || 2.3).toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, ((currentReading.viscosidade_cp || 2.3) / 5) * 100)}
+                    level="success"
+                    badgeText="FLUIDO"
+                    detail="Permite rápida infusão sob pressão em acessos venosos periféricos."
+                    icon={Droplets}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
+                  />
 
-              {/* CARD 3: pH */}
-              <MetricCard
-                title="Potencial pH"
-                subtitle="Equilíbrio ácido-base"
-                value={currentReading.ph.toFixed(2)}
-                unit="pH"
-                percent={Math.min(100, (currentReading.ph / 8.5) * 100)}
-                level={currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'warning' : 'success'}
-                detail={currentReading.ph < 7.35 ? 'Tendência à Acidose' : currentReading.ph > 7.45 ? 'Tendência à Alcalose' : 'pH 7.40 Fisiológico'}
-                icon={FlaskConical}
-                sparkline={<Sparkline data={getSparkValues('ph')} color="#38bdf8" />}
-              />
+                  {/* CARD B3: ESTABILIDADE TÉRMICA */}
+                  <MetricCard
+                    title="B3 • ESTABILIDADE TÉRMICA (ARMAZENAMENTO)"
+                    subtitle="Armazenamento fora de refrigeração"
+                    value={(currentReading.temperatura_c || 22.0).toFixed(1)}
+                    unit="°C"
+                    percent={Math.min(100, ((currentReading.temperatura_c || 22.0) / 40) * 100)}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Conserva a integridade funcional fora de refrigeração, ideal para ambulâncias."
+                    icon={Thermometer}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('temperatura_c')} color="#ffb703" />}
+                  />
 
-              {/* CARD 4: VISCOSIDADE */}
-              <MetricCard
-                title="Viscosidade"
-                subtitle="Resistência ao fluxo"
-                value={currentReading.viscosidade_cp.toFixed(1)}
-                unit="cP"
-                percent={Math.min(100, (currentReading.viscosidade_cp / 6) * 100)}
-                level={currentReading.viscosidade_cp > 5.0 ? 'critical' : currentReading.viscosidade_cp < 3.2 ? 'warning' : 'success'}
-                detail={currentReading.viscosidade_cp > 4.5 ? 'Composto Espesso' : 'Fluidez Adequada'}
-                icon={Droplets}
-                sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
-              />
+                  {/* CARD B4: TEMPO DE MEIA-VIDA CIRCULATÓRIA */}
+                  <MetricCard
+                    title="B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA"
+                    subtitle="Duração na circulação sanguínea"
+                    value={(currentReading.meia_vida_h || 24.0).toFixed(1)}
+                    unit="h"
+                    percent={Math.min(100, ((currentReading.meia_vida_h || 24.0) / 48) * 100)}
+                    level="success"
+                    badgeText="SUFICIENTE"
+                    detail="Mantém a oxigenação até que o paciente chegue ao hospital."
+                    icon={Clock}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('meia_vida_h')} color="#00d8ff" />}
+                  />
 
+                  {/* CARD B5: ÍNDICE DE EXTRAÇÃO DE O₂ (TISULAR) */}
+                  <MetricCard
+                    title="B5 • ÍNDICE DE EXTRAÇÃO DE O₂ (TISULAR)"
+                    subtitle="Liberação direta de O₂ para tecidos"
+                    value={(currentReading.extracao_o2_pct || 42.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.extracao_o2_pct || 42.0}
+                    level="success"
+                    badgeText="ALTO"
+                    detail="Facilidade com que o oxigênio se solta do composto para ir direto aos tecidos."
+                    icon={FlaskConical}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('extracao_o2_pct')} color="#02c39a" />}
+                  />
+                </>
+              ) : (
+                <>
+                  {/* CARD 1: OXIGENAÇÃO */}
+                  <MetricCard
+                    title="Saturação de O₂"
+                    subtitle="Transporte de oxigênio do lote"
+                    value={(currentReading.oxigenacao_limpa * 100).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.oxigenacao_limpa * 100}
+                    level={currentReading.oxigenacao_limpa < 0.90 ? 'critical' : 'success'}
+                    detail={currentReading.oxigenacao_limpa < 0.90 ? 'SATURAÇÃO BAIXA' : 'SpO₂ Equivalente Ideal'}
+                    icon={Waves}
+                    sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00e5a3'} />}
+                  />
+
+                  {/* CARD 2: TEMPERATURA */}
+                  <MetricCard
+                    title="Estabilidade Térmica"
+                    subtitle="Sensor DS18B20 em bancada"
+                    value={currentReading.temperatura_c.toFixed(1)}
+                    unit="°C"
+                    percent={Math.min(100, (currentReading.temperatura_c / 42) * 100)}
+                    level={currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'critical' : currentReading.temperatura_c > 37.5 ? 'warning' : 'success'}
+                    detail={currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA CRÍTICA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'Faixa Fisiológica'}
+                    icon={Thermometer}
+                    sparkline={<Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />}
+                  />
+
+                  {/* CARD 3: pH */}
+                  <MetricCard
+                    title="Potencial pH"
+                    subtitle="Equilíbrio ácido-base"
+                    value={currentReading.ph.toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, (currentReading.ph / 8.5) * 100)}
+                    level={currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'warning' : 'success'}
+                    detail={currentReading.ph < 7.35 ? 'Tendência à Acidose' : currentReading.ph > 7.45 ? 'Tendência à Alcalose' : 'pH 7.40 Fisiológico'}
+                    icon={FlaskConical}
+                    sparkline={<Sparkline data={getSparkValues('ph')} color="#38bdf8" />}
+                  />
+
+                  {/* CARD 4: VISCOSIDADE */}
+                  <MetricCard
+                    title="Viscosidade"
+                    subtitle="Resistência ao fluxo"
+                    value={currentReading.viscosidade_cp.toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, (currentReading.viscosidade_cp / 6) * 100)}
+                    level={currentReading.viscosidade_cp > 5.0 ? 'critical' : currentReading.viscosidade_cp < 3.2 ? 'warning' : 'success'}
+                    detail={currentReading.viscosidade_cp > 4.5 ? 'Composto Espesso' : 'Fluidez Adequada'}
+                    icon={Droplets}
+                    sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
+                  />
+                </>
+              )}
             </div>
 
             {/* Status do Hardware Arduino */}
