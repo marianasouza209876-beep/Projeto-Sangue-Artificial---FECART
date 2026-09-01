@@ -1111,79 +1111,79 @@ while True:
                 </>
               ) : isPolitraumatizadosActive ? (
                 <>
-                  {/* CARD B1: REPOSIÇÃO VOLEMICA ULTRA-RÁPIDA */}
+                  {/* CARD B1: SUPORTE MULTIORGÂNICO DE O₂ */}
                   <MetricCard
-                    title="B1 • REPOSIÇÃO VOLEMICA ULTRA-RÁPIDA"
-                    subtitle="Expansão imediata do leito intravascular"
-                    value={(currentReading.reposicao_volemica_ultra_pct || 100.0).toFixed(1)}
+                    title="B1 • SUPORTE MULTIORGÂNICO DE O₂"
+                    subtitle="Perfusão simultânea de órgãos vitais em choque"
+                    value={(currentReading.suporte_multiorganico_o2_pct || 97.5).toFixed(1)}
                     unit="%"
-                    percent={currentReading.reposicao_volemica_ultra_pct || 100.0}
+                    percent={currentReading.suporte_multiorganico_o2_pct || 97.5}
                     level="warning"
-                    badgeText="CRÍTICA"
-                    detail="Reverte o colapso circulatório grave em vítimas de politraumatismos."
+                    badgeText="CRÍTICO"
+                    detail="Garante perfusão simultânea de órgãos vitais em falência iminente."
                     icon={Waves}
                     accentColor="bg-[#ff4d4d]"
-                    sparkline={<Sparkline data={getSparkValues('reposicao_volemica_ultra_pct')} color="#ff4d4d" />}
+                    sparkline={<Sparkline data={getSparkValues('suporte_multiorganico_o2_pct')} color="#ff4d4d" />}
                   />
 
-                  {/* CARD B2: PREVENÇÃO DE HIPOTERMIA SEVERA */}
+                  {/* CARD B2: RESISTÊNCIA À ACIDOSE LÁCTICA */}
                   <MetricCard
-                    title="B2 • PREVENÇÃO DE HIPOTERMIA SEVERA"
-                    subtitle="Estabilidade térmica da solução infundida"
-                    value={(currentReading.prevencao_hipotermia_c || 37.0).toFixed(1)}
-                    unit="°C"
-                    percent={Math.min(100, ((currentReading.prevencao_hipotermia_c || 37.0) / 40) * 100)}
-                    level="success"
-                    badgeText="TÉRMICO"
-                    detail="Evita o congelamento e a tríade da morte em politraumas."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('prevencao_hipotermia_c')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B3: MANUTENÇÃO DA PERFUSÃO CEREBRAL */}
-                  <MetricCard
-                    title="B3 • MANUTENÇÃO DA PERFUSÃO CEREBRAL"
-                    subtitle="Aporte de O₂ ao sistema nervoso central"
-                    value={(currentReading.perfusao_cerebral_pct || 98.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.perfusao_cerebral_pct || 98.0}
-                    level="success"
-                    badgeText="ÓTIMA"
-                    detail="Protege o tecido cerebral contra isquemia e hipóxia pós-traumática."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('perfusao_cerebral_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: CAPACIDADE TAMPÃO ÁCIDO-BASE */}
-                  <MetricCard
-                    title="B4 • CAPACIDADE TAMPÃO ÁCIDO-BASE"
-                    subtitle="Neutralização de acidose metabólica severa"
-                    value={(currentReading.capacidade_tampao_ph || 7.42).toFixed(2)}
+                    title="B2 • RESISTÊNCIA À ACIDOSE LÁCTICA"
+                    subtitle="Capacidade gasosa em pH reduzido"
+                    value={(currentReading.resistencia_acidose_lactica_ph || 7.38).toFixed(2)}
                     unit="pH"
-                    percent={Math.min(100, ((currentReading.capacidade_tampao_ph || 7.42) / 8.5) * 100)}
+                    percent={Math.min(100, ((currentReading.resistencia_acidose_lactica_ph || 7.38) / 8.5) * 100)}
                     level="success"
-                    badgeText="ESTÁVEL"
-                    detail="Restaura o pH fisiológico perante choques hemorrágicos graves."
+                    badgeText="TAMPONADO"
+                    detail="Mantém a capacidade de transporte gasoso mesmo em pH sanguíneo reduzido."
                     icon={FlaskConical}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('capacidade_tampao_ph')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('resistencia_acidose_lactica_ph')} color="#00d8ff" />}
                   />
 
-                  {/* CARD B5: BAIXA VISCOSIDADE DE INFUSÃO */}
+                  {/* CARD B3: ESTABILIDADE EM INFUSÃO PRESSURIZADA */}
                   <MetricCard
-                    title="B5 • BAIXA VISCOSIDADE DE INFUSÃO"
-                    subtitle="Fluidez em acessos venosos periféricos"
-                    value={(currentReading.baixa_viscosidade_cp || 2.1).toFixed(1)}
-                    unit="cP"
-                    percent={Math.min(100, ((currentReading.baixa_viscosidade_cp || 2.1) / 5) * 100)}
+                    title="B3 • ESTABILIDADE EM INFUSÃO PRESSURIZADA"
+                    subtitle="Injeção sob alta velocidade e pressão"
+                    value={(currentReading.estabilidade_infusao_pressurizada_pct || 92.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.estabilidade_infusao_pressurizada_pct || 92.0}
                     level="success"
-                    badgeText="FLUIDO"
-                    detail="Permite infusões sob alta pressão sem resistência de fluxo."
+                    badgeText="RESISTENTE"
+                    detail="Não sofre hemólise sintética quando injetado sob alta velocidade."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_infusao_pressurizada_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B4: CAPACIDADE EXPANSORA DE PLASMA */}
+                  <MetricCard
+                    title="B4 • CAPACIDADE EXPANSORA DE PLASMA"
+                    subtitle="Restabelecimento da pressão arterial"
+                    value={(currentReading.capacidade_expansora_plasma_mmhg || 26.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.capacidade_expansora_plasma_mmhg || 26.0) / 35) * 100)}
+                    level="success"
+                    badgeText="ÓTIMA"
+                    detail="Restabelece a pressão arterial em quadros de choque múltiplo."
                     icon={Droplets}
                     accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('baixa_viscosidade_cp')} color="#a855f7" />}
+                    sparkline={<Sparkline data={getSparkValues('capacidade_expansora_plasma_mmhg')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: INTEGRIDADE EM VARIÂNCIA TÉRMICA */}
+                  <MetricCard
+                    title="B5 • INTEGRIDADE EM VARIÂNCIA TÉRMICA"
+                    subtitle="Operação sob hipotermia por trauma"
+                    value={(currentReading.integridade_variancia_termica_c || 36.5).toFixed(1)}
+                    unit="°C"
+                    percent={Math.min(100, ((currentReading.integridade_variancia_termica_c || 36.5) / 40) * 100)}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Funciona adequadamente em quadros de hipotermia por trauma."
+                    icon={Thermometer}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('integridade_variancia_termica_c')} color="#ffb703" />}
                   />
                 </>
               ) : isDoacaoActive ? (

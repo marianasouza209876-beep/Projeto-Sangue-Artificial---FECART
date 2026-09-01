@@ -145,6 +145,30 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "oxigenacao": f"{quimio:.1f}%",
             "temperatura": "37.0C",
             "vazao": "4.8 L/min"
+    elif "Politraumatizados" in finalidade or "Politrauma" in finalidade:
+        # B1-B5 Atendimento a Pacientes Politraumatizados
+        multiorganico = 97.5 + random.uniform(-0.2, 0.2)
+        acidose = 7.38 + random.uniform(-0.02, 0.02)
+        infusao_pressurizada = 92.0 + random.uniform(-0.3, 0.3)
+        expansora_plasma = 26.0 + random.uniform(-0.2, 0.2)
+        variancia_termica = 36.5 + random.uniform(-0.2, 0.2)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Atendimento a Pacientes Politraumatizados",
+            "b1_suporte_multiorganico": f"{multiorganico:.1f}%",
+            "b2_resistencia_acidose": f"{acidose:.2f} pH",
+            "b3_estabilidade_infusao_pressurizada": f"{infusao_pressurizada:.1f}%",
+            "b4_capacidade_expansora_plasma": f"{expansora_plasma:.1f} mmHg",
+            "b5_integridade_variancia_termica": f"{variancia_termica:.1f}°C",
+            "b1_status": "CRÍTICO",
+            "b2_status": "TAMPONADO",
+            "b3_status": "RESISTENTE",
+            "b4_status": "ÓTIMA",
+            "b5_status": "ESTÁVEL",
+            "oxigenacao": f"{multiorganico:.1f}%",
+            "temperatura": f"{variancia_termica:.1f}C",
+            "vazao": "4.8 L/min"
         }
         # B1-B4 Vítimas de Envenenamento por Monóxido de Carbono (CO)
         deslocamento_co = 88.0 + random.uniform(-0.4, 0.4)
