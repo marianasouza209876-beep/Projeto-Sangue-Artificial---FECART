@@ -422,10 +422,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const isAltitudeActive = activeFinalidade.includes("Altitude") || activeFinalidade.includes("Altitudes") || selectedLot === "SA-025";
   const isMonoxidoActive = activeFinalidade.includes("Monóxido") || activeFinalidade.includes("Monoxido") || activeFinalidade.includes("Envenenamento") || activeFinalidade.includes("CO");
   const isQueimadurasActive = activeFinalidade.includes("Queimaduras") || activeFinalidade.includes("Séptico") || activeFinalidade.includes("Septico") || activeFinalidade.includes("Choque");
+  const isDoacaoActive = activeFinalidade.includes("Doação") || activeFinalidade.includes("Doacao") || activeFinalidade.includes("Compatibilidade") || activeFinalidade.includes("Universal");
 
   // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
-    oxigenacao_limpa: isEmergenciaActive ? 0.98 : isAltitudeActive ? 0.965 : isMonoxidoActive ? 0.88 : 0.95,
+    oxigenacao_limpa: isEmergenciaActive ? 0.98 : isAltitudeActive ? 0.965 : isMonoxidoActive ? 0.88 : isDoacaoActive ? 0.98 : 0.95,
     temperatura_c: isEmergenciaActive ? 22.0 : isTransplanteActive ? 4.0 : isAltitudeActive ? -2.5 : isMonoxidoActive ? 37.0 : 36.5,
     vazao_l_min: isTransplanteActive ? 3.5 : 4.8,
     ph: isTransplanteActive ? 7.38 : isMonoxidoActive ? 7.42 : 7.40,
@@ -448,6 +449,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     integridade_endotelial_pct: 97.8,
     ligacao_citocinas_pct: 78.0,
     sodio_serico_meql: 140.0,
+    expressao_antigenica_pct: 0.0,
+    reatividade_crossmatch_pct: 0.0,
+    pureza_molecular_pct: 99.9,
+    esterilidade_biologica_pct: 100.0,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
     alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
@@ -1008,6 +1013,68 @@ while True:
                     icon={Thermometer}
                     accentColor="bg-[#3a86ef]"
                     sparkline={<Sparkline data={getSparkValues('sodio_serico_meql')} color="#3a86ef" />}
+                  />
+                </>
+              ) : isDoacaoActive ? (
+                <>
+                  {/* CARD B1: EXPRESSÃO ANTIGÊNICA (ABO/Rh) */}
+                  <MetricCard
+                    title="B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh)"
+                    subtitle="Lote totalmente universal sem reação"
+                    value={(currentReading.expressao_antigenica_pct !== undefined ? currentReading.expressao_antigenica_pct : 0.0).toFixed(1)}
+                    unit="%"
+                    percent={100}
+                    level="success"
+                    badgeText="ISENTO"
+                    detail="Lote totalmente universal, sem risco de reação transfusional."
+                    icon={Waves}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('expressao_antigenica_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B2: REATIVIDADE EM CROSSMATCH (PROVA CRUZADA) */}
+                  <MetricCard
+                    title="B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA)"
+                    subtitle="Dispensa teste de cruzamento prévio"
+                    value={(currentReading.reatividade_crossmatch_pct !== undefined ? currentReading.reatividade_crossmatch_pct : 0.0).toFixed(1)}
+                    unit="%"
+                    percent={100}
+                    level="success"
+                    badgeText="NULA"
+                    detail="Dispensa a necessidade de teste de cruzamento prévio."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B3: PUREZA MOLECULAR */}
+                  <MetricCard
+                    title="B3 • PUREZA MOLECULAR"
+                    subtitle="Ausência de impurezas e membranas"
+                    value={(currentReading.pureza_molecular_pct || 99.9).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.pureza_molecular_pct || 99.9}
+                    level="success"
+                    badgeText="EXCELENTE"
+                    detail="Garante a ausência de fragmentos de membranas e impurezas."
+                    icon={FlaskConical}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('pureza_molecular_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: ESTERILIDADE BIOLÓGICA */}
+                  <MetricCard
+                    title="B4 • ESTERILIDADE BIOLÓGICA"
+                    subtitle="Garantia contra vírus ou bactérias"
+                    value={(currentReading.esterilidade_biologica_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.esterilidade_biologica_pct || 100.0}
+                    level="success"
+                    badgeText="LIVRE"
+                    detail="Garantia absoluta contra a transmissão de vírus ou bactérias."
+                    icon={Droplets}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('esterilidade_biologica_pct')} color="#39ff14" />}
                   />
                 </>
               ) : (
