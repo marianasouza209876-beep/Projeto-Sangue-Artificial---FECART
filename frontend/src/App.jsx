@@ -1034,64 +1034,79 @@ while True:
                 </>
               ) : isOncologicoActive ? (
                 <>
-                  {/* CARD B1: RESISTÊNCIA A EROSÃO QUIMIOTERÁPICA */}
+                  {/* CARD B1: COMPATIBILIDADE COM QUIMIOTERÁPICOS */}
                   <MetricCard
-                    title="B1 • RESISTÊNCIA A EROSÃO QUIMIOTERÁPICA"
-                    subtitle="Estabilidade diante de agentes citotóxicos"
-                    value={(currentReading.erosao_quimioterapica_pct || 99.9).toFixed(1)}
+                    title="B1 • COMPATIBILIDADE COM QUIMIOTERÁPICOS"
+                    subtitle="Estabilidade diante de compostos citostáticos"
+                    value={(currentReading.compatibilidade_quimioterapicos_pct || 99.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.erosao_quimioterapica_pct || 99.9}
+                    percent={currentReading.compatibilidade_quimioterapicos_pct || 99.0}
                     level="success"
-                    badgeText="INVIOLÁVEL"
-                    detail="Não sofre degradação ou hemólise quando em contato com quimioterápicos."
+                    badgeText="INERTE"
+                    detail="Não reage nem degrada compostos citostáticos na corrente sanguínea."
                     icon={ShieldCheck}
                     accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('erosao_quimioterapica_pct')} color="#a855f7" />}
+                    sparkline={<Sparkline data={getSparkValues('compatibilidade_quimioterapicos_pct')} color="#a855f7" />}
                   />
 
-                  {/* CARD B2: BIOPATIBILIDADE TECIDUAL */}
+                  {/* CARD B2: PROTEÇÃO CONTRA ESTRESSE OXIDATIVO */}
                   <MetricCard
-                    title="B2 • BIOPATIBILIDADE TECIDUAL"
-                    subtitle="Ausência de toxicidade renal ou hepática"
-                    value={(currentReading.biocompatibilidade_tecidual_pct || 100.0).toFixed(1)}
+                    title="B2 • PROTEÇÃO CONTRA ESTRESSE OXIDATIVO"
+                    subtitle="Neutralização de radicais livres de radioterapia"
+                    value={(currentReading.protecao_estresse_oxidativo_pct || 94.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.biocompatibilidade_tecidual_pct || 100.0}
+                    percent={currentReading.protecao_estresse_oxidativo_pct || 94.0}
                     level="success"
-                    badgeText="NÃO TÓXICO"
-                    detail="Não sobrecarrega o sistema de filtração hepático ou renal do paciente oncológico."
+                    badgeText="ELEVADA"
+                    detail="Neutraliza radicais livres gerados por tratamentos radioterápicos."
                     icon={FlaskConical}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('biocompatibilidade_tecidual_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('protecao_estresse_oxidativo_pct')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B3: ESTABILIDADE pH EM AMBIENTE TUMORAL */}
+                  {/* CARD B3: PERMEABILIDADE EM MICROCIRCULAÇÃO */}
                   <MetricCard
-                    title="B3 • ESTABILIDADE pH EM AMBIENTE TUMORAL"
-                    subtitle="Manutenção de transporte em meio ácido"
-                    value={(currentReading.ph_tumoral || 7.35).toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, ((currentReading.ph_tumoral || 7.35) / 8.5) * 100)}
+                    title="B3 • PERMEABILIDADE EM MICROCIRCULAÇÃO"
+                    subtitle="Penetração em capilares comprimidos por tumores"
+                    value={(currentReading.permeabilidade_microcirculacao_cp || 2.0).toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, ((currentReading.permeabilidade_microcirculacao_cp || 2.0) / 5) * 100)}
                     level="success"
-                    badgeText="TOLERANTE"
-                    detail="Preserva a afinidade de ligação com o oxigênio mesmo no microambiente ácido ao redor do tumor."
-                    icon={Thermometer}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('ph_tumoral')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B4: RETENÇÃO DE OXIGENAÇÃO CELULAR */}
-                  <MetricCard
-                    title="B4 • RETENÇÃO DE OXIGENAÇÃO CELULAR"
-                    subtitle="Aporte contínuo de gases aos tecidos saudáveis"
-                    value={(currentReading.retencao_o2_celular_pct || 96.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.retencao_o2_celular_pct || 96.0}
-                    level="success"
-                    badgeText="CONSTANTE"
-                    detail="Protege a oxigenação de tecidos sadios reduzindo a fadiga decorrente do tratamento."
+                    badgeText="LIVRE"
+                    detail="Penetra redes capilares comprimidas por massas tumorais."
                     icon={Waves}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('permeabilidade_microcirculacao_cp')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B4: ESTABILIDADE EM PACIENTES NEUTROPÉNICOS */}
+                  <MetricCard
+                    title="B4 • ESTABILIDADE EM PACIENTES NEUTROPÉNICOS"
+                    subtitle="Segurança para imunodeprimidos"
+                    value={(currentReading.estabilidade_neutropenicos_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.estabilidade_neutropenicos_pct || 100.0}
+                    level="success"
+                    badgeText="SEGURO"
+                    detail="Formulação livre de contaminantes que possam ameaçar imunodeprimidos."
+                    icon={Droplets}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('retencao_o2_celular_pct')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_neutropenicos_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B5: ÍNDICE DE PURIFICAÇÃO MOLECULAR */}
+                  <MetricCard
+                    title="B5 • ÍNDICE DE PURIFICAÇÃO MOLECULAR"
+                    subtitle="Proteção sobre fígado e rins fragilizados"
+                    value={(currentReading.purificacao_molecular_pct || 99.5).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.purificacao_molecular_pct || 99.5}
+                    level="success"
+                    badgeText="PUREZA MÁXIMA"
+                    detail="Minimiza a carga metabólica sobre fígado e rins fragilizados."
+                    icon={Thermometer}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('purificacao_molecular_pct')} color="#39ff14" />}
                   />
                 </>
               ) : isPolitraumatizadosActive ? (

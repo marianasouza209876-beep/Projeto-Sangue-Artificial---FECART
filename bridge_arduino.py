@@ -121,6 +121,30 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "oxigenacao": "96.0%",
             "temperatura": "36.5C",
             "vazao": "4.8 L/min"
+    elif "Oncológico" in finalidade or "Oncologico" in finalidade:
+        # B1-B5 Tratamento Oncológico
+        quimio = 99.0 + random.uniform(-0.2, 0.2)
+        estresse_ox = 94.0 + random.uniform(-0.2, 0.2)
+        microcirculacao = 2.0 + random.uniform(-0.1, 0.1)
+        neutropenicos = 100.0
+        purificacao = 99.5 + random.uniform(-0.1, 0.1)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Tratamento Oncológico",
+            "b1_compatibilidade_quimio": f"{quimio:.1f}%",
+            "b2_protecao_estresse_ox": f"{estresse_ox:.1f}%",
+            "b3_permeabilidade_microcirculacao": f"{microcirculacao:.1f} cP",
+            "b4_estabilidade_neutropenicos": f"{neutropenicos:.1f}%",
+            "b5_purificacao_molecular": f"{purificacao:.1f}%",
+            "b1_status": "INERTE",
+            "b2_status": "ELEVADA",
+            "b3_status": "LIVRE",
+            "b4_status": "SEGURO",
+            "b5_status": "PUREZA MÁXIMA",
+            "oxigenacao": f"{quimio:.1f}%",
+            "temperatura": "37.0C",
+            "vazao": "4.8 L/min"
         }
         # B1-B4 Vítimas de Envenenamento por Monóxido de Carbono (CO)
         deslocamento_co = 88.0 + random.uniform(-0.4, 0.4)
