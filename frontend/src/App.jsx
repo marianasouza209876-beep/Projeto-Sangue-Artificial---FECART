@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useArduinoData } from '@/hooks/useArduinoData';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
 
@@ -148,6 +149,7 @@ export default function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
   const [packetCount, setPacketCount] = useState(1420);
+  const [lastPacketTime, setLastPacketTime] = useState(null);
   const messagesEndRef = useRef(null);
 
   const [messages, setMessages] = useState([
@@ -430,7 +432,8 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const isColetaReservaActive = activeFinalidade.includes("Coleta") || activeFinalidade.includes("Reserva");
   const isTipagemCompatibilidadeActive = activeFinalidade.includes("Tipagem") || activeFinalidade.includes("Compatibilidade");
 
-  // Valores atuais de leitura
+  // Hook global de dados do Arduino (B1, B2, B3, B4, B5 e conectividade serial)
+  const arduinoData = useArduinoData(currentReading, history, lastPacketTime);
   const currentReading = history.length > 0 ? history[history.length - 1] : {
     oxigenacao_limpa: (isEmergenciaActive || isTraumaActive || isCirurgiaCardiacaActive || isPolitraumatizadosActive) ? 0.98 : 0.95,
     temperatura_c: isPolitraumatizadosActive ? 37.0 : 36.5,
@@ -1433,10 +1436,17 @@ while True:
                     CAMADA 4: TRADUTOR CIENTÍFICO CONVERSACIONAL
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  ONLINE
-                </div>
+                {arduinoData.isConnected ? (
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    ONLINE
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                    [AGUARDANDO LEITURA SERIAL]
+                  </div>
+                )}
               </div>
 
               {/* Mensagens do Chat */}

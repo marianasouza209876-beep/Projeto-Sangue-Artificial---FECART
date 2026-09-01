@@ -15,6 +15,7 @@ export const ChatBox = ({
   ],
   onSendMessage,
   isTyping = false,
+  isConnected = false,
   className = '',
 }) => {
   const [messages, setMessages] = useState(initialMessages);
@@ -63,13 +64,19 @@ export const ChatBox = ({
             <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
               🩸
             </div>
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+            <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'} border-2 border-slate-900 rounded-full`}></span>
           </div>
           <div>
             <h3 className="font-semibold text-sm leading-none">{title}</h3>
             <span className="text-xs text-slate-400 mt-1 block">{subtitle}</span>
           </div>
         </div>
+
+        {!isConnected && (
+          <div className="text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 rounded font-mono font-bold">
+            [AGUARDANDO LEITURA SERIAL]
+          </div>
+        )}
       </div>
 
       {/* Área de Mensagens com Rolagem Automática (overflow-y-auto) */}
