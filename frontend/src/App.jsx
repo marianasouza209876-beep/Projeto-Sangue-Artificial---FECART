@@ -419,11 +419,12 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
   const isEmergenciaActive = activeFinalidade.includes("Emergência") || activeFinalidade.includes("Emergencia") || activeFinalidade.includes("Pre-Hospitalar") || activeFinalidade.includes("Pré-Hospitalar") || selectedLot === "SA-023";
   const isTransplanteActive = activeFinalidade.includes("Transplante") || activeFinalidade.includes("Órgãos") || activeFinalidade.includes("Orgaos") || selectedLot === "SA-024";
+  const isAltitudeActive = activeFinalidade.includes("Altitude") || activeFinalidade.includes("Altitudes") || selectedLot === "SA-025";
 
   // Valores atuais de leitura
   const currentReading = history.length > 0 ? history[history.length - 1] : {
-    oxigenacao_limpa: isEmergenciaActive ? 0.98 : 0.95,
-    temperatura_c: isEmergenciaActive ? 22.0 : isTransplanteActive ? 4.0 : 36.5,
+    oxigenacao_limpa: isEmergenciaActive ? 0.98 : isAltitudeActive ? 0.965 : 0.95,
+    temperatura_c: isEmergenciaActive ? 22.0 : isTransplanteActive ? 4.0 : isAltitudeActive ? -2.5 : 36.5,
     vazao_l_min: isTransplanteActive ? 3.5 : 4.8,
     ph: isTransplanteActive ? 7.38 : 7.40,
     viscosidade_cp: isEmergenciaActive ? 2.3 : 3.8,
@@ -433,6 +434,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     antioxidante_pct: 94.5,
     pco2_mmhg: 40.0,
     glicose_mgdl: 100.0,
+    p50_mmhg: 34.0,
+    ponto_congelamento_c: -2.5,
+    saturacao_o2_pct: 96.5,
+    po2_mmhg: 92.0,
     hematocrito_pct: 40.0,
     status: "ESTÁVEL",
     alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
@@ -792,6 +797,68 @@ while True:
                     icon={Droplets}
                     accentColor="bg-[#ffb703]"
                     sparkline={<Sparkline data={getSparkValues('glicose_mgdl')} color="#ffb703" />}
+                  />
+                </>
+              ) : isAltitudeActive ? (
+                <>
+                  {/* CARD B1: PRESSÃO PARCIAL P50 (AFINIDADE O₂) */}
+                  <MetricCard
+                    title="B1 • PRESSÃO PARCIAL P50 (AFINIDADE O₂)"
+                    subtitle="Liberação de O₂ sob baixa pressão atmosférica"
+                    value={(currentReading.p50_mmhg || 34.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.p50_mmhg || 34.0) / 45) * 100)}
+                    level="success"
+                    badgeText="ADAPTADO"
+                    detail="Garante liberação de oxigênio mesmo sob baixa pressão atmosférica."
+                    icon={Waves}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('p50_mmhg')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B2: PONTO DE CONGELAMENTO */}
+                  <MetricCard
+                    title="B2 • PONTO DE CONGELAMENTO"
+                    subtitle="Resistência ao frio extremo"
+                    value={(currentReading.ponto_congelamento_c || -2.5).toFixed(1)}
+                    unit="°C"
+                    percent={Math.min(100, (Math.abs(currentReading.ponto_congelamento_c || -2.5) / 5) * 100)}
+                    level="success"
+                    badgeText="RESISTENTE"
+                    detail="Evita cristalização e perda de fluidez em ambientes de frio extremo."
+                    icon={Thermometer}
+                    accentColor="bg-[#7c3aed]"
+                    sparkline={<Sparkline data={getSparkValues('ponto_congelamento_c')} color="#7c3aed" />}
+                  />
+
+                  {/* CARD B3: SATURAÇÃO DE O₂ (OXIGENAÇÃO) */}
+                  <MetricCard
+                    title="B3 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)"
+                    subtitle="Compensação no ar rarefeito"
+                    value={(currentReading.saturacao_o2_pct || 96.5).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.saturacao_o2_pct || 96.5}
+                    level="success"
+                    badgeText="ÓTIMO"
+                    detail="Compensa a menor oferta de oxigênio no ar rarefeito."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('saturacao_o2_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B4: PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂) */}
+                  <MetricCard
+                    title="B4 • PRESSÃO PARCIAL DE OXI-HEMOGLOBINA (pO₂)"
+                    subtitle="Impulsão para difusão nos tecidos"
+                    value={(currentReading.po2_mmhg || 92.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.po2_mmhg || 92.0) / 100) * 100)}
+                    level="success"
+                    badgeText="ELEVADO"
+                    detail="Força de impulsão para difundir O₂ nos tecidos em altitude."
+                    icon={Droplets}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('po2_mmhg')} color="#02c39a" />}
                   />
                 </>
               ) : (
