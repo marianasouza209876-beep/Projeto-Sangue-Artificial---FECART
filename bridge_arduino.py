@@ -97,7 +97,31 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "temperatura": f"{viscosidade_hipotermia:.1f}C",
             "vazao": "4.8 L/min"
         }
-    elif "Monóxido" in finalidade or "Envenenamento" in finalidade or "CO" in finalidade:
+    elif "Anemia" in finalidade or "Anemias" in finalidade:
+        # B1-B5 Tratamento de Anemias Graves
+        p50 = 28.0 + random.uniform(-0.2, 0.2)
+        imuno = 100.0
+        estabilidade = 96.0 + random.uniform(-0.2, 0.2)
+        infusao_lenta = 36.0 + random.uniform(-0.2, 0.2)
+        retencao_vascular = 30.0 + random.uniform(-0.2, 0.2)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Tratamento de Anemias Graves",
+            "b1_p50": f"{p50:.1f} mmHg",
+            "b2_ausencia_imunogenica": f"{imuno:.1f}%",
+            "b3_estabilidade_plasmatica": f"{estabilidade:.1f}%",
+            "b4_tolerancia_infusao_lenta": f"{infusao_lenta:.1f} h",
+            "b5_retencao_vascular": f"{retencao_vascular:.1f} h",
+            "b1_status": "OTIMIZADA",
+            "b2_status": "ISENTO",
+            "b3_status": "ALTA",
+            "b4_status": "ADAPTADO",
+            "b5_status": "ESTÁVEL",
+            "oxigenacao": "96.0%",
+            "temperatura": "36.5C",
+            "vazao": "4.8 L/min"
+        }
         # B1-B4 Vítimas de Envenenamento por Monóxido de Carbono (CO)
         deslocamento_co = 88.0 + random.uniform(-0.4, 0.4)
         effluence_depurantes = 91.2 + random.uniform(-0.3, 0.3)

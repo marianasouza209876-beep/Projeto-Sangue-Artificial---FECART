@@ -957,64 +957,79 @@ while True:
                 </>
               ) : isAnemiaActive ? (
                 <>
-                  {/* CARD B1: MEIA-VIDA RESTRITA EM CIRCULAÇÃO */}
+                  {/* CARD B1: EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50) */}
                   <MetricCard
-                    title="B1 • MEIA-VIDA EM CIRCULAÇÃO"
-                    subtitle="Duração estendida no leito vascular"
-                    value={(currentReading.meia_vida_h || 36.0).toFixed(1)}
-                    unit="h"
-                    percent={Math.min(100, ((currentReading.meia_vida_h || 36.0) / 48) * 100)}
+                    title="B1 • EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50)"
+                    subtitle="Entrega de O₂ em baixas concentrações"
+                    value={(currentReading.eficiencia_p50_mmhg || 28.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.eficiencia_p50_mmhg || 28.0) / 40) * 100)}
                     level="success"
-                    badgeText="PROLONGADA"
-                    detail="Assegura aporte contínuo de O₂ reduzindo a frequência de novas infusões."
-                    icon={Clock}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('meia_vida_h')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B2: EFICIÊNCIA DE LIBERAÇÃO DE O₂ */}
-                  <MetricCard
-                    title="B2 • EFICIÊNCIA DE LIBERAÇÃO DE O₂"
-                    subtitle="Transferência otimizada para tecidos anêmicos"
-                    value={(currentReading.liberacao_o2_pct || 45.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.liberacao_o2_pct || 45.0}
-                    level="success"
-                    badgeText="ALTA"
-                    detail="Cede oxigênio com facilidade nos tecidos com hipóxia crônica."
+                    badgeText="OTIMIZADA"
+                    detail="Entrega oxigênio aos tecidos mesmo em baixas concentrações circulantes."
                     icon={Waves}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('liberacao_o2_pct')} color="#02c39a" />}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('eficiencia_p50_mmhg')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B3: AUSÊNCIA DE RESPOSTA IMUNOLÓGICA */}
+                  {/* CARD B2: AUSÊNCIA DE RESPOSTA IMUNOGÊNICA */}
                   <MetricCard
-                    title="B3 • AUSÊNCIA DE RESPOSTA IMUNOLÓGICA"
-                    subtitle="Isenção de anticorpos anti-hemácias"
-                    value={(currentReading.resposta_imunologica_pct || 0.0).toFixed(1)}
+                    title="B2 • AUSÊNCIA DE RESPOSTA IMUNOGÊNICA"
+                    subtitle="Isenção de reações em transfusões crônicas"
+                    value={(currentReading.ausencia_imunogenica_pct || 100.0).toFixed(1)}
                     unit="%"
-                    percent={100}
+                    percent={currentReading.ausencia_imunogenica_pct || 100.0}
                     level="success"
                     badgeText="ISENTO"
-                    detail="Evita aloimunização em pacientes submetidos a esquemas de transfusão crônica."
+                    detail="Reduz risco de reações alérgicas ou rejeição em transfusões crônicas."
                     icon={ShieldCheck}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('resposta_imunologica_pct')} color="#00d8ff" />}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('ausencia_imunogenica_pct')} color="#02c39a" />}
                   />
 
-                  {/* CARD B4: COMPATIBILIDADE SÉRICA UNIVERSAL */}
+                  {/* CARD B3: ESTABILIDADE PLASMÁTICA */}
                   <MetricCard
-                    title="B4 • COMPATIBILIDADE SÉRICA UNIVERSAL"
-                    subtitle="Aceitação sem necessidade de prova cruzada"
-                    value={(currentReading.compatibilidade_serica_pct || 100.0).toFixed(1)}
+                    title="B3 • ESTABILIDADE PLASMÁTICA"
+                    subtitle="Prevenção de flutuações de hemoglobina"
+                    value={(currentReading.estabilidade_plasmatica_pct || 96.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.compatibilidade_serica_pct || 100.0}
+                    percent={currentReading.estabilidade_plasmatica_pct || 96.0}
                     level="success"
-                    badgeText="TOTAL"
-                    detail="Totalmente seguro para doentes com múltiplos anticorpos raros."
+                    badgeText="ALTA"
+                    detail="Evita flutuações na concentração de hemoglobina sintética."
+                    icon={FlaskConical}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_plasmatica_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: TOLERÂNCIA A INFUSÃO LENTA */}
+                  <MetricCard
+                    title="B4 • TOLERÂNCIA A INFUSÃO LENTA"
+                    subtitle="Administração gradual em pacientes debilitados"
+                    value={(currentReading.tolerancia_infusao_lenta_h || 36.0).toFixed(1)}
+                    unit="h"
+                    percent={Math.min(100, ((currentReading.tolerancia_infusao_lenta_h || 36.0) / 48) * 100)}
+                    level="success"
+                    badgeText="ADAPTADO"
+                    detail="Ideal para esquemas de administração gradual em pacientes debilitados."
+                    icon={Clock}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('tolerancia_infusao_lenta_h')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: RETENÇÃO VASCULAR */}
+                  <MetricCard
+                    title="B5 • RETENÇÃO VASCULAR"
+                    subtitle="Duração estendida no leito vascular"
+                    value={(currentReading.retencao_vascular_h || 30.0).toFixed(1)}
+                    unit="h"
+                    percent={Math.min(100, ((currentReading.retencao_vascular_h || 30.0) / 48) * 100)}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Impede filtração glomerular precoce, prolongando o benefício terapêutico."
                     icon={Droplets}
-                    accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('compatibilidade_serica_pct')} color="#39ff14" />}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('retencao_vascular_h')} color="#ffb703" />}
                   />
                 </>
               ) : isOncologicoActive ? (
