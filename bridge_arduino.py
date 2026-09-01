@@ -47,42 +47,54 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "b4_meia_vida": f"{meia_vida:.1f} h",
             "b5_extracao_o2": f"{extracao:.1f}%"
         }
-    elif "Transplante" in finalidade or "Órgãos" in finalidade or lote_id == "SA-024":
-        # B1-B5 Preservação de Órgãos para Transplante
-        p_osmotica = 25.0 + random.uniform(-0.2, 0.2)
-        antioxidante = 94.5 + random.uniform(-0.3, 0.3)
-        ph = 7.38 + random.uniform(-0.02, 0.02)
-        pco2 = 40.0 + random.uniform(-0.4, 0.4)
-        glicose = 100.0 + random.uniform(-0.5, 0.5)
+    elif "Trauma" in finalidade or "Hemorragia" in finalidade:
+        # B1-B5 Trauma e Hemorragia Grave
+        carga_o2 = 99.0 + random.uniform(-0.2, 0.2)
+        pressao_oncotica = 25.0 + random.uniform(-0.2, 0.2)
+        permutabilidade = 95.0 + random.uniform(-0.3, 0.3)
+        resistencia_compressao = 90.0 + random.uniform(-0.3, 0.3)
+        tamponamento_ph = 7.40 + random.uniform(-0.02, 0.02)
         
         return {
             "lote_id": lote_id,
-            "finalidade": "Preservação Avançada de Órgãos para Transplante",
-            "b1_pressao_osmotica": f"{p_osmotica:.1f} mmHg",
-            "b2_antioxidante": f"{antioxidante:.1f}%",
-            "b3_ph": f"{ph:.2f} pH",
-            "b4_pco2": f"{pco2:.1f} mmHg",
-            "b5_glicose": f"{glicose:.1f} mg/dL",
-            "oxigenacao": "98.0%",
-            "temperatura": "4.0C",
-            "vazao": "3.5 L/min"
+            "finalidade": "Trauma e Hemorragia Grave",
+            "b1_carga_o2": f"{carga_o2:.1f}%",
+            "b2_pressao_oncotica": f"{pressao_oncotica:.1f} mmHg",
+            "b3_permutabilidade": f"{permutabilidade:.1f}%",
+            "b4_resistencia_compressao": f"{resistencia_compressao:.1f}%",
+            "b5_tamponamento_ph": f"{tamponamento_ph:.2f} pH",
+            "b1_status": "MÁXIMA",
+            "b2_status": "FISIOLÓGICA",
+            "b3_status": "EFICIENTE",
+            "b4_status": "ALTA",
+            "b5_status": "NEUTRO",
+            "oxigenacao": f"{carga_o2:.1f}%",
+            "temperatura": "36.5C",
+            "vazao": "4.8 L/min"
         }
-    elif "Altitude" in finalidade or "Altitudes" in finalidade or lote_id == "SA-025":
-        # B1-B4 Resgate e Cirurgias em Altas Altitudes
-        p50 = 34.0 + random.uniform(-0.3, 0.3)
-        ponto_congelamento = -2.5 + random.uniform(-0.1, 0.1)
-        saturacao_o2 = 96.5 + random.uniform(-0.3, 0.3)
-        po2 = 92.0 + random.uniform(-0.4, 0.4)
+    elif "Cirurgia" in finalidade or "Cardíaca" in finalidade or "Cardiaca" in finalidade or "Cardiovascular" in finalidade:
+        # B1-B5 Cirurgia Cardíaca e Cardiovascular
+        compatibilidade_cec = 98.5 + random.uniform(-0.2, 0.2)
+        tensao_cisalhamento = 1.8 + random.uniform(-0.1, 0.1)
+        meia_vida_extended = 48.0 + random.uniform(-0.2, 0.2)
+        tamponamento_lactato = 7.42 + random.uniform(-0.02, 0.02)
+        viscosidade_hipotermia = 3.0 + random.uniform(-0.1, 0.1)
         
         return {
             "lote_id": lote_id,
-            "finalidade": "Resgate e Cirurgias em Altas Altitudes",
-            "b1_p50": f"{p50:.1f} mmHg",
-            "b2_ponto_congelamento": f"{ponto_congelamento:.1f}°C",
-            "b3_saturacao_o2": f"{saturacao_o2:.1f}%",
-            "b4_po2": f"{po2:.1f} mmHg",
-            "oxigenacao": f"{saturacao_o2:.1f}%",
-            "temperatura": f"{ponto_congelamento:.1f}C",
+            "finalidade": "Cirurgia Cardíaca e Cardiovascular",
+            "b1_compatibilidade_cec": f"{compatibilidade_cec:.1f}%",
+            "b2_tensao_cisalhamento": f"{tensao_cisalhamento:.1f} cP",
+            "b3_meia_vida_extended": f"{meia_vida_extended:.1f} h",
+            "b4_tamponamento_lactato": f"{tamponamento_lactato:.2f} pH",
+            "b5_viscosidade_hipotermia": f"{viscosidade_hipotermia:.1f} cP",
+            "b1_status": "EXCELENTE",
+            "b2_status": "TOLERANTE",
+            "b3_status": "PROLONGADO",
+            "b4_status": "ATIVO",
+            "b5_status": "CONTROLADA",
+            "oxigenacao": f"{compatibilidade_cec:.1f}%",
+            "temperatura": f"{viscosidade_hipotermia:.1f}C",
             "vazao": "4.8 L/min"
         }
     elif "Monóxido" in finalidade or "Envenenamento" in finalidade or "CO" in finalidade:
