@@ -1342,64 +1342,79 @@ while True:
                 </>
               ) : isTipagemCompatibilidadeActive ? (
                 <>
-                  {/* CARD B1: FATOR DE COMPATIBILIDADE UNIVERSAL */}
+                  {/* CARD B1: REATIVIDADE EM PROVA CRUZADA (CROSSMATCH) */}
                   <MetricCard
-                    title="B1 • FATOR DE COMPATIBILIDADE UNIVERSAL"
-                    subtitle="Isenção total de rejeição transfusional"
-                    value={(currentReading.fator_compatibilidade_pct || 100.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.fator_compatibilidade_pct || 100.0}
-                    level="success"
-                    badgeText="UNIVERSAL"
-                    detail="Compatível com qualquer tipo sanguíneo humano (A, B, AB, O, Rh+ ou Rh-)."
-                    icon={Waves}
-                    accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('fator_compatibilidade_pct')} color="#39ff14" />}
-                  />
-
-                  {/* CARD B2: AUSÊNCIA DE ANTÍGENOS ABO/Rh */}
-                  <MetricCard
-                    title="B2 • AUSÊNCIA DE ANTÍGENOS ABO/Rh"
-                    subtitle="Inexistência de marcadores de membrana"
-                    value={(currentReading.ausencia_antigenos_pct !== undefined ? currentReading.ausencia_antigenos_pct : 0.0).toFixed(1)}
+                    title="B1 • REATIVIDADE EM PROVA CRUZADA (CROSSMATCH)"
+                    subtitle="Zero aglutinação com soro ou plasma de receptores"
+                    value={(currentReading.reatividade_crossmatch_pct !== undefined ? currentReading.reatividade_crossmatch_pct : 0.0).toFixed(1)}
                     unit="%"
                     percent={100}
                     level="success"
-                    badgeText="NEGATIVO"
-                    detail="Ausência completa de aglutinogênios A, B e Fator Rh."
+                    badgeText="NULA"
+                    detail="Zero aglutinação em contato com soro ou plasma de qualquer receptor."
                     icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('ausencia_antigenos_pct')} color="#00ff9d" />}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#39ff14" />}
                   />
 
-                  {/* CARD B3: REAÇÃO HETERÓLOGA */}
+                  {/* CARD B2: NEUTRALIDADE DE ANTICORPOS IRREGULARES */}
                   <MetricCard
-                    title="B3 • REAÇÃO HETERÓLOGA"
-                    subtitle="Isenção de reatividade plasmática"
-                    value={(currentReading.reacao_heterologa_pct !== undefined ? currentReading.reacao_heterologa_pct : 0.0).toFixed(1)}
+                    title="B2 • NEUTRALIDADE DE ANTICORPOS IRREGULARES"
+                    subtitle="Segurança em receptores multitransfundidos"
+                    value={(currentReading.neutralidade_anticorpos_pct || 100.0).toFixed(1)}
                     unit="%"
-                    percent={100}
+                    percent={currentReading.neutralidade_anticorpos_pct || 100.0}
                     level="success"
-                    badgeText="INEXISTENTE"
-                    detail="Não reage com anticorpos anti-A ou anti-B do plasma receptor."
+                    badgeText="NEUTRO"
+                    detail="Não induz resposta imune em receptores multitransfundidos ou sensibilizados."
+                    icon={Waves}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('neutralidade_anticorpos_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B3: FIDELIDADE DE PADRÃO MOLECULAR */}
+                  <MetricCard
+                    title="B3 • FIDELIDADE DE PADRÃO MOLECULAR"
+                    subtitle="Resposta uniforme em testes automatizados"
+                    value={(currentReading.fidelidade_padrao_molecular_pct || 99.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.fidelidade_padrao_molecular_pct || 99.0}
+                    level="success"
+                    badgeText="PADRONIZADO"
+                    detail="Resposta uniforme e previsível em testes laboratoriais automatizados."
                     icon={FlaskConical}
                     accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('reacao_heterologa_pct')} color="#02c39a" />}
+                    sparkline={<Sparkline data={getSparkValues('fidelidade_padrao_molecular_pct')} color="#02c39a" />}
                   />
 
-                  {/* CARD B4: SEGURANÇA EM RECEPTORES SENSIBILIZADOS */}
+                  {/* CARD B4: ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO */}
                   <MetricCard
-                    title="B4 • SEGURANÇA EM RECEPTORES SENSIBILIZADOS"
-                    subtitle="Segurança em pacientes com múltiplos anticorpos"
-                    value={(currentReading.seguranca_sensibilizados_pct || 100.0).toFixed(1)}
+                    title="B4 • ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO"
+                    subtitle="Comportamento inerte em anticorpos raros"
+                    value={(currentReading.estabilidade_painel_pct || 98.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.seguranca_sensibilizados_pct || 100.0}
+                    percent={currentReading.estabilidade_painel_pct || 98.0}
                     level="success"
-                    badgeText="SEGURO"
-                    detail="Pode ser infundido com segurança total em pacientes poli-transfundidos."
+                    badgeText="ALTÍSSIMA"
+                    detail="Mantém o comportamento inerte mesmo na presença de anticorpos raros."
                     icon={Droplets}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('seguranca_sensibilizados_pct')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_painel_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B5: LIMPIDEZ SPECTROFOTOMÉTRICA */}
+                  <MetricCard
+                    title="B5 • LIMPIDEZ SPECTROFOTOMÉTRICA"
+                    subtitle="Leitura óptica precisa sem interferências"
+                    value={(currentReading.limpidez_spectrofotometrica_pct || 99.9).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.limpidez_spectrofotometrica_pct || 99.9}
+                    level="success"
+                    badgeText="TRANSPARENTE"
+                    detail="Permite leitura óptica precisa sem interferir nos reagentes de tipagem."
+                    icon={Thermometer}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('limpidez_spectrofotometrica_pct')} color="#a855f7" />}
                   />
                 </>
               ) : (

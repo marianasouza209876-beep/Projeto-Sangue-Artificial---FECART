@@ -217,6 +217,30 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "oxigenacao": f"{reatividade_pos:.1f}%",
             "temperatura": f"{cristalizacao:.1f}C",
             "vazao": "4.8 L/min"
+    elif "Tipagem" in finalidade or "Compatibilidade" in finalidade:
+        # B1-B5 Tipagem Sanguínea e Testes de Compatibilidade
+        crossmatch = 0.0
+        neutralidade = 100.0
+        fidelidade = 99.0 + random.uniform(-0.1, 0.1)
+        estabilidade_painel = 98.0 + random.uniform(-0.2, 0.2)
+        limpidez = 99.9 + random.uniform(-0.05, 0.05)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Tipagem Sanguínea e Testes de Compatibilidade",
+            "b1_reatividade_crossmatch": f"{crossmatch:.1f}%",
+            "b2_neutralidade_anticorpos": f"{neutralidade:.1f}%",
+            "b3_fidelidade_padrao_molecular": f"{fidelidade:.1f}%",
+            "b4_estabilidade_painel": f"{estabilidade_painel:.1f}%",
+            "b5_limpidez_spectrofotometrica": f"{limpidez:.1f}%",
+            "b1_status": "NULA",
+            "b2_status": "NEUTRO",
+            "b3_status": "PADRONIZADO",
+            "b4_status": "ALTÍSSIMA",
+            "b5_status": "TRANSPARENTE",
+            "oxigenacao": "99.0%",
+            "temperatura": "37.0C",
+            "vazao": "4.8 L/min"
         }
         # B1-B4 Vítimas de Envenenamento por Monóxido de Carbono (CO)
         deslocamento_co = 88.0 + random.uniform(-0.4, 0.4)
