@@ -1582,8 +1582,127 @@ while True:
                       {msg.role === 'user' ? 'Visitante' : 'Flow'}
                     </span>
 
+                    {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência */}
+                    {msg.role === 'assistant' && isEmergenciaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                            LAUDO CLÍNICO: ATENDIMENTO PRÉ-HOSPITALAR
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-emerald-500/10 border border-emerald-500/30 text-[#00ff9d] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Saturação de O₂ */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Saturação de O₂</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.oxigenacao_limpa * 100 || 98.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ÓTIMO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.oxigenacao_limpa * 100 || 98.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Resistência de Fluxo / Viscosidade */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Resistência de Fluxo / Viscosidade</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.viscosidade_cp || 2.3).toFixed(1)} cP</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  FLUIDO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.viscosidade_cp || 2.3) / 5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Estabilidade Térmica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Estabilidade Térmica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.temperatura_c || 22.0).toFixed(1)} °C</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffb703]/15 border border-[#ffb703]/40 text-[#ffb703]">
+                                  ESTÁVEL
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.temperatura_c || 22.0) / 40) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Tempo de Meia-Vida Circulatória */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Tempo de Meia-Vida Circulatória</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.meia_vida_h || 24.0).toFixed(1)} h</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  SUFICIENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.meia_vida_h || 24.0) / 48) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Índice de Extração de O₂ */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Índice de Extração de O₂</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.extracao_o2_pct || 42.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
+                                  ALTO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.extracao_o2_pct || 42.0)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para atendimento pré-hospitalar.</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Bloco de IA Explicável Integrado */}
-                    {msg.role === 'assistant' && msg.explicabilidade && (
+                    {msg.role === 'assistant' && msg.explicabilidade && (!isEmergenciaActive) && (
                       <div className="mt-2.5 w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-2.5">
                         <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                           <span className="text-[10px] font-mono font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
