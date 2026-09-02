@@ -33,15 +33,15 @@ const CASOS_EMERGENCIA_IA = [
   {
     titulo: "Choque Hipovolêmico Hemorrágico Grau IV",
     descricao: "Vítima de colisão automobilística em alta velocidade com fratura exposta de fêmur bilateral e hemorragia maciça não controlada.",
-    fc: 148,
-    paSistolica: 70,
-    paDiastolica: 40,
-    spo2: 82,
-    glasgow: 8,
-    lactato: 6.2,
-    perdaEstimada: 2300,
-    volumeRecomendado: 2000,
-    solucao: "PFC-40 (Perfluorocarbono Sintético Universal de Alta Fluidez)",
+    fc: 132,
+    paSistolica: 80,
+    paDiastolica: 50,
+    spo2: 86,
+    glasgow: 9,
+    lactato: 5.8,
+    perdaEstimada: 1200,
+    volumeRecomendado: 450,
+    solucao: "450 mL de HemoSync Tipo O- (Substituto Sintético Universal)",
     tempoLimiteMin: 8,
     gravidade: "EXTREMA",
     idade: 34,
@@ -358,7 +358,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 <div className="flex items-center gap-2">
                   <span className="pulse-alert inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-extrabold bg-rose-600/30 text-rose-300 border border-rose-500/60 shadow-[0_0_15px_rgba(255,42,66,0.4)]">
                     <ShieldAlert className="h-4 w-4 text-rose-400" />
-                    EMERGÊNCIA VERMELHA: {currentCase.gravidade}
+                    PRIORIDADE: CRÍTICO / EMERGÊNCIA
                   </span>
                 </div>
               </div>
@@ -456,7 +456,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   className="gap-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-bold text-xs tracking-wider shadow-[0_0_20px_rgba(255,42,66,0.4)] px-5 py-2.5 rounded-xl border border-rose-500/40"
                 >
                   <UserCheck className="h-4 w-4" />
-                  ENVIAR PARA FILA DE TRIAGEM CRÍTICA
+                  Encaminhar para Fila Crítica
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
