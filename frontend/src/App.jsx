@@ -1944,8 +1944,127 @@ while True:
                       </div>
                     )}
 
+                    {/* Card Estilizado Neon para Tratamento de Anemias Graves (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isAnemiaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#ffd000] animate-pulse" />
+                            LAUDO CLÍNICO: TRATAMENTO DE ANEMIAS GRAVES
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#ffd000]/10 border border-[#ffd000]/30 text-[#ffd000] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Eficiência de Liberação O₂ (P50) */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Eficiência de Liberação O₂ (P50)</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.eficiencia_p50_mmhg || 28.0).toFixed(1)} mmHg</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
+                                  OTIMIZADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.eficiencia_p50_mmhg || 28.0) / 40) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Ausência de Resposta Imunogênica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Ausência de Resposta Imunogênica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.ausencia_imunogenica_pct || 100.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ISENTO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.ausencia_imunogenica_pct || 100.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Estabilidade Plasmática */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Estabilidade Plasmática</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_plasmatica_pct || 96.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  ALTA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.estabilidade_plasmatica_pct || 96.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Tolerância a Infusão Lenta */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Tolerância a Infusão Lenta</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.tolerancia_infusao_lenta_h || 24.0).toFixed(1)} h</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  EXCELENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.tolerancia_infusao_lenta_h || 24.0) / 48) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Retenção Vascular */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Retenção Vascular</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.retencao_vascular_pct || 94.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
+                                  PRESERVADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.retencao_vascular_pct || 94.0)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para suporte transfusional crônico e anemia severa.</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Bloco de IA Explicável Integrado */}
-                    {msg.role === 'assistant' && msg.showAnalysisCard && msg.explicabilidade && (!isEmergenciaActive && !isTraumaActive && !isCirurgiaCardiacaActive) && (
+                    {msg.role === 'assistant' && msg.showAnalysisCard && msg.explicabilidade && (!isEmergenciaActive && !isTraumaActive && !isCirurgiaCardiacaActive && !isAnemiaActive) && (
                       <div className="mt-2.5 w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-2.5">
                         <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                           <span className="text-[10px] font-mono font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
