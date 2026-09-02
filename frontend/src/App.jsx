@@ -41,6 +41,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useArduinoData } from '@/hooks/useArduinoData';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
 
@@ -151,12 +152,13 @@ export default function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
   const [packetCount, setPacketCount] = useState(1420);
+  const [lastPacketTime, setLastPacketTime] = useState(null);
   const messagesEndRef = useRef(null);
 
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Olá! Sou o Tradutor Científico EcoSanguis / Flowtificial. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
+      content: 'Olá! Sou a Flow, sua assistente virtual. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
       explicabilidade: null
     }
   ]);
@@ -374,7 +376,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
-        { role: 'assistant', content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.` }
+        { 
+          role: 'assistant', 
+          content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`,
+          showAnalysisCard: true
+        }
       ]);
       setInputValue('');
       return;
@@ -398,7 +404,8 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           setMessages(prev => [...prev, { 
             role: 'assistant', 
             content: data.resposta, 
-            explicabilidade: data.explicabilidade 
+            explicabilidade: data.explicabilidade,
+            showAnalysisCard: text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")
           }]);
           setIsTyping(false);
           
@@ -415,7 +422,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       setIsTyping(false);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico FastAPI. Verifique se o backend está ativo.'
+        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar a assistente Flow. Verifique se o backend está ativo.'
       }]);
     }
   };
@@ -433,57 +440,79 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const isColetaReservaActive = activeFinalidade.includes("Coleta") || activeFinalidade.includes("Reserva");
   const isTipagemCompatibilidadeActive = activeFinalidade.includes("Tipagem") || activeFinalidade.includes("Compatibilidade");
 
-  // Valores atuais de leitura
-  const currentReading = history.length > 0 ? history[history.length - 1] : {
-    oxigenacao_limpa: (isEmergenciaActive || isTraumaActive || isCirurgiaCardiacaActive || isPolitraumatizadosActive) ? 0.98 : 0.95,
-    temperatura_c: isPolitraumatizadosActive ? 37.0 : 36.5,
-    vazao_l_min: isPolitraumatizadosActive ? 2.1 : 4.8,
-    ph: (isCirurgiaCardiacaActive || isPolitraumatizadosActive) ? 7.40 : 7.42,
-    viscosidade_cp: isEmergenciaActive ? 2.3 : isPolitraumatizadosActive ? 2.1 : 3.8,
-    meia_vida_h: isAnemiaActive ? 36.0 : 24.0,
-    extracao_o2_pct: 42.0,
-    pressao_osmotica_mmhg: 25.0,
-    antioxidante_pct: 94.5,
-    pco2_mmhg: 40.0,
-    glicose_mgdl: 100.0,
-    expansao_volemica_pct: 100.0,
-    carga_o2_pct: 99.2,
-    tempo_reconstituicao_s: 0.0,
-    coagulabilidade_pct: 0.0,
-    pressao_perfusao_mmhg: 95.0,
-    suporte_cec_pct: 100.0,
-    resistencia_cisalhamento_pct: 99.8,
-    preservacao_hemostasia_pct: 98.5,
-    estabilidade_osmotica_cec_mmhg: 25.0,
-    controle_acidose_lactica_ph: 7.40,
-    liberacao_o2_pct: 45.0,
-    resposta_imunologica_pct: 0.0,
-    compatibilidade_serica_pct: 100.0,
-    erosao_quimioterapica_pct: 99.9,
-    biocompatibilidade_tecidual_pct: 100.0,
-    ph_tumoral: 7.35,
-    retencao_o2_celular_pct: 96.0,
-    reposicao_volemica_ultra_pct: 100.0,
-    prevencao_hipotermia_c: 37.0,
-    perfusao_cerebral_pct: 98.0,
-    capacidade_tampao_ph: 7.42,
-    baixa_viscosidade_cp: 2.1,
-    expressao_antigenica_pct: 0.0,
-    reatividade_crossmatch_pct: 0.0,
-    pureza_molecular_pct: 99.9,
-    esterilidade_biologica_pct: 100.0,
-    integralidade_conservacao_pct: 100.0,
-    validade_estoque_meses: "24 Meses",
-    tolerancia_congelamento_c: -80.0,
-    estabilidade_suspensao_pct: 99.9,
-    fator_compatibilidade_pct: 100.0,
-    ausencia_antigenos_pct: 0.0,
-    reacao_heterologa_pct: 0.0,
-    seguranca_sensibilizados_pct: 100.0,
-    hematocrito_pct: 40.0,
-    status: "ESTÁVEL",
-    alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
-  };
+  // Tratamento de exceção (try/catch) com fallback visual em caso de corrupção ou perda de sinal USB
+  let currentReading;
+  try {
+    currentReading = history.length > 0 ? history[history.length - 1] : {
+      oxigenacao_limpa: isEmergenciaActive ? 0.98 : isTraumaActive ? 0.99 : isCirurgiaCardiacaActive ? 0.985 : 0.95,
+      temperatura_c: isEmergenciaActive ? 22.0 : isCirurgiaCardiacaActive ? 3.0 : 36.5,
+      vazao_l_min: 4.8,
+      ph: isTraumaActive ? 7.40 : isCirurgiaCardiacaActive ? 7.42 : 7.40,
+      viscosidade_cp: isEmergenciaActive ? 2.3 : isCirurgiaCardiacaActive ? 1.8 : 3.8,
+      meia_vida_h: isCirurgiaCardiacaActive ? 48.0 : 24.0,
+      extracao_o2_pct: 42.0,
+      pressao_osmotica_mmhg: 25.0,
+      antioxidante_pct: 94.5,
+      pco2_mmhg: 40.0,
+      glicose_mgdl: 100.0,
+      expansao_volemica_pct: 100.0,
+      carga_o2_pct: 99.0,
+      pressao_oncotica_mmhg: 25.0,
+      permutabilidade_gasosa_pct: 95.0,
+      resistencia_compressao_pct: 90.0,
+      tamponamento_ph: 7.40,
+      compatibilidade_cec_pct: 98.5,
+      tensao_cisalhamento_cp: 1.8,
+      meia_vida_extended_h: 48.0,
+      tamponamento_lactato_ph: 7.42,
+      viscosidade_hipotermia_cp: 3.0,
+      tempo_reconstituicao_s: 0.0,
+      coagulabilidade_pct: 0.0,
+      pressao_perfusao_mmhg: 95.0,
+      suporte_cec_pct: 100.0,
+      resistencia_cisalhamento_pct: 99.8,
+      preservacao_hemostasia_pct: 98.5,
+      estabilidade_osmotica_cec_mmhg: 25.0,
+      controle_acidose_lactica_ph: 7.40,
+      liberacao_o2_pct: 45.0,
+      resposta_imunologica_pct: 0.0,
+      compatibilidade_serica_pct: 100.0,
+      erosao_quimioterapica_pct: 99.9,
+      biocompatibilidade_tecidual_pct: 100.0,
+      ph_tumoral: 7.35,
+      retencao_o2_celular_pct: 96.0,
+      reposicao_volemica_ultra_pct: 100.0,
+      prevencao_hipotermia_c: 37.0,
+      perfusao_cerebral_pct: 98.0,
+      capacidade_tampao_ph: 7.42,
+      baixa_viscosidade_cp: 2.1,
+      expressao_antigenica_pct: 0.0,
+      reatividade_crossmatch_pct: 0.0,
+      pureza_molecular_pct: 99.9,
+      esterilidade_biologica_pct: 100.0,
+      integralidade_conservacao_pct: 100.0,
+      validade_estoque_meses: "24 Meses",
+      tolerancia_congelamento_c: -80.0,
+      estabilidade_suspensao_pct: 99.9,
+      fator_compatibilidade_pct: 100.0,
+      ausencia_antigenos_pct: 0.0,
+      reacao_heterologa_pct: 0.0,
+      seguranca_sensibilizados_pct: 100.0,
+      hematocrito_pct: 40.0,
+      status: "ESTÁVEL",
+      alerta_mensagem: "Monitoramento em tempo real ativo. Leituras contínuas calibradas."
+    };
+  } catch (err) {
+    console.error("Erro no processamento da leitura serial:", err);
+    currentReading = {
+      isCorrupted: true,
+      status: "AGUARDANDO LEITURA SERIAL",
+      alerta_mensagem: "[AGUARDANDO LEITURA SERIAL] Sinal USB desconectado ou corrompido."
+    };
+  }
+
+  // Hook global de dados do Arduino (B1, B2, B3, B4, B5 e conectividade serial)
+  const arduinoData = useArduinoData(currentReading, history, lastPacketTime);
 
   const getSparkValues = (key) => {
     if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
@@ -788,543 +817,618 @@ while True:
                 </>
               ) : isTraumaActive ? (
                 <>
-                  {/* CARD B1: TAXA DE EXPANSÃO VOLEMICA */}
+                  {/* CARD B1: CAPACIDADE DE CARGA DE O₂ */}
                   <MetricCard
-                    title="B1 • TAXA DE EXPANSÃO VOLEMICA"
-                    subtitle="Recuperação imediata do volume intravascular"
-                    value={(currentReading.expansao_volemica_pct || 100.0).toFixed(1)}
+                    title="B1 • CAPACIDADE DE CARGA DE O₂"
+                    subtitle="Compensação volêmica e de hemácias"
+                    value={(currentReading.carga_o2_pct || 99.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.expansao_volemica_pct || 100.0}
-                    level="success"
-                    badgeText="IMEDIATA"
-                    detail="Recupera instantaneamente a pressão arterial em choques hemorrágicos."
-                    icon={Waves}
-                    accentColor="bg-[#ff9f1c]"
-                    sparkline={<Sparkline data={getSparkValues('expansao_volemica_pct')} color="#ff9f1c" />}
-                  />
-
-                  {/* CARD B2: CAPACIDADE DE CARGA DE O₂ */}
-                  <MetricCard
-                    title="B2 • CAPACIDADE DE CARGA DE O₂"
-                    subtitle="Oxigenação acelerada de órgãos vitais"
-                    value={(currentReading.carga_o2_pct || 99.2).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.carga_o2_pct || 99.2}
+                    percent={currentReading.carga_o2_pct || 99.0}
                     level="success"
                     badgeText="MÁXIMA"
-                    detail="Suporta rápida oxigenação tecidual sem necessidade de aquecimento prévio."
+                    detail="Compensa rapidamente a perda massiva de volemia e glóbulos vermelhos."
                     icon={ShieldCheck}
+                    accentColor="bg-[#ff9f1c]"
+                    sparkline={<Sparkline data={getSparkValues('carga_o2_pct')} color="#ff9f1c" />}
+                  />
+
+                  {/* CARD B2: PRESSÃO ONCÓTICA (EXPANSÃO) */}
+                  <MetricCard
+                    title="B2 • PRESSÃO ONCÓTICA (EXPANSÃO)"
+                    subtitle="Estabilidade da pressão arterial"
+                    value={(currentReading.pressao_oncotica_mmhg || 25.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.pressao_oncotica_mmhg || 25.0) / 30) * 100)}
+                    level="success"
+                    badgeText="FISIOLÓGICA"
+                    detail="Evita extravasamento de plasma e mantém a pressão arterial estável."
+                    icon={Waves}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('carga_o2_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('pressao_oncotica_mmhg')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B3: TEMPO DE RECONSTITUIÇÃO */}
+                  {/* CARD B3: PERMUTABILIDADE GASOSA */}
                   <MetricCard
-                    title="B3 • TEMPO DE RECONSTITUIÇÃO"
-                    subtitle="Prontidão imediata para infusão"
-                    value={(currentReading.tempo_reconstituicao_s || 0.0).toFixed(1)}
-                    unit="s"
-                    percent={100}
-                    level="success"
-                    badgeText="INSTANTÂNEO"
-                    detail="Produto pronto para uso sem necessidade de descongelamento."
-                    icon={Clock}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('tempo_reconstituicao_s')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: ÍNDICE DE COAGULABILIDADE */}
-                  <MetricCard
-                    title="B4 • ÍNDICE DE COAGULABILIDADE"
-                    subtitle="Prevenção de tromboses e microcoágulos"
-                    value={(currentReading.coagulabilidade_pct || 0.0).toFixed(1)}
+                    title="B3 • PERMUTABILIDADE GASOSA"
+                    subtitle="Troca de O₂ e CO₂ alveolar"
+                    value={(currentReading.permutabilidade_gasosa_pct || 95.0).toFixed(1)}
                     unit="%"
-                    percent={100}
+                    percent={currentReading.permutabilidade_gasosa_pct || 95.0}
                     level="success"
-                    badgeText="ISENTO DE TROMBOSE"
-                    detail="Inerte a microtrombos, permitindo infusão contínua em emergências."
+                    badgeText="EFICIENTE"
+                    detail="Assegura rápida troca de O₂ e CO₂ nos alvéolos pulmonares."
+                    icon={FlaskConical}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('permutabilidade_gasosa_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: RESISTÊNCIA À COMPRESSÃO MECÂNICA */}
+                  <MetricCard
+                    title="B4 • RESISTÊNCIA À COMPRESSÃO MECÂNICA"
+                    subtitle="Suporte a bombas de infusão rápida"
+                    value={(currentReading.resistencia_compressao_pct || 90.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.resistencia_compressao_pct || 90.0}
+                    level="success"
+                    badgeText="ALTA"
+                    detail="Suporta bombas de infusão rápida em ressuscitação volêmica."
                     icon={Droplets}
                     accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('coagulabilidade_pct')} color="#a855f7" />}
+                    sparkline={<Sparkline data={getSparkValues('resistencia_compressao_pct')} color="#a855f7" />}
                   />
 
-                  {/* CARD B5: PRESSÃO DE PERFUSÃO TECIDUAL */}
+                  {/* CARD B5: TAMPONAMENTO ÁCIDO-BÁSICO */}
                   <MetricCard
-                    title="B5 • PRESSÃO DE PERFUSÃO TECIDUAL"
-                    subtitle="Manutenção da microcirculação orgânica"
-                    value={(currentReading.pressao_perfusao_mmhg || 95.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.pressao_perfusao_mmhg || 95.0) / 120) * 100)}
+                    title="B5 • TAMPONAMENTO ÁCIDO-BÁSICO"
+                    subtitle="Prevenção da acidose por hipoperfusão"
+                    value={(currentReading.tamponamento_ph || 7.40).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.tamponamento_ph || 7.40) / 8.5) * 100)}
                     level="success"
-                    badgeText="ESTÁVEL"
-                    detail="Garante pressão suficiente para nutrir o cérebro e órgãos nobres."
+                    badgeText="NEUTRO"
+                    detail="Previne acidose metabólica decorrente da hipoperfusão tecidual."
                     icon={Thermometer}
                     accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('pressao_perfusao_mmhg')} color="#02c39a" />}
+                    sparkline={<Sparkline data={getSparkValues('tamponamento_ph')} color="#02c39a" />}
                   />
                 </>
               ) : isCirurgiaCardiacaActive ? (
                 <>
-                  {/* CARD B1: SUPORTE A CIRCULAÇÃO CEC */}
+                  {/* CARD B1: COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC) */}
                   <MetricCard
-                    title="B1 • SUPORTE A CIRCULAÇÃO CEC"
-                    subtitle="Compatibilidade total com bombas de bypass"
-                    value={(currentReading.suporte_cec_pct || 100.0).toFixed(1)}
+                    title="B1 • COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC)"
+                    subtitle="Estabilidade em circuitos de circulação extracorpórea"
+                    value={(currentReading.compatibilidade_cec_pct || 98.5).toFixed(1)}
                     unit="%"
-                    percent={currentReading.suporte_cec_pct || 100.0}
+                    percent={currentReading.compatibilidade_cec_pct || 98.5}
                     level="success"
-                    badgeText="CONTÍNUO"
-                    detail="Permite circulação extracorpórea sem formação de espumas ou hemólise."
+                    badgeText="EXCELENTE"
+                    detail="Mantém a estabilidade molecular em circuitos de circulação extracorpórea."
                     icon={Waves}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('suporte_cec_pct')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('compatibilidade_cec_pct')} color="#00d8ff" />}
                   />
 
-                  {/* CARD B2: RESISTÊNCIA AO CISALHAMENTO */}
+                  {/* CARD B2: TENSÃO DE CISAILHAMENTO (SHEAR STRESS) */}
                   <MetricCard
-                    title="B2 • RESISTÊNCIA AO CISALHAMENTO"
+                    title="B2 • TENSÃO DE CISAILHAMENTO (SHEAR STRESS)"
                     subtitle="Tolerância à fricção mecânica das bombas"
-                    value={(currentReading.resistencia_cisalhamento_pct || 99.8).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.resistencia_cisalhamento_pct || 99.8}
+                    value={(currentReading.tensao_cisalhamento_cp || 1.8).toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, ((currentReading.tensao_cisalhamento_cp || 1.8) / 5) * 100)}
                     level="success"
-                    badgeText="ALTA"
-                    detail="Estabilidade molecular superior contra forças de cisalhamento da bomba CEC."
+                    badgeText="TOLERANTE"
+                    detail="Previne degradação mecânica por bombas rotativas e oxigenadores."
                     icon={ShieldCheck}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('resistencia_cisalhamento_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('tensao_cisalhamento_cp')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B3: PRESERVAÇÃO DE HEMOSTASIA */}
+                  {/* CARD B3: TEMPO DE MEIA-VIDA EXTENDED */}
                   <MetricCard
-                    title="B3 • PRESERVAÇÃO DE HEMOSTASIA"
-                    subtitle="Proteção dos fatores nativos de coagulação"
-                    value={(currentReading.preservacao_hemostasia_pct || 98.5).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.preservacao_hemostasia_pct || 98.5}
+                    title="B3 • TEMPO DE MEIA-VIDA EXTENDED"
+                    subtitle="Cirurgias de longa duração"
+                    value={(currentReading.meia_vida_extended_h || 48.0).toFixed(1)}
+                    unit="h"
+                    percent={Math.min(100, ((currentReading.meia_vida_extended_h || 48.0) / 72) * 100)}
                     level="success"
-                    badgeText="PROTEGIDO"
-                    detail="Preserva as plaquetas e proteínas plasmáticas durante procedimentos cirúrgicos longos."
-                    icon={FlaskConical}
+                    badgeText="PROLONGADO"
+                    detail="Suporta procedimentos cirúrgicos de longa duração sem perda funcional."
+                    icon={Clock}
                     accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('preservacao_hemostasia_pct')} color="#02c39a" />}
+                    sparkline={<Sparkline data={getSparkValues('meia_vida_extended_h')} color="#02c39a" />}
                   />
 
-                  {/* CARD B4: ESTABILIDADE OSMÓTICA EM CEC */}
+                  {/* CARD B4: TAMPONAMENTO DE LACTATO */}
                   <MetricCard
-                    title="B4 • ESTABILIDADE OSMÓTICA EM CEC"
-                    subtitle="Manutenção do equilíbrio oncótico"
-                    value={(currentReading.estabilidade_osmotica_cec_mmhg || 25.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.estabilidade_osmotica_cec_mmhg || 25.0) / 30) * 100)}
+                    title="B4 • TAMPONAMENTO DE LACTATO"
+                    subtitle="Redução de metabólitos ácidos em clampeamento"
+                    value={(currentReading.tamponamento_lactato_ph || 7.42).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.tamponamento_lactato_ph || 7.42) / 8.5) * 100)}
                     level="success"
-                    badgeText="NORMO-OSMÓTICO"
-                    detail="Evita edema miocárdico e pulmonar em perfusionistas e cirurgias abertas."
+                    badgeText="ATIVO"
+                    detail="Minimiza acúmulo de metabólitos ácidos durante o clampeamento vascular."
                     icon={Droplets}
                     accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_osmotica_cec_mmhg')} color="#a855f7" />}
+                    sparkline={<Sparkline data={getSparkValues('tamponamento_lactato_ph')} color="#a855f7" />}
                   />
 
-                  {/* CARD B5: CONTROLE DE ACIDOSE LÁCTICA */}
+                  {/* CARD B5: VISCOSIDADE EM HYPOTHERMIA */}
                   <MetricCard
-                    title="B5 • CONTROLE DE ACIDOSE LÁCTICA"
-                    subtitle="Equilíbrio ácido-base contínuo"
-                    value={(currentReading.controle_acidose_lactica_ph || 7.40).toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, ((currentReading.controle_acidose_lactica_ph || 7.40) / 8.5) * 100)}
+                    title="B5 • VISCOSIDADE EM HYPOTHERMIA"
+                    subtitle="Fluidez em hipotermia cirúrgica induzida"
+                    value={(currentReading.viscosidade_hipotermia_cp || 3.0).toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, ((currentReading.viscosidade_hipotermia_cp || 3.0) / 6) * 100)}
                     level="success"
-                    badgeText="FISIOLÓGICO"
-                    detail="Remove o lactato gerado por isquemia temporária do tecido cardíaco."
+                    badgeText="CONTROLADA"
+                    detail="Preserva a fluidez hemodinâmica sob hipotermia cirúrgica induzida."
                     icon={Thermometer}
                     accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('controle_acidose_lactica_ph')} color="#ffb703" />}
+                    sparkline={<Sparkline data={getSparkValues('viscosidade_hipotermia_cp')} color="#ffb703" />}
                   />
                 </>
               ) : isAnemiaActive ? (
                 <>
-                  {/* CARD B1: MEIA-VIDA RESTRITA EM CIRCULAÇÃO */}
+                  {/* CARD B1: EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50) */}
                   <MetricCard
-                    title="B1 • MEIA-VIDA EM CIRCULAÇÃO"
-                    subtitle="Duração estendida no leito vascular"
-                    value={(currentReading.meia_vida_h || 36.0).toFixed(1)}
-                    unit="h"
-                    percent={Math.min(100, ((currentReading.meia_vida_h || 36.0) / 48) * 100)}
+                    title="B1 • EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50)"
+                    subtitle="Entrega de O₂ em baixas concentrações"
+                    value={(currentReading.eficiencia_p50_mmhg || 28.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.eficiencia_p50_mmhg || 28.0) / 40) * 100)}
                     level="success"
-                    badgeText="PROLONGADA"
-                    detail="Assegura aporte contínuo de O₂ reduzindo a frequência de novas infusões."
-                    icon={Clock}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('meia_vida_h')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B2: EFICIÊNCIA DE LIBERAÇÃO DE O₂ */}
-                  <MetricCard
-                    title="B2 • EFICIÊNCIA DE LIBERAÇÃO DE O₂"
-                    subtitle="Transferência otimizada para tecidos anêmicos"
-                    value={(currentReading.liberacao_o2_pct || 45.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.liberacao_o2_pct || 45.0}
-                    level="success"
-                    badgeText="ALTA"
-                    detail="Cede oxigênio com facilidade nos tecidos com hipóxia crônica."
+                    badgeText="OTIMIZADA"
+                    detail="Entrega oxigênio aos tecidos mesmo em baixas concentrações circulantes."
                     icon={Waves}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('liberacao_o2_pct')} color="#02c39a" />}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('eficiencia_p50_mmhg')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B3: AUSÊNCIA DE RESPOSTA IMUNOLÓGICA */}
+                  {/* CARD B2: AUSÊNCIA DE RESPOSTA IMUNOGÊNICA */}
                   <MetricCard
-                    title="B3 • AUSÊNCIA DE RESPOSTA IMUNOLÓGICA"
-                    subtitle="Isenção de anticorpos anti-hemácias"
-                    value={(currentReading.resposta_imunologica_pct || 0.0).toFixed(1)}
+                    title="B2 • AUSÊNCIA DE RESPOSTA IMUNOGÊNICA"
+                    subtitle="Isenção de reações em transfusões crônicas"
+                    value={(currentReading.ausencia_imunogenica_pct || 100.0).toFixed(1)}
                     unit="%"
-                    percent={100}
+                    percent={currentReading.ausencia_imunogenica_pct || 100.0}
                     level="success"
                     badgeText="ISENTO"
-                    detail="Evita aloimunização em pacientes submetidos a esquemas de transfusão crônica."
+                    detail="Reduz risco de reações alérgicas ou rejeição em transfusões crônicas."
                     icon={ShieldCheck}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('resposta_imunologica_pct')} color="#00d8ff" />}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('ausencia_imunogenica_pct')} color="#02c39a" />}
                   />
 
-                  {/* CARD B4: COMPATIBILIDADE SÉRICA UNIVERSAL */}
+                  {/* CARD B3: ESTABILIDADE PLASMÁTICA */}
                   <MetricCard
-                    title="B4 • COMPATIBILIDADE SÉRICA UNIVERSAL"
-                    subtitle="Aceitação sem necessidade de prova cruzada"
-                    value={(currentReading.compatibilidade_serica_pct || 100.0).toFixed(1)}
+                    title="B3 • ESTABILIDADE PLASMÁTICA"
+                    subtitle="Prevenção de flutuações de hemoglobina"
+                    value={(currentReading.estabilidade_plasmatica_pct || 96.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.compatibilidade_serica_pct || 100.0}
+                    percent={currentReading.estabilidade_plasmatica_pct || 96.0}
                     level="success"
-                    badgeText="TOTAL"
-                    detail="Totalmente seguro para doentes com múltiplos anticorpos raros."
+                    badgeText="ALTA"
+                    detail="Evita flutuações na concentração de hemoglobina sintética."
+                    icon={FlaskConical}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_plasmatica_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: TOLERÂNCIA A INFUSÃO LENTA */}
+                  <MetricCard
+                    title="B4 • TOLERÂNCIA A INFUSÃO LENTA"
+                    subtitle="Administração gradual em pacientes debilitados"
+                    value={(currentReading.tolerancia_infusao_lenta_h || 36.0).toFixed(1)}
+                    unit="h"
+                    percent={Math.min(100, ((currentReading.tolerancia_infusao_lenta_h || 36.0) / 48) * 100)}
+                    level="success"
+                    badgeText="ADAPTADO"
+                    detail="Ideal para esquemas de administração gradual em pacientes debilitados."
+                    icon={Clock}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('tolerancia_infusao_lenta_h')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: RETENÇÃO VASCULAR */}
+                  <MetricCard
+                    title="B5 • RETENÇÃO VASCULAR"
+                    subtitle="Duração estendida no leito vascular"
+                    value={(currentReading.retencao_vascular_h || 30.0).toFixed(1)}
+                    unit="h"
+                    percent={Math.min(100, ((currentReading.retencao_vascular_h || 30.0) / 48) * 100)}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Impede filtração glomerular precoce, prolongando o benefício terapêutico."
                     icon={Droplets}
-                    accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('compatibilidade_serica_pct')} color="#39ff14" />}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('retencao_vascular_h')} color="#ffb703" />}
                   />
                 </>
               ) : isOncologicoActive ? (
                 <>
-                  {/* CARD B1: RESISTÊNCIA A EROSÃO QUIMIOTERÁPICA */}
+                  {/* CARD B1: COMPATIBILIDADE COM QUIMIOTERÁPICOS */}
                   <MetricCard
-                    title="B1 • RESISTÊNCIA A EROSÃO QUIMIOTERÁPICA"
-                    subtitle="Estabilidade diante de agentes citotóxicos"
-                    value={(currentReading.erosao_quimioterapica_pct || 99.9).toFixed(1)}
+                    title="B1 • COMPATIBILIDADE COM QUIMIOTERÁPICOS"
+                    subtitle="Estabilidade diante de compostos citostáticos"
+                    value={(currentReading.compatibilidade_quimioterapicos_pct || 99.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.erosao_quimioterapica_pct || 99.9}
+                    percent={currentReading.compatibilidade_quimioterapicos_pct || 99.0}
                     level="success"
-                    badgeText="INVIOLÁVEL"
-                    detail="Não sofre degradação ou hemólise quando em contato com quimioterápicos."
+                    badgeText="INERTE"
+                    detail="Não reage nem degrada compostos citostáticos na corrente sanguínea."
                     icon={ShieldCheck}
                     accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('erosao_quimioterapica_pct')} color="#a855f7" />}
+                    sparkline={<Sparkline data={getSparkValues('compatibilidade_quimioterapicos_pct')} color="#a855f7" />}
                   />
 
-                  {/* CARD B2: BIOPATIBILIDADE TECIDUAL */}
+                  {/* CARD B2: PROTEÇÃO CONTRA ESTRESSE OXIDATIVO */}
                   <MetricCard
-                    title="B2 • BIOPATIBILIDADE TECIDUAL"
-                    subtitle="Ausência de toxicidade renal ou hepática"
-                    value={(currentReading.biocompatibilidade_tecidual_pct || 100.0).toFixed(1)}
+                    title="B2 • PROTEÇÃO CONTRA ESTRESSE OXIDATIVO"
+                    subtitle="Neutralização de radicais livres de radioterapia"
+                    value={(currentReading.protecao_estresse_oxidativo_pct || 94.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.biocompatibilidade_tecidual_pct || 100.0}
+                    percent={currentReading.protecao_estresse_oxidativo_pct || 94.0}
                     level="success"
-                    badgeText="NÃO TÓXICO"
-                    detail="Não sobrecarrega o sistema de filtração hepático ou renal do paciente oncológico."
+                    badgeText="ELEVADA"
+                    detail="Neutraliza radicais livres gerados por tratamentos radioterápicos."
                     icon={FlaskConical}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('biocompatibilidade_tecidual_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('protecao_estresse_oxidativo_pct')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B3: ESTABILIDADE pH EM AMBIENTE TUMORAL */}
+                  {/* CARD B3: PERMEABILIDADE EM MICROCIRCULAÇÃO */}
                   <MetricCard
-                    title="B3 • ESTABILIDADE pH EM AMBIENTE TUMORAL"
-                    subtitle="Manutenção de transporte em meio ácido"
-                    value={(currentReading.ph_tumoral || 7.35).toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, ((currentReading.ph_tumoral || 7.35) / 8.5) * 100)}
+                    title="B3 • PERMEABILIDADE EM MICROCIRCULAÇÃO"
+                    subtitle="Penetração em capilares comprimidos por tumores"
+                    value={(currentReading.permeabilidade_microcirculacao_cp || 2.0).toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, ((currentReading.permeabilidade_microcirculacao_cp || 2.0) / 5) * 100)}
                     level="success"
-                    badgeText="TOLERANTE"
-                    detail="Preserva a afinidade de ligação com o oxigênio mesmo no microambiente ácido ao redor do tumor."
-                    icon={Thermometer}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('ph_tumoral')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B4: RETENÇÃO DE OXIGENAÇÃO CELULAR */}
-                  <MetricCard
-                    title="B4 • RETENÇÃO DE OXIGENAÇÃO CELULAR"
-                    subtitle="Aporte contínuo de gases aos tecidos saudáveis"
-                    value={(currentReading.retencao_o2_celular_pct || 96.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.retencao_o2_celular_pct || 96.0}
-                    level="success"
-                    badgeText="CONSTANTE"
-                    detail="Protege a oxigenação de tecidos sadios reduzindo a fadiga decorrente do tratamento."
+                    badgeText="LIVRE"
+                    detail="Penetra redes capilares comprimidas por massas tumorais."
                     icon={Waves}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('permeabilidade_microcirculacao_cp')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B4: ESTABILIDADE EM PACIENTES NEUTROPÉNICOS */}
+                  <MetricCard
+                    title="B4 • ESTABILIDADE EM PACIENTES NEUTROPÉNICOS"
+                    subtitle="Segurança para imunodeprimidos"
+                    value={(currentReading.estabilidade_neutropenicos_pct || 100.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.estabilidade_neutropenicos_pct || 100.0}
+                    level="success"
+                    badgeText="SEGURO"
+                    detail="Formulação livre de contaminantes que possam ameaçar imunodeprimidos."
+                    icon={Droplets}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('retencao_o2_celular_pct')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_neutropenicos_pct')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B5: ÍNDICE DE PURIFICAÇÃO MOLECULAR */}
+                  <MetricCard
+                    title="B5 • ÍNDICE DE PURIFICAÇÃO MOLECULAR"
+                    subtitle="Proteção sobre fígado e rins fragilizados"
+                    value={(currentReading.purificacao_molecular_pct || 99.5).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.purificacao_molecular_pct || 99.5}
+                    level="success"
+                    badgeText="PUREZA MÁXIMA"
+                    detail="Minimiza a carga metabólica sobre fígado e rins fragilizados."
+                    icon={Thermometer}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('purificacao_molecular_pct')} color="#39ff14" />}
                   />
                 </>
               ) : isPolitraumatizadosActive ? (
                 <>
-                  {/* CARD B1: REPOSIÇÃO VOLEMICA ULTRA-RÁPIDA */}
+                  {/* CARD B1: SUPORTE MULTIORGÂNICO DE O₂ */}
                   <MetricCard
-                    title="B1 • REPOSIÇÃO VOLEMICA ULTRA-RÁPIDA"
-                    subtitle="Expansão imediata do leito intravascular"
-                    value={(currentReading.reposicao_volemica_ultra_pct || 100.0).toFixed(1)}
+                    title="B1 • SUPORTE MULTIORGÂNICO DE O₂"
+                    subtitle="Perfusão simultânea de órgãos vitais em choque"
+                    value={(currentReading.suporte_multiorganico_o2_pct || 97.5).toFixed(1)}
                     unit="%"
-                    percent={currentReading.reposicao_volemica_ultra_pct || 100.0}
+                    percent={currentReading.suporte_multiorganico_o2_pct || 97.5}
                     level="warning"
-                    badgeText="CRÍTICA"
-                    detail="Reverte o colapso circulatório grave em vítimas de politraumatismos."
+                    badgeText="CRÍTICO"
+                    detail="Garante perfusão simultânea de órgãos vitais em falência iminente."
                     icon={Waves}
                     accentColor="bg-[#ff4d4d]"
-                    sparkline={<Sparkline data={getSparkValues('reposicao_volemica_ultra_pct')} color="#ff4d4d" />}
+                    sparkline={<Sparkline data={getSparkValues('suporte_multiorganico_o2_pct')} color="#ff4d4d" />}
                   />
 
-                  {/* CARD B2: PREVENÇÃO DE HIPOTERMIA SEVERA */}
+                  {/* CARD B2: RESISTÊNCIA À ACIDOSE LÁCTICA */}
                   <MetricCard
-                    title="B2 • PREVENÇÃO DE HIPOTERMIA SEVERA"
-                    subtitle="Estabilidade térmica da solução infundida"
-                    value={(currentReading.prevencao_hipotermia_c || 37.0).toFixed(1)}
-                    unit="°C"
-                    percent={Math.min(100, ((currentReading.prevencao_hipotermia_c || 37.0) / 40) * 100)}
-                    level="success"
-                    badgeText="TÉRMICO"
-                    detail="Evita o congelamento e a tríade da morte em politraumas."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('prevencao_hipotermia_c')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B3: MANUTENÇÃO DA PERFUSÃO CEREBRAL */}
-                  <MetricCard
-                    title="B3 • MANUTENÇÃO DA PERFUSÃO CEREBRAL"
-                    subtitle="Aporte de O₂ ao sistema nervoso central"
-                    value={(currentReading.perfusao_cerebral_pct || 98.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.perfusao_cerebral_pct || 98.0}
-                    level="success"
-                    badgeText="ÓTIMA"
-                    detail="Protege o tecido cerebral contra isquemia e hipóxia pós-traumática."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('perfusao_cerebral_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: CAPACIDADE TAMPÃO ÁCIDO-BASE */}
-                  <MetricCard
-                    title="B4 • CAPACIDADE TAMPÃO ÁCIDO-BASE"
-                    subtitle="Neutralização de acidose metabólica severa"
-                    value={(currentReading.capacidade_tampao_ph || 7.42).toFixed(2)}
+                    title="B2 • RESISTÊNCIA À ACIDOSE LÁCTICA"
+                    subtitle="Capacidade gasosa em pH reduzido"
+                    value={(currentReading.resistencia_acidose_lactica_ph || 7.38).toFixed(2)}
                     unit="pH"
-                    percent={Math.min(100, ((currentReading.capacidade_tampao_ph || 7.42) / 8.5) * 100)}
+                    percent={Math.min(100, ((currentReading.resistencia_acidose_lactica_ph || 7.38) / 8.5) * 100)}
                     level="success"
-                    badgeText="ESTÁVEL"
-                    detail="Restaura o pH fisiológico perante choques hemorrágicos graves."
+                    badgeText="TAMPONADO"
+                    detail="Mantém a capacidade de transporte gasoso mesmo em pH sanguíneo reduzido."
                     icon={FlaskConical}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('capacidade_tampao_ph')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('resistencia_acidose_lactica_ph')} color="#00d8ff" />}
                   />
 
-                  {/* CARD B5: BAIXA VISCOSIDADE DE INFUSÃO */}
+                  {/* CARD B3: ESTABILIDADE EM INFUSÃO PRESSURIZADA */}
                   <MetricCard
-                    title="B5 • BAIXA VISCOSIDADE DE INFUSÃO"
-                    subtitle="Fluidez em acessos venosos periféricos"
-                    value={(currentReading.baixa_viscosidade_cp || 2.1).toFixed(1)}
-                    unit="cP"
-                    percent={Math.min(100, ((currentReading.baixa_viscosidade_cp || 2.1) / 5) * 100)}
+                    title="B3 • ESTABILIDADE EM INFUSÃO PRESSURIZADA"
+                    subtitle="Injeção sob alta velocidade e pressão"
+                    value={(currentReading.estabilidade_infusao_pressurizada_pct || 92.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.estabilidade_infusao_pressurizada_pct || 92.0}
                     level="success"
-                    badgeText="FLUIDO"
-                    detail="Permite infusões sob alta pressão sem resistência de fluxo."
+                    badgeText="RESISTENTE"
+                    detail="Não sofre hemólise sintética quando injetado sob alta velocidade."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_infusao_pressurizada_pct')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B4: CAPACIDADE EXPANSORA DE PLASMA */}
+                  <MetricCard
+                    title="B4 • CAPACIDADE EXPANSORA DE PLASMA"
+                    subtitle="Restabelecimento da pressão arterial"
+                    value={(currentReading.capacidade_expansora_plasma_mmhg || 26.0).toFixed(1)}
+                    unit="mmHg"
+                    percent={Math.min(100, ((currentReading.capacidade_expansora_plasma_mmhg || 26.0) / 35) * 100)}
+                    level="success"
+                    badgeText="ÓTIMA"
+                    detail="Restabelece a pressão arterial em quadros de choque múltiplo."
                     icon={Droplets}
                     accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('baixa_viscosidade_cp')} color="#a855f7" />}
+                    sparkline={<Sparkline data={getSparkValues('capacidade_expansora_plasma_mmhg')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: INTEGRIDADE EM VARIÂNCIA TÉRMICA */}
+                  <MetricCard
+                    title="B5 • INTEGRIDADE EM VARIÂNCIA TÉRMICA"
+                    subtitle="Operação sob hipotermia por trauma"
+                    value={(currentReading.integridade_variancia_termica_c || 36.5).toFixed(1)}
+                    unit="°C"
+                    percent={Math.min(100, ((currentReading.integridade_variancia_termica_c || 36.5) / 40) * 100)}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Funciona adequadamente em quadros de hipotermia por trauma."
+                    icon={Thermometer}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('integridade_variancia_termica_c')} color="#ffb703" />}
                   />
                 </>
               ) : isDoacaoActive ? (
                 <>
-                  {/* CARD B1: EXPRESSÃO ANTIGÊNICA (ABO/Rh) */}
+                  {/* CARD B1: ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE) */}
                   <MetricCard
-                    title="B1 • EXPRESSÃO ANTIGÊNICA (ABO/Rh)"
-                    subtitle="Lote totalmente universal sem reação"
-                    value={(currentReading.expressao_antigenica_pct !== undefined ? currentReading.expressao_antigenica_pct : 0.0).toFixed(1)}
+                    title="B1 • ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE)"
+                    subtitle="Universalidade sem reação hemolítica"
+                    value={(currentReading.isencao_antigenica_pct || 100.0).toFixed(1)}
                     unit="%"
-                    percent={100}
+                    percent={currentReading.isencao_antigenica_pct || 100.0}
                     level="success"
                     badgeText="ISENTO"
-                    detail="Lote totalmente universal, sem risco de reação transfusional."
+                    detail="Ausência de antígenos A, B e Rh, permitindo transfusão sem reação hemolítica."
                     icon={Waves}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('expressao_antigenica_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('isencao_antigenica_pct')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B2: REATIVIDADE EM CROSSMATCH */}
+                  {/* CARD B2: PURIFICAÇÃO BIOLÓGICA */}
                   <MetricCard
-                    title="B2 • REATIVIDADE EM CROSSMATCH (PROVA CRUZADA)"
-                    subtitle="Dispensa teste de cruzamento prévio"
+                    title="B2 • PURIFICAÇÃO BIOLÓGICA"
+                    subtitle="Livre de patógenos, vírus ou bactérias"
+                    value={(currentReading.purificacao_biologica_pct || 99.9).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.purificacao_biologica_pct || 99.9}
+                    level="success"
+                    badgeText="ESTÉRIL"
+                    detail="Totalmente livre de agentes patogênicos, vírus ou bactérias."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('purificacao_biologica_pct')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B3: CONSERVABILIDADE EM ESTOQUE */}
+                  <MetricCard
+                    title="B3 • CONSERVABILIDADE EM ESTOQUE"
+                    subtitle="Estocagem prolongada sob refrigeração"
+                    value={(currentReading.conservabilidade_estoque_dias || 42.0).toFixed(1)}
+                    unit="dias"
+                    percent={Math.min(100, ((currentReading.conservabilidade_estoque_dias || 42.0) / 60) * 100)}
+                    level="success"
+                    badgeText="EXTENSA"
+                    detail="Mantém propriedades funcionais por longos períodos sob refrigeração."
+                    icon={Clock}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('conservabilidade_estoque_dias')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: ESTABILIDADE OSMÓTICA */}
+                  <MetricCard
+                    title="B4 • ESTABILIDADE OSMÓTICA"
+                    subtitle="Manutenção da estrutura molecular na bolsa"
+                    value={(currentReading.estabilidade_osmotica_mosm || 290.0).toFixed(1)}
+                    unit="mOsm"
+                    percent={Math.min(100, ((currentReading.estabilidade_osmotica_mosm || 290.0) / 350) * 100)}
+                    level="success"
+                    badgeText="EQUILIBRADA"
+                    detail="Mantém o volume e a estrutura molecular estáveis na bolsa de estocagem."
+                    icon={FlaskConical}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_osmotica_mosm')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: FLUIDEZ DE FRACIONAMENTO */}
+                  <MetricCard
+                    title="B5 • FLUIDEZ DE FRACIONAMENTO"
+                    subtitle="Divisão em alíquotas para uso clínico"
+                    value={(currentReading.fluidez_fracionamento_cp || 2.5).toFixed(1)}
+                    unit="cP"
+                    percent={Math.min(100, ((currentReading.fluidez_fracionamento_cp || 2.5) / 5) * 100)}
+                    level="success"
+                    badgeText="IDEAL"
+                    detail="Facilita a mistura ou divisão em alíquotas para diferentes necessidades."
+                    icon={Droplets}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('fluidez_fracionamento_cp')} color="#39ff14" />}
+                  />
+                </>
+              ) : isColetaReservaActive ? (
+                <>
+                  {/* CARD B1: LONGEVIDADE DE ARMAZENAMENTO */}
+                  <MetricCard
+                    title="B1 • LONGEVIDADE DE ARMAZENAMENTO"
+                    subtitle="Estocagem prolongada em bancos de reserva"
+                    value={(currentReading.longevidade_armazenamento_dias || 60.0).toFixed(1)}
+                    unit="dias"
+                    percent={Math.min(100, ((currentReading.longevidade_armazenamento_dias || 60.0) / 90) * 100)}
+                    level="success"
+                    badgeText="MÁXIMA"
+                    detail="Formulado para suportar longos períodos em bancos de reserva sem degradação."
+                    icon={Clock}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('longevidade_armazenamento_dias')} color="#00ff9d" />}
+                  />
+
+                  {/* CARD B2: RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA */}
+                  <MetricCard
+                    title="B2 • RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA"
+                    subtitle="Refrigeração profunda sem danos moleculares"
+                    value={(currentReading.resistencia_cristalizacao_termica_c || 4.0).toFixed(1)}
+                    unit="°C"
+                    percent={Math.min(100, ((currentReading.resistencia_cristalizacao_termica_c || 4.0) / 10) * 100)}
+                    level="success"
+                    badgeText="PROTEGIDO"
+                    detail="Previne danos moleculares sob congelamento ou refrigeração profunda."
+                    icon={Thermometer}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('resistencia_cristalizacao_termica_c')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B3: MANUTENÇÃO DE pH EM ESTOCAGEM */}
+                  <MetricCard
+                    title="B3 • MANUTENÇÃO DE pH EM ESTOCAGEM"
+                    subtitle="Estabilidade do pH ao longo do tempo"
+                    value={(currentReading.manutencao_ph_estocagem || 7.40).toFixed(2)}
+                    unit="pH"
+                    percent={Math.min(100, ((currentReading.manutencao_ph_estocagem || 7.40) / 8.5) * 100)}
+                    level="success"
+                    badgeText="ESTÁVEL"
+                    detail="Evita a acidificação da amostra durante o tempo de reserva."
+                    icon={FlaskConical}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('manutencao_ph_estocagem')} color="#00d8ff" />}
+                  />
+
+                  {/* CARD B4: INTEGRIDADE DA MEMBRANA SINTÉTICA */}
+                  <MetricCard
+                    title="B4 • INTEGRIDADE DA MEMBRANA SINTÉTICA"
+                    subtitle="Ausência de agregação ou precipitação"
+                    value={(currentReading.integridade_membrana_sintetica_pct || 95.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.integridade_membrana_sintetica_pct || 95.0}
+                    level="success"
+                    badgeText="PRESERVADA"
+                    detail="Mantém a estrutura das micropartículas sem agregação ou precipitação."
+                    icon={ShieldCheck}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('integridade_membrana_sintetica_pct')} color="#a855f7" />}
+                  />
+
+                  {/* CARD B5: REATIVIDADE PÓS-DESCONGELAMENTO */}
+                  <MetricCard
+                    title="B5 • REATIVIDADE PÓS-DESCONGELAMENTO"
+                    subtitle="Capacidade de O₂ após aquecimento"
+                    value={(currentReading.reatividade_pos_descongelamento_pct || 98.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.reatividade_pos_descongelamento_pct || 98.0}
+                    level="success"
+                    badgeText="INVIOLADA"
+                    detail="Retoma a capacidade total de transporte de O₂ após o aquecimento."
+                    icon={Waves}
+                    accentColor="bg-[#39ff14]"
+                    sparkline={<Sparkline data={getSparkValues('reatividade_pos_descongelamento_pct')} color="#39ff14" />}
+                  />
+                </>
+              ) : isTipagemCompatibilidadeActive ? (
+                <>
+                  {/* CARD B1: REATIVIDADE EM PROVA CRUZADA (CROSSMATCH) */}
+                  <MetricCard
+                    title="B1 • REATIVIDADE EM PROVA CRUZADA (CROSSMATCH)"
+                    subtitle="Zero aglutinação com soro ou plasma de receptores"
                     value={(currentReading.reatividade_crossmatch_pct !== undefined ? currentReading.reatividade_crossmatch_pct : 0.0).toFixed(1)}
                     unit="%"
                     percent={100}
                     level="success"
                     badgeText="NULA"
-                    detail="Dispensa a necessidade de teste de cruzamento prévio."
+                    detail="Zero aglutinação em contato com soro ou plasma de qualquer receptor."
                     icon={ShieldCheck}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B3: PUREZA MOLECULAR */}
-                  <MetricCard
-                    title="B3 • PUREZA MOLECULAR"
-                    subtitle="Ausência de impurezas e membranas"
-                    value={(currentReading.pureza_molecular_pct || 99.9).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.pureza_molecular_pct || 99.9}
-                    level="success"
-                    badgeText="EXCELENTE"
-                    detail="Garante a ausência de fragmentos de membranas e impurezas."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('pureza_molecular_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: ESTERILIDADE BIOLÓGICA */}
-                  <MetricCard
-                    title="B4 • ESTERILIDADE BIOLÓGICA"
-                    subtitle="Garantia contra vírus ou bactérias"
-                    value={(currentReading.esterilidade_biologica_pct || 100.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.esterilidade_biologica_pct || 100.0}
-                    level="success"
-                    badgeText="LIVRE"
-                    detail="Garantia absoluta contra a transmissão de vírus ou bactérias."
-                    icon={Droplets}
                     accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('esterilidade_biologica_pct')} color="#39ff14" />}
+                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#39ff14" />}
                   />
-                </>
-              ) : isColetaReservaActive ? (
-                <>
-                  {/* CARD B1: INTEGRALIDADE DE CONSERVAÇÃO */}
+
+                  {/* CARD B2: NEUTRALIDADE DE ANTICORPOS IRREGULARES */}
                   <MetricCard
-                    title="B1 • INTEGRALIDADE DE CONSERVAÇÃO"
-                    subtitle="Preservação da estrutura molecular em estoque"
-                    value={(currentReading.integralidade_conservacao_pct || 100.0).toFixed(1)}
+                    title="B2 • NEUTRALIDADE DE ANTICORPOS IRREGULARES"
+                    subtitle="Segurança em receptores multitransfundidos"
+                    value={(currentReading.neutralidade_anticorpos_pct || 100.0).toFixed(1)}
                     unit="%"
-                    percent={currentReading.integralidade_conservacao_pct || 100.0}
+                    percent={currentReading.neutralidade_anticorpos_pct || 100.0}
                     level="success"
-                    badgeText="PRESERVADA"
-                    detail="Conserva a integridade funcional do composto por longos períodos."
-                    icon={ShieldCheck}
+                    badgeText="NEUTRO"
+                    detail="Não induz resposta imune em receptores multitransfundidos ou sensibilizados."
+                    icon={Waves}
                     accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('integralidade_conservacao_pct')} color="#00ff9d" />}
+                    sparkline={<Sparkline data={getSparkValues('neutralidade_anticorpos_pct')} color="#00ff9d" />}
                   />
 
-                  {/* CARD B2: PRAZO DE VALIDADE EM ESTOQUE */}
+                  {/* CARD B3: FIDELIDADE DE PADRÃO MOLECULAR */}
                   <MetricCard
-                    title="B2 • PRAZO DE VALIDADE EM ESTOQUE"
-                    subtitle="Estabilidade prolongada fora da refrigeração"
-                    value={currentReading.validade_estoque_meses || "24 Meses"}
-                    unit=""
-                    percent={100}
+                    title="B3 • FIDELIDADE DE PADRÃO MOLECULAR"
+                    subtitle="Resposta uniforme em testes automatizados"
+                    value={(currentReading.fidelidade_padrao_molecular_pct || 99.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.fidelidade_padrao_molecular_pct || 99.0}
                     level="success"
-                    badgeText="ESTÁVEL"
-                    detail="Permite estocagem prolongada em bancos de sangue hospitalares e militares."
-                    icon={Clock}
+                    badgeText="PADRONIZADO"
+                    detail="Resposta uniforme e previsível em testes laboratoriais automatizados."
+                    icon={FlaskConical}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('fidelidade_padrao_molecular_pct')} color="#02c39a" />}
+                  />
+
+                  {/* CARD B4: ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO */}
+                  <MetricCard
+                    title="B4 • ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO"
+                    subtitle="Comportamento inerte em anticorpos raros"
+                    value={(currentReading.estabilidade_painel_pct || 98.0).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.estabilidade_painel_pct || 98.0}
+                    level="success"
+                    badgeText="ALTÍSSIMA"
+                    detail="Mantém o comportamento inerte mesmo na presença de anticorpos raros."
+                    icon={Droplets}
                     accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('integralidade_conservacao_pct')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_painel_pct')} color="#00d8ff" />}
                   />
 
-                  {/* CARD B3: TOLERÂNCIA A CONGELAMENTO */}
+                  {/* CARD B5: LIMPIDEZ SPECTROFOTOMÉTRICA */}
                   <MetricCard
-                    title="B3 • TOLERÂNCIA A CONGELAMENTO"
-                    subtitle="Resistência ao armazenamento criogênico"
-                    value={(currentReading.tolerancia_congelamento_c || -80.0).toFixed(1)}
-                    unit="°C"
-                    percent={100}
+                    title="B5 • LIMPIDEZ SPECTROFOTOMÉTRICA"
+                    subtitle="Leitura óptica precisa sem interferências"
+                    value={(currentReading.limpidez_spectrofotometrica_pct || 99.9).toFixed(1)}
+                    unit="%"
+                    percent={currentReading.limpidez_spectrofotometrica_pct || 99.9}
                     level="success"
-                    badgeText="CRIO-PROTEGIDO"
-                    detail="Permite criopreservação em temperaturas extremamente baixas sem precipitação."
+                    badgeText="TRANSPARENTE"
+                    detail="Permite leitura óptica precisa sem interferir nos reagentes de tipagem."
                     icon={Thermometer}
                     accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('tolerancia_congelamento_c')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B4: ESTABILIDADE DE SUSPENSÃO */}
-                  <MetricCard
-                    title="B4 • ESTABILIDADE DE SUSPENSÃO"
-                    subtitle="Distribuição homogênea das moléculas carreadoras"
-                    value={(currentReading.estabilidade_suspensao_pct || 99.9).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.estabilidade_suspensao_pct || 99.9}
-                    level="success"
-                    badgeText="HOMOGÊNEA"
-                    detail="Evita decantação ou separação de fases durante a estocagem."
-                    icon={FlaskConical}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_suspensao_pct')} color="#02c39a" />}
-                  />
-                </>
-              ) : isTipagemCompatibilidadeActive ? (
-                <>
-                  {/* CARD B1: FATOR DE COMPATIBILIDADE UNIVERSAL */}
-                  <MetricCard
-                    title="B1 • FATOR DE COMPATIBILIDADE UNIVERSAL"
-                    subtitle="Isenção total de rejeição transfusional"
-                    value={(currentReading.fator_compatibilidade_pct || 100.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.fator_compatibilidade_pct || 100.0}
-                    level="success"
-                    badgeText="UNIVERSAL"
-                    detail="Compatível com qualquer tipo sanguíneo humano (A, B, AB, O, Rh+ ou Rh-)."
-                    icon={Waves}
-                    accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('fator_compatibilidade_pct')} color="#39ff14" />}
-                  />
-
-                  {/* CARD B2: AUSÊNCIA DE ANTÍGENOS ABO/Rh */}
-                  <MetricCard
-                    title="B2 • AUSÊNCIA DE ANTÍGENOS ABO/Rh"
-                    subtitle="Inexistência de marcadores de membrana"
-                    value={(currentReading.ausencia_antigenos_pct !== undefined ? currentReading.ausencia_antigenos_pct : 0.0).toFixed(1)}
-                    unit="%"
-                    percent={100}
-                    level="success"
-                    badgeText="NEGATIVO"
-                    detail="Ausência completa de aglutinogênios A, B e Fator Rh."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('ausencia_antigenos_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B3: REAÇÃO HETERÓLOGA */}
-                  <MetricCard
-                    title="B3 • REAÇÃO HETERÓLOGA"
-                    subtitle="Isenção de reatividade plasmática"
-                    value={(currentReading.reacao_heterologa_pct !== undefined ? currentReading.reacao_heterologa_pct : 0.0).toFixed(1)}
-                    unit="%"
-                    percent={100}
-                    level="success"
-                    badgeText="INEXISTENTE"
-                    detail="Não reage com anticorpos anti-A ou anti-B do plasma receptor."
-                    icon={FlaskConical}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('reacao_heterologa_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B4: SEGURANÇA EM RECEPTORES SENSIBILIZADOS */}
-                  <MetricCard
-                    title="B4 • SEGURANÇA EM RECEPTORES SENSIBILIZADOS"
-                    subtitle="Segurança em pacientes com múltiplos anticorpos"
-                    value={(currentReading.seguranca_sensibilizados_pct || 100.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.seguranca_sensibilizados_pct || 100.0}
-                    level="success"
-                    badgeText="SEGURO"
-                    detail="Pode ser infundido com segurança total em pacientes poli-transfundidos."
-                    icon={Droplets}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('seguranca_sensibilizados_pct')} color="#00d8ff" />}
+                    sparkline={<Sparkline data={getSparkValues('limpidez_spectrofotometrica_pct')} color="#a855f7" />}
                   />
                 </>
               ) : (
@@ -1455,13 +1559,20 @@ while True:
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
                   <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
-                    CAMADA 4: TRADUTOR CIENTÍFICO CONVERSACIONAL
+                    CAMADA 4: ASSISTENTE VIRTUAL FLOW
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  ONLINE
-                </div>
+                {arduinoData.isConnected ? (
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    ONLINE
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                    [AGUARDANDO LEITURA SERIAL]
+                  </div>
+                )}
               </div>
 
               {/* Mensagens do Chat */}
@@ -1482,11 +1593,1082 @@ while True:
                     </div>
                     
                     <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
-                      {msg.role === 'user' ? 'Visitante' : 'Tradutor Clínico EcoSanguis'}
+                      {msg.role === 'user' ? 'Visitante' : 'Flow'}
                     </span>
 
+                    {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isEmergenciaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                            LAUDO CLÍNICO: ATENDIMENTO PRÉ-HOSPITALAR
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-emerald-500/10 border border-emerald-500/30 text-[#00ff9d] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Saturação de O₂ */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Saturação de O₂</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.oxigenacao_limpa * 100 || 98.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ÓTIMO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.oxigenacao_limpa * 100 || 98.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Resistência de Fluxo / Viscosidade */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Resistência de Fluxo / Viscosidade</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.viscosidade_cp || 2.3).toFixed(1)} cP</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  FLUIDO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.viscosidade_cp || 2.3) / 5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Estabilidade Térmica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Estabilidade Térmica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.temperatura_c || 22.0).toFixed(1)} °C</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffb703]/15 border border-[#ffb703]/40 text-[#ffb703]">
+                                  ESTÁVEL
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.temperatura_c || 22.0) / 40) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Tempo de Meia-Vida Circulatória */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Tempo de Meia-Vida Circulatória</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.meia_vida_h || 24.0).toFixed(1)} h</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  SUFICIENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.meia_vida_h || 24.0) / 48) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Índice de Extração de O₂ */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Índice de Extração de O₂</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.extracao_o2_pct || 42.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
+                                  ALTO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.extracao_o2_pct || 42.0)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para atendimento pré-hospitalar.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Estilizado Neon para Trauma e Hemorragia Grave (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isTraumaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#ff0055] animate-pulse" />
+                            LAUDO CLÍNICO: TRAUMA E HEMORRAGIA GRAVE
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#ff0055]/10 border border-[#ff0055]/30 text-[#ff0055] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Capacidade de Carga de O₂ */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Capacidade de Carga de O₂</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.carga_o2_pct || 99.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ff0055]/15 border border-[#ff0055]/40 text-[#ff0055]">
+                                  MÁXIMA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ff0055] shadow-[0_0_8px_#ff0055] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.carga_o2_pct || 99.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Pressão Oncótica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Pressão Oncótica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.pressao_oncotica_mmhg || 25.0).toFixed(1)} mmHg</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  FISIOLÓGICA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.pressao_oncotica_mmhg || 25.0) / 30) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Permutabilidade Gasosa */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Permutabilidade Gasosa</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.permutabilidade_gasosa_pct || 95.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  EFICIENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.permutabilidade_gasosa_pct || 95.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Resistência à Compressão Mecânica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Resistência à Compressão Mecânica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.resistencia_compressao_pct || 90.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ff9100]/15 border border-[#ff9100]/40 text-[#ff9100]">
+                                  ALTA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ff9100] shadow-[0_0_8px_#ff9100] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.resistencia_compressao_pct || 90.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Tamponamento Ácido-Básico */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Tamponamento Ácido-Básico</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.tamponamento_ph || 7.40).toFixed(2)} pH</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  NEUTRO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.tamponamento_ph || 7.40) / 8.5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para ressuscitação volêmica e controle de trauma.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Estilizado Neon para Cirurgia Cardíaca e Cardiovascular (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isCirurgiaCardiacaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#00d8ff] animate-pulse" />
+                            LAUDO CLÍNICO: CIRURGIA CARDIOVASCULAR (CEC)
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#00d8ff]/10 border border-[#00d8ff]/30 text-[#00d8ff] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Compatibilidade Perfusão CEC */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Compatibilidade Perfusão CEC</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.compatibilidade_cec_pct || 98.5).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  EXCELENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.compatibilidade_cec_pct || 98.5)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Tensão de Cisalhamento */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Tensão de Cisalhamento</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.tensao_cisalhamento_cp || 1.8).toFixed(1)} cP</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  TOLERANTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.tensao_cisalhamento_cp || 1.8) / 5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Tempo de Meia-Vida Extended */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Tempo de Meia-Vida Extended</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.meia_vida_extended_h || 48.0).toFixed(1)} h</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
+                                  PROLONGADO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.meia_vida_extended_h || 48.0) / 72) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Tamponamento de Lactato */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Tamponamento de Lactato</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.tamponamento_lactato_ph || 7.42).toFixed(2)} pH</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ATIVO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.tamponamento_lactato_ph || 7.42) / 8.5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Viscosidade em Hipotermia */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Viscosidade em Hipotermia</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.viscosidade_hipotermia_cp || 3.0).toFixed(1)} cP</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
+                                  CONTROLADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.viscosidade_hipotermia_cp || 3.0) / 6) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para procedimentos cirúrgicos extracorpóreos.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Estilizado Neon para Tratamento de Anemias Graves (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isAnemiaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#ffd000] animate-pulse" />
+                            LAUDO CLÍNICO: TRATAMENTO DE ANEMIAS GRAVES
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#ffd000]/10 border border-[#ffd000]/30 text-[#ffd000] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Eficiência de Liberação O₂ (P50) */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Eficiência de Liberação O₂ (P50)</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.eficiencia_p50_mmhg || 28.0).toFixed(1)} mmHg</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
+                                  OTIMIZADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.eficiencia_p50_mmhg || 28.0) / 40) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Ausência de Resposta Imunogênica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Ausência de Resposta Imunogênica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.ausencia_imunogenica_pct || 100.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ISENTO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.ausencia_imunogenica_pct || 100.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Estabilidade Plasmática */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Estabilidade Plasmática</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_plasmatica_pct || 96.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  ALTA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.estabilidade_plasmatica_pct || 96.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Tolerância a Infusão Lenta */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Tolerância a Infusão Lenta</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.tolerancia_infusao_lenta_h || 24.0).toFixed(1)} h</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  EXCELENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.tolerancia_infusao_lenta_h || 24.0) / 48) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Retenção Vascular */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Retenção Vascular</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.retencao_vascular_pct || 94.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
+                                  PRESERVADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.retencao_vascular_pct || 94.0)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para suporte transfusional crônico e anemia severa.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Estilizado Neon para Tratamento Oncológico (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isOncologicoActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#c084fc] animate-pulse" />
+                            LAUDO CLÍNICO: SUPORTE ONCOLÓGICO
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#c084fc]/10 border border-[#c084fc]/30 text-[#c084fc] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Compatibilidade Quimioterápica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Compatibilidade Quimioterápica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.compatibilidade_quimioterapica_pct || 99.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#c084fc]/15 border border-[#c084fc]/40 text-[#c084fc]">
+                                  INERTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#c084fc] shadow-[0_0_8px_#c084fc] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.compatibilidade_quimioterapica_pct || 99.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Proteção Estresse Oxidativo */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Proteção Estresse Oxidativo</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.protecao_estresse_oxidativo_pct || 94.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  ELEVADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.protecao_estresse_oxidativo_pct || 94.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Permeabilidade Microcirculação */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Permeabilidade Microcirculação</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.permeabilidade_microcirculacao_cp || 2.0).toFixed(1)} cP</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  LIVRE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.permeabilidade_microcirculacao_cp || 2.0) / 5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Estabilidade Neutropênica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Estabilidade Neutropênica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_neutropenica_pct || 100.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
+                                  SEGURO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.estabilidade_neutropenica_pct || 100.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Índice Purificação Molecular */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Índice Purificação Molecular</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.purificacao_molecular_pct || 99.5).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffb703]/15 border border-[#ffb703]/40 text-[#ffb703]">
+                                  PUREZA MÁXIMA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.purificacao_molecular_pct || 99.5)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para administração concomitantemente a terapias oncológicas.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Estilizado Neon para Atendimento a Pacientes Politraumatizados (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isPolitraumatizadosActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#ff4d4d] animate-pulse" />
+                            LAUDO CLÍNICO: PACIENTES POLITRAUMATIZADOS
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#ff4d4d]/10 border border-[#ff4d4d]/30 text-[#ff4d4d] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Suporte Multiorgânico de O₂ */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Suporte Multiorgânico de O₂</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.suporte_multiorganico_o2_pct || 97.5).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ff4d4d]/15 border border-[#ff4d4d]/40 text-[#ff4d4d]">
+                                  CRÍTICO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ff4d4d] shadow-[0_0_8px_#ff4d4d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.suporte_multiorganico_o2_pct || 97.5)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Resistência à Acidose Láctica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Resistência à Acidose Láctica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.resistencia_acidose_lactica_ph || 7.38).toFixed(2)} pH</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  TAMPONADO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.resistencia_acidose_lactica_ph || 7.38) / 8.5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Estabilidade Infusão Pressurizada */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Estabilidade Infusão Pressurizada</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_infusao_pressurizada_pct || 92.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
+                                  RESISTENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.estabilidade_infusao_pressurizada_pct || 92.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Capacidade Expansora de Plasma */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Capacidade Expansora de Plasma</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.capacidade_expansora_plasma_mmhg || 26.0).toFixed(1)} mmHg</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  ÓTIMA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.capacidade_expansora_plasma_mmhg || 26.0) / 30) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Integridade em Variância Térmica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Integridade em Variância Térmica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.integridade_variancia_termica_c || 36.5).toFixed(1)} °C</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ESTÁVEL
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.integridade_variancia_termica_c || 36.5) / 45) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para choque múltiplo e politrauma crítico.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Estilizado Neon para Doação de Sangue (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isDoacaoActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#00ff9d] animate-pulse" />
+                            LAUDO CLÍNICO: DOAÇÃO E PROCESSAMENTO DE SANGUE
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#00ff9d]/10 border border-[#00ff9d]/30 text-[#00ff9d] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Isenção Antigênica Universal */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Isenção Antigênica Universal</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.isencao_antigenica_pct || 100.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ISENTO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.isencao_antigenica_pct || 100.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Purificação Biológica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Purificação Biológica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.purificacao_biologica_pct || 99.9).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  ESTÉRIL
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.purificacao_biologica_pct || 99.9)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Conservabilidade em Estoque */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Conservabilidade em Estoque</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.conservabilidade_estoque_dias || 42.0).toFixed(1)} dias</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffb703]/15 border border-[#ffb703]/40 text-[#ffb703]">
+                                  EXTENSA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.conservabilidade_estoque_dias || 42.0) / 60) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Estabilidade Osmótica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Estabilidade Osmótica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_osmotica_mosm || 290.0).toFixed(1)} mOsm</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  EQUILIBRADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.estabilidade_osmotica_mosm || 290.0) / 350) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Fluidez de Fracionamento */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Fluidez de Fracionamento</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.fluidez_fracionamento_cp || 2.5).toFixed(1)} cP</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
+                                  IDEAL
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.fluidez_fracionamento_cp || 2.5) / 5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote universalmente compatível e liberado para distribuição.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Estilizado Neon para Coleta e Reserva de Sangue (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isColetaReservaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#38bdf8] animate-pulse" />
+                            LAUDO CLÍNICO: BANCO DE RESERVA E ARMAZENAMENTO
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#38bdf8]/10 border border-[#38bdf8]/30 text-[#38bdf8] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Longevidade de Armazenamento */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Longevidade de Armazenamento</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.longevidade_armazenamento_dias || 60.0).toFixed(1)} dias</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#38bdf8]/15 border border-[#38bdf8]/40 text-[#38bdf8]">
+                                  MÁXIMA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.longevidade_armazenamento_dias || 60.0) / 90) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Resistência à Cristalização Térmica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Resistência à Cristalização Térmica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.resistencia_cristalizacao_c || 4.0).toFixed(1)} °C</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  PROTEGIDO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.resistencia_cristalizacao_c || 4.0) / 10) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Manutenção de pH em Estocagem */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Manutenção de pH em Estocagem</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.manutencao_ph_estocagem || 7.40).toFixed(2)} pH</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ESTÁVEL
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.manutencao_ph_estocagem || 7.40) / 8.5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Integridade da Membrana Sintética */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Integridade da Membrana Sintética</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.integridade_membrana_pct || 95.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  PRESERVADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.integridade_membrana_pct || 95.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Reatividade Pós-Descongelamento */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Reatividade Pós-Descongelamento</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.reatividade_pos_descongelamento_pct || 98.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ff9100]/15 border border-[#ff9100]/40 text-[#ff9100]">
+                                  INVIOLADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ff9100] shadow-[0_0_8px_#ff9100] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.reatividade_pos_descongelamento_pct || 98.0)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote apto para estocagem de longa duração em banco de sangue.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Estilizado Neon para Tipagem Sanguínea e Testes de Compatibilidade (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isTipagemCompatibilidadeActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#00ff9d] animate-pulse" />
+                            LAUDO CLÍNICO: TIPAGEM E TESTES DE COMPATIBILIDADE
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#00ff9d]/10 border border-[#00ff9d]/30 text-[#00ff9d] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Reatividade em Prova Cruzada */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Reatividade em Prova Cruzada</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.reatividade_crossmatch_pct || 0.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  NULA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.max(5, 100 - (currentReading.reatividade_crossmatch_pct || 0.0))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Neutralidade de Anticorpos */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Neutralidade de Anticorpos</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.neutralidade_anticorpos_pct || 100.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  NEUTRO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.neutralidade_anticorpos_pct || 100.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Fidelidade de Padrão Molecular */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Fidelidade de Padrão Molecular</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.fidelidade_padrao_molecular_pct || 99.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  PADRONIZADO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.fidelidade_padrao_molecular_pct || 99.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Estabilidade em Painel Imuno */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Estabilidade em Painel Imuno</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_painel_imuno_pct || 98.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
+                                  ALTÍSSIMA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.estabilidade_painel_imuno_pct || 98.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Limpidez Espectrofotométrica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Limpidez Espectrofotométrica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.limpidez_espectrofotometrica_pct || 99.9).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#e2e8f0]/15 border border-[#e2e8f0]/40 text-[#e2e8f0]">
+                                  TRANSPARENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#e2e8f0] shadow-[0_0_8px_#e2e8f0] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.limpidez_espectrofotometrica_pct || 99.9)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote validado sem interferências imunológicas em testes de laboratório.</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Bloco de IA Explicável Integrado */}
-                    {msg.role === 'assistant' && msg.explicabilidade && (
+                    {msg.role === 'assistant' && msg.showAnalysisCard && msg.explicabilidade && (!isEmergenciaActive && !isTraumaActive && !isCirurgiaCardiacaActive && !isAnemiaActive && !isOncologicoActive && !isPolitraumatizadosActive && !isDoacaoActive && !isColetaReservaActive && !isTipagemCompatibilidadeActive) && (
                       <div className="mt-2.5 w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-2.5">
                         <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                           <span className="text-[10px] font-mono font-bold tracking-wider text-slate-300 flex items-center gap-1.5">

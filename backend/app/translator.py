@@ -19,14 +19,14 @@ def responder_pergunta_cientifica(pergunta: str, db: Session) -> str:
         lote = db.query(Lote).filter(Lote.id == lote_id).first()
         
         if not lote:
-            return f"🔬 **[Tradutor Científico]**: Não encontrei nenhum lote cadastrado sob o identificador **{lote_id}**. Por favor, verifique se ele foi registrado corretamente no painel do laboratório."
+            return f"🔬 **[Assistente Flow]**: Não encontrei nenhum lote cadastrado sob o identificador **{lote_id}**. Por favor, verifique se ele foi registrado corretamente no painel do laboratório."
             
         # Pegar a leitura mais recente deste lote
         leitura = db.query(LeituraSensor).filter(LeituraSensor.lote_id == lote_id).order_by(LeituraSensor.timestamp.desc()).first()
         
         if not leitura:
             return (
-                f"🔬 **[Tradutor Científico]**: Encontrei o lote **{lote_id}** ({lote.composicao}), mas ainda não há nenhuma leitura "
+                f"🔬 **[Assistente Flow]**: Encontrei o lote **{lote_id}** ({lote.composicao}), mas ainda não há nenhuma leitura "
                 "de sensores enviada para ele. Por favor, ligue o Arduino ou dispare dados simulados para este lote para iniciarmos a análise!"
             )
             
@@ -70,7 +70,7 @@ def responder_pergunta_cientifica(pergunta: str, db: Session) -> str:
         # Buscar a leitura mais recente de qualquer lote
         leitura_recente = db.query(LeituraSensor).order_by(LeituraSensor.timestamp.desc()).first()
         if not leitura_recente:
-            return "🔬 **[Tradutor Científico]**: Ainda não recebemos nenhuma leitura de sensor do Arduino. Certifique-se de que o script de ponte `bridge_arduino.py` está rodando no computador da feira!"
+            return "🔬 **[Assistente Flow]**: Ainda não recebemos nenhuma leitura de sensor do Arduino. Certifique-se de que o script de ponte `bridge_arduino.py` está rodando no computador da feira!"
             
         lote_id = leitura_recente.lote_id
         analise = analisar_risco_ia(
@@ -118,7 +118,7 @@ def responder_pergunta_cientifica(pergunta: str, db: Session) -> str:
             "1. **Camada de Dados:** Recebe os dados crus via API (`POST /api/sensor-data`) vindos do Arduino e armazena na base de dados SQLite.\n"
             "2. **Camada de Processamento:** Limpa ruídos, formata decimais, estima pH/viscosidade/hematócrito e avalia limites básicos.\n"
             "3. **Camada de IA Explicável:** Executa inferência sobre os dados limpos, atribuindo peso de risco a cada sensor de forma transparente.\n"
-            "4. **Camada de Intermediação (Tradutor Científico):** É este chatbot, que traduz todos os gráficos complexos e termos médicos em uma conversa amigável para você!"
+            "4. **Camada de Intermediação (Assistente Flow):** É este chatbot, que traduz todos os gráficos complexos e termos médicos em uma conversa amigável para você!"
         )
         
     # 5. Explicação geral sobre sangue artificial
@@ -135,7 +135,7 @@ def responder_pergunta_cientifica(pergunta: str, db: Session) -> str:
 
     # 6. Fallback educacional
     return (
-        "🔬 **[Tradutor Científico]**: Olá! Bem-vindo ao estande do Sangue Artificial Inteligente.\n\n"
+        "🔬 **[Assistente Flow]**: Olá! Bem-vindo ao estande do Sangue Artificial Inteligente.\n\n"
         "Você pode fazer perguntas práticas como:\n"
         "- *'Qual o estado do Lote SA-023?'*\n"
         "- *'Por que o Lote SA-024 está em risco?'*\n"

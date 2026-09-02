@@ -47,45 +47,201 @@ def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
             "b4_meia_vida": f"{meia_vida:.1f} h",
             "b5_extracao_o2": f"{extracao:.1f}%"
         }
-    elif "Transplante" in finalidade or "Órgãos" in finalidade or lote_id == "SA-024":
-        # B1-B5 Preservação de Órgãos para Transplante
-        p_osmotica = 25.0 + random.uniform(-0.2, 0.2)
-        antioxidante = 94.5 + random.uniform(-0.3, 0.3)
-        ph = 7.38 + random.uniform(-0.02, 0.02)
-        pco2 = 40.0 + random.uniform(-0.4, 0.4)
-        glicose = 100.0 + random.uniform(-0.5, 0.5)
+    elif "Trauma" in finalidade or "Hemorragia" in finalidade:
+        # B1-B5 Trauma e Hemorragia Grave
+        carga_o2 = 99.0 + random.uniform(-0.2, 0.2)
+        pressao_oncotica = 25.0 + random.uniform(-0.2, 0.2)
+        permutabilidade = 95.0 + random.uniform(-0.3, 0.3)
+        resistencia_compressao = 90.0 + random.uniform(-0.3, 0.3)
+        tamponamento_ph = 7.40 + random.uniform(-0.02, 0.02)
         
         return {
             "lote_id": lote_id,
-            "finalidade": "Preservação Avançada de Órgãos para Transplante",
-            "b1_pressao_osmotica": f"{p_osmotica:.1f} mmHg",
-            "b2_antioxidante": f"{antioxidante:.1f}%",
-            "b3_ph": f"{ph:.2f} pH",
-            "b4_pco2": f"{pco2:.1f} mmHg",
-            "b5_glicose": f"{glicose:.1f} mg/dL",
-            "oxigenacao": "98.0%",
-            "temperatura": "4.0C",
-            "vazao": "3.5 L/min"
-        }
-    elif "Altitude" in finalidade or "Altitudes" in finalidade or lote_id == "SA-025":
-        # B1-B4 Resgate e Cirurgias em Altas Altitudes
-        p50 = 34.0 + random.uniform(-0.3, 0.3)
-        ponto_congelamento = -2.5 + random.uniform(-0.1, 0.1)
-        saturacao_o2 = 96.5 + random.uniform(-0.3, 0.3)
-        po2 = 92.0 + random.uniform(-0.4, 0.4)
-        
-        return {
-            "lote_id": lote_id,
-            "finalidade": "Resgate e Cirurgias em Altas Altitudes",
-            "b1_p50": f"{p50:.1f} mmHg",
-            "b2_ponto_congelamento": f"{ponto_congelamento:.1f}°C",
-            "b3_saturacao_o2": f"{saturacao_o2:.1f}%",
-            "b4_po2": f"{po2:.1f} mmHg",
-            "oxigenacao": f"{saturacao_o2:.1f}%",
-            "temperatura": f"{ponto_congelamento:.1f}C",
+            "finalidade": "Trauma e Hemorragia Grave",
+            "b1_carga_o2": f"{carga_o2:.1f}%",
+            "b2_pressao_oncotica": f"{pressao_oncotica:.1f} mmHg",
+            "b3_permutabilidade": f"{permutabilidade:.1f}%",
+            "b4_resistencia_compressao": f"{resistencia_compressao:.1f}%",
+            "b5_tamponamento_ph": f"{tamponamento_ph:.2f} pH",
+            "b1_status": "MÁXIMA",
+            "b2_status": "FISIOLÓGICA",
+            "b3_status": "EFICIENTE",
+            "b4_status": "ALTA",
+            "b5_status": "NEUTRO",
+            "oxigenacao": f"{carga_o2:.1f}%",
+            "temperatura": "36.5C",
             "vazao": "4.8 L/min"
         }
-    elif "Monóxido" in finalidade or "Envenenamento" in finalidade or "CO" in finalidade:
+    elif "Cirurgia" in finalidade or "Cardíaca" in finalidade or "Cardiaca" in finalidade or "Cardiovascular" in finalidade:
+        # B1-B5 Cirurgia Cardíaca e Cardiovascular
+        compatibilidade_cec = 98.5 + random.uniform(-0.2, 0.2)
+        tensao_cisalhamento = 1.8 + random.uniform(-0.1, 0.1)
+        meia_vida_extended = 48.0 + random.uniform(-0.2, 0.2)
+        tamponamento_lactato = 7.42 + random.uniform(-0.02, 0.02)
+        viscosidade_hipotermia = 3.0 + random.uniform(-0.1, 0.1)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Cirurgia Cardíaca e Cardiovascular",
+            "b1_compatibilidade_cec": f"{compatibilidade_cec:.1f}%",
+            "b2_tensao_cisalhamento": f"{tensao_cisalhamento:.1f} cP",
+            "b3_meia_vida_extended": f"{meia_vida_extended:.1f} h",
+            "b4_tamponamento_lactato": f"{tamponamento_lactato:.2f} pH",
+            "b5_viscosidade_hipotermia": f"{viscosidade_hipotermia:.1f} cP",
+            "b1_status": "EXCELENTE",
+            "b2_status": "TOLERANTE",
+            "b3_status": "PROLONGADO",
+            "b4_status": "ATIVO",
+            "b5_status": "CONTROLADA",
+            "oxigenacao": f"{compatibilidade_cec:.1f}%",
+            "temperatura": f"{viscosidade_hipotermia:.1f}C",
+            "vazao": "4.8 L/min"
+        }
+    elif "Anemia" in finalidade or "Anemias" in finalidade:
+        # B1-B5 Tratamento de Anemias Graves
+        p50 = 28.0 + random.uniform(-0.2, 0.2)
+        imuno = 100.0
+        estabilidade = 96.0 + random.uniform(-0.2, 0.2)
+        infusao_lenta = 36.0 + random.uniform(-0.2, 0.2)
+        retencao_vascular = 30.0 + random.uniform(-0.2, 0.2)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Tratamento de Anemias Graves",
+            "b1_p50": f"{p50:.1f} mmHg",
+            "b2_ausencia_imunogenica": f"{imuno:.1f}%",
+            "b3_estabilidade_plasmatica": f"{estabilidade:.1f}%",
+            "b4_tolerancia_infusao_lenta": f"{infusao_lenta:.1f} h",
+            "b5_retencao_vascular": f"{retencao_vascular:.1f} h",
+            "b1_status": "OTIMIZADA",
+            "b2_status": "ISENTO",
+            "b3_status": "ALTA",
+            "b4_status": "ADAPTADO",
+            "b5_status": "ESTÁVEL",
+            "oxigenacao": "96.0%",
+            "temperatura": "36.5C",
+            "vazao": "4.8 L/min"
+    elif "Oncológico" in finalidade or "Oncologico" in finalidade:
+        # B1-B5 Tratamento Oncológico
+        quimio = 99.0 + random.uniform(-0.2, 0.2)
+        estresse_ox = 94.0 + random.uniform(-0.2, 0.2)
+        microcirculacao = 2.0 + random.uniform(-0.1, 0.1)
+        neutropenicos = 100.0
+        purificacao = 99.5 + random.uniform(-0.1, 0.1)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Tratamento Oncológico",
+            "b1_compatibilidade_quimio": f"{quimio:.1f}%",
+            "b2_protecao_estresse_ox": f"{estresse_ox:.1f}%",
+            "b3_permeabilidade_microcirculacao": f"{microcirculacao:.1f} cP",
+            "b4_estabilidade_neutropenicos": f"{neutropenicos:.1f}%",
+            "b5_purificacao_molecular": f"{purificacao:.1f}%",
+            "b1_status": "INERTE",
+            "b2_status": "ELEVADA",
+            "b3_status": "LIVRE",
+            "b4_status": "SEGURO",
+            "b5_status": "PUREZA MÁXIMA",
+            "oxigenacao": f"{quimio:.1f}%",
+            "temperatura": "37.0C",
+            "vazao": "4.8 L/min"
+    elif "Politraumatizados" in finalidade or "Politrauma" in finalidade:
+        # B1-B5 Atendimento a Pacientes Politraumatizados
+        multiorganico = 97.5 + random.uniform(-0.2, 0.2)
+        acidose = 7.38 + random.uniform(-0.02, 0.02)
+        infusao_pressurizada = 92.0 + random.uniform(-0.3, 0.3)
+        expansora_plasma = 26.0 + random.uniform(-0.2, 0.2)
+        variancia_termica = 36.5 + random.uniform(-0.2, 0.2)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Atendimento a Pacientes Politraumatizados",
+            "b1_suporte_multiorganico": f"{multiorganico:.1f}%",
+            "b2_resistencia_acidose": f"{acidose:.2f} pH",
+            "b3_estabilidade_infusao_pressurizada": f"{infusao_pressurizada:.1f}%",
+            "b4_capacidade_expansora_plasma": f"{expansora_plasma:.1f} mmHg",
+            "b5_integridade_variancia_termica": f"{variancia_termica:.1f}°C",
+            "b1_status": "CRÍTICO",
+            "b2_status": "TAMPONADO",
+            "b3_status": "RESISTENTE",
+            "b4_status": "ÓTIMA",
+            "b5_status": "ESTÁVEL",
+            "oxigenacao": f"{multiorganico:.1f}%",
+            "temperatura": f"{variancia_termica:.1f}C",
+            "vazao": "4.8 L/min"
+    elif "Doação" in finalidade or "Doacao" in finalidade:
+        # B1-B5 Doação de Sangue
+        isencao = 100.0
+        purificacao = 99.9 + random.uniform(-0.05, 0.05)
+        conservacao = 42.0 + random.uniform(-0.2, 0.2)
+        osmotica = 290.0 + random.uniform(-0.5, 0.5)
+        fluidez = 2.5 + random.uniform(-0.1, 0.1)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Doação de Sangue",
+            "b1_isencao_antigenica": f"{isencao:.1f}%",
+            "b2_purificacao_biologica": f"{purificacao:.1f}%",
+            "b3_conservabilidade_estoque": f"{conservacao:.1f} dias",
+            "b4_estabilidade_osmotica": f"{osmotica:.1f} mOsm",
+            "b5_fluidez_fracionamento": f"{fluidez:.1f} cP",
+            "b1_status": "ISENTO",
+            "b2_status": "ESTÉRIL",
+            "b3_status": "EXTENSA",
+            "b4_status": "EQUILIBRADA",
+            "b5_status": "IDEAL",
+            "oxigenacao": "99.0%",
+            "temperatura": "4.0C",
+            "vazao": "4.8 L/min"
+    elif "Coleta" in finalidade or "Reserva" in finalidade:
+        # B1-B5 Coleta e Reserva de Sangue
+        longevidade = 60.0 + random.uniform(-0.2, 0.2)
+        cristalizacao = 4.0 + random.uniform(-0.1, 0.1)
+        ph_estocagem = 7.40 + random.uniform(-0.02, 0.02)
+        integridade_membrana = 95.0 + random.uniform(-0.2, 0.2)
+        reatividade_pos = 98.0 + random.uniform(-0.2, 0.2)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Coleta e Reserva de Sangue",
+            "b1_longevidade_armazenamento": f"{longevidade:.1f} dias",
+            "b2_resistencia_cristalizacao": f"{cristalizacao:.1f}°C",
+            "b3_manutencao_ph_estocagem": f"{ph_estocagem:.2f} pH",
+            "b4_integridade_membrana": f"{integridade_membrana:.1f}%",
+            "b5_reatividade_pos_descongelamento": f"{reatividade_pos:.1f}%",
+            "b1_status": "MÁXIMA",
+            "b2_status": "PROTEGIDO",
+            "b3_status": "ESTÁVEL",
+            "b4_status": "PRESERVADA",
+            "b5_status": "INVIOLADA",
+            "oxigenacao": f"{reatividade_pos:.1f}%",
+            "temperatura": f"{cristalizacao:.1f}C",
+            "vazao": "4.8 L/min"
+    elif "Tipagem" in finalidade or "Compatibilidade" in finalidade:
+        # B1-B5 Tipagem Sanguínea e Testes de Compatibilidade
+        crossmatch = 0.0
+        neutralidade = 100.0
+        fidelidade = 99.0 + random.uniform(-0.1, 0.1)
+        estabilidade_painel = 98.0 + random.uniform(-0.2, 0.2)
+        limpidez = 99.9 + random.uniform(-0.05, 0.05)
+        
+        return {
+            "lote_id": lote_id,
+            "finalidade": "Tipagem Sanguínea e Testes de Compatibilidade",
+            "b1_reatividade_crossmatch": f"{crossmatch:.1f}%",
+            "b2_neutralidade_anticorpos": f"{neutralidade:.1f}%",
+            "b3_fidelidade_padrao_molecular": f"{fidelidade:.1f}%",
+            "b4_estabilidade_painel": f"{estabilidade_painel:.1f}%",
+            "b5_limpidez_spectrofotometrica": f"{limpidez:.1f}%",
+            "b1_status": "NULA",
+            "b2_status": "NEUTRO",
+            "b3_status": "PADRONIZADO",
+            "b4_status": "ALTÍSSIMA",
+            "b5_status": "TRANSPARENTE",
+            "oxigenacao": "99.0%",
+            "temperatura": "37.0C",
+            "vazao": "4.8 L/min"
+        }
         # B1-B4 Vítimas de Envenenamento por Monóxido de Carbono (CO)
         deslocamento_co = 88.0 + random.uniform(-0.4, 0.4)
         effluence_depurantes = 91.2 + random.uniform(-0.3, 0.3)
