@@ -33,6 +33,7 @@ import { DemandChart } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
 import { QuickEntryModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
+import { InteractiveSimulation } from '@/components/InteractiveSimulation';
 import {
   Dialog,
   DialogContent,
@@ -563,17 +564,28 @@ while True:
         </div>
 
         {/* Navegação entre Abas */}
-        <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 shadow-inner">
+        <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 shadow-inner overflow-x-auto max-w-full">
           <button 
             onClick={() => setActiveTab('landing')}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5"
+            className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5 shrink-0"
           >
             <Layers className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Apresentação</span>
           </button>
           <button 
+            onClick={() => setActiveTab('simulation')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'simulation' 
+                ? 'bg-gradient-to-r from-red-600/30 via-fuchsia-600/30 to-sky-600/30 border border-rose-500/60 text-white font-bold shadow-[0_0_15px_rgba(255,42,66,0.35)]' 
+                : 'text-rose-400 hover:text-white hover:bg-rose-950/30'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+            <span>Simulação Interativa</span>
+          </button>
+          <button 
             onClick={() => setActiveTab('dashboard')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'dashboard' 
                 ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm' 
                 : 'text-slate-400 hover:text-slate-200'
@@ -584,7 +596,7 @@ while True:
           </button>
           <button 
             onClick={() => setActiveTab('forecast')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'forecast' 
                 ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm' 
                 : 'text-slate-400 hover:text-slate-200'
@@ -595,21 +607,18 @@ while True:
           </button>
           <button 
             onClick={() => setActiveTab('emergency')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'emergency' 
                 ? 'bg-gradient-to-r from-red-600/30 to-fuchsia-600/30 border border-rose-500/60 text-rose-300 font-semibold shadow-[0_0_15px_rgba(255,42,66,0.35)]' 
                 : 'text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/30'
             }`}
           >
             <Zap className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-            <span>Simulador de Urgência</span>
-            <span className="hidden md:inline-block text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1 py-0.2 rounded font-mono font-bold">
-              IA
-            </span>
+            <span>Urgência IA</span>
           </button>
           <button 
             onClick={() => setActiveTab('tecnico')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'tecnico' 
                 ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold shadow-sm' 
                 : 'text-slate-400 hover:text-slate-200'
@@ -1811,6 +1820,13 @@ while True:
               </div>
             </div>
           </section>
+        </main>
+      )}
+
+      {/* ABA INTERATIVA: COMO VOCÊ DESEJA PARTICIPAR DA SIMULAÇÃO */}
+      {activeTab === 'simulation' && (
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10">
+          <InteractiveSimulation onNavigateToDashboard={() => setActiveTab('dashboard')} />
         </main>
       )}
 

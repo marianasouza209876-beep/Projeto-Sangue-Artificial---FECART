@@ -150,12 +150,21 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
               <div className="flex flex-wrap gap-3.5 pt-2">
                 <Button
                   size="lg"
-                  onClick={() => onNavigate("emergency")}
-                  className="gap-2 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white shadow-[0_0_25px_rgba(255,42,66,0.5)] text-sm px-6 h-12 font-bold border border-rose-400/30"
+                  onClick={() => onNavigate("simulation")}
+                  className="gap-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white shadow-[0_0_25px_rgba(255,42,66,0.5)] text-sm px-6 h-12 font-bold border border-rose-400/30"
                 >
-                  <Zap className="h-4 w-4" />
-                  Simulador de Urgência (IA)
+                  <Sparkles className="h-4 w-4 text-white animate-pulse" />
+                  Iniciar Simulação Interativa
                   <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => onNavigate("emergency")}
+                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-5 h-12"
+                >
+                  <Zap className="h-4 w-4 text-rose-500" />
+                  Simulador de Urgência
                 </Button>
                 <Button
                   size="lg"
@@ -165,15 +174,6 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
                 >
                   <Activity className="h-4 w-4 text-rose-500" />
                   Monitor Clínico
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => onNavigate("forecast")}
-                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-5 h-12"
-                >
-                  <BrainCircuit className="h-4 w-4 text-sky-400" />
-                  Previsão IA
                 </Button>
               </div>
             </div>
