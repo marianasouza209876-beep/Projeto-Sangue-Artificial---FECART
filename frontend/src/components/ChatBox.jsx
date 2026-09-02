@@ -3,12 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 export const ChatBox = ({
   width = 'w-full max-w-md',
   height = 'h-[520px]',
-  title = 'Assistente Flowtificial',
+  title = 'Assistente Flow',
   subtitle = 'Projeto Sangue Artificial - FECART',
   initialMessages = [
     {
       id: 1,
-      text: 'Olá! Sou o assistente clínico do Flowtificial. Como posso ajudar com os parâmetros do sangue artificial hoje?',
+      text: 'Olá! Sou a Flow, sua assistente clínica. Como posso ajudar com os parâmetros do sangue artificial hoje?',
       sender: 'bot',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },

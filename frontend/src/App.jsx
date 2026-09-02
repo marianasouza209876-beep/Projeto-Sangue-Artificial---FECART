@@ -157,7 +157,7 @@ export default function App() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Olá! Sou o Tradutor Científico EcoSanguis / Flowtificial. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
+      content: 'Olá! Sou a Flow, sua assistente virtual. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
       explicabilidade: null
     }
   ]);
@@ -416,7 +416,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       setIsTyping(false);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar o Tradutor Científico FastAPI. Verifique se o backend está ativo.'
+        content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar a assistente Flow. Verifique se o backend está ativo.'
       }]);
     }
   };
@@ -1545,7 +1545,7 @@ while True:
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
                   <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
-                    CAMADA 4: TRADUTOR CIENTÍFICO CONVERSACIONAL
+                    CAMADA 4: ASSISTENTE VIRTUAL FLOW
                   </span>
                 </div>
                 {arduinoData.isConnected ? (
@@ -1579,7 +1579,7 @@ while True:
                     </div>
                     
                     <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
-                      {msg.role === 'user' ? 'Visitante' : 'Tradutor Clínico EcoSanguis'}
+                      {msg.role === 'user' ? 'Visitante' : 'Flow'}
                     </span>
 
                     {/* Bloco de IA Explicável Integrado */}

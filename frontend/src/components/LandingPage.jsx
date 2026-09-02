@@ -314,7 +314,7 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
               <StepCard
                 step="04"
                 title="Intermediação Conversacional"
-                description="Tradutor científico em linguagem natural com justificativas médicas embasadas."
+                description="Assistente Flow em linguagem natural com justificativas médicas embasadas."
               />
             </div>
           </div>
