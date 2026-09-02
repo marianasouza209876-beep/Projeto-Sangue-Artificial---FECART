@@ -1825,8 +1825,127 @@ while True:
                       </div>
                     )}
 
+                    {/* Card Estilizado Neon para Cirurgia Cardíaca e Cardiovascular (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isCirurgiaCardiacaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#00d8ff] animate-pulse" />
+                            LAUDO CLÍNICO: CIRURGIA CARDIOVASCULAR (CEC)
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#00d8ff]/10 border border-[#00d8ff]/30 text-[#00d8ff] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Compatibilidade Perfusão CEC */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Compatibilidade Perfusão CEC</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.compatibilidade_cec_pct || 98.5).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  EXCELENTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.compatibilidade_cec_pct || 98.5)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Tensão de Cisalhamento */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Tensão de Cisalhamento</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.tensao_cisalhamento_cp || 1.8).toFixed(1)} cP</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  TOLERANTE
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.tensao_cisalhamento_cp || 1.8) / 5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Tempo de Meia-Vida Extended */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Tempo de Meia-Vida Extended</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.meia_vida_extended_h || 48.0).toFixed(1)} h</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
+                                  PROLONGADO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.meia_vida_extended_h || 48.0) / 72) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Tamponamento de Lactato */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Tamponamento de Lactato</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.tamponamento_lactato_ph || 7.42).toFixed(2)} pH</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ATIVO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.tamponamento_lactato_ph || 7.42) / 8.5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Viscosidade em Hipotermia */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Viscosidade em Hipotermia</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.viscosidade_hipotermia_cp || 3.0).toFixed(1)} cP</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
+                                  CONTROLADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.viscosidade_hipotermia_cp || 3.0) / 6) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote aprovado para procedimentos cirúrgicos extracorpóreos.</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Bloco de IA Explicável Integrado */}
-                    {msg.role === 'assistant' && msg.showAnalysisCard && msg.explicabilidade && (!isEmergenciaActive && !isTraumaActive) && (
+                    {msg.role === 'assistant' && msg.showAnalysisCard && msg.explicabilidade && (!isEmergenciaActive && !isTraumaActive && !isCirurgiaCardiacaActive) && (
                       <div className="mt-2.5 w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-2.5">
                         <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                           <span className="text-[10px] font-mono font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
