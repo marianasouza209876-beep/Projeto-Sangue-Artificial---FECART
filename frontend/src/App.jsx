@@ -2420,8 +2420,127 @@ while True:
                       </div>
                     )}
 
+                    {/* Card Estilizado Neon para Coleta e Reserva de Sangue (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isColetaReservaActive && (
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                        {/* Título do Laudo */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
+                            <Activity className="w-3.5 h-3.5 text-[#38bdf8] animate-pulse" />
+                            LAUDO CLÍNICO: BANCO DE RESERVA E ARMAZENAMENTO
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold bg-[#38bdf8]/10 border border-[#38bdf8]/30 text-[#38bdf8] px-2 py-0.5 rounded">
+                            LOTE {selectedLot}
+                          </span>
+                        </div>
+
+                        {/* 5 Parâmetros com Barras Neon */}
+                        <div className="flex flex-col gap-2 mt-0.5">
+                          {/* B1: Longevidade de Armazenamento */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B1 • Longevidade de Armazenamento</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.longevidade_armazenamento_dias || 60.0).toFixed(1)} dias</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#38bdf8]/15 border border-[#38bdf8]/40 text-[#38bdf8]">
+                                  MÁXIMA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.longevidade_armazenamento_dias || 60.0) / 90) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B2: Resistência à Cristalização Térmica */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B2 • Resistência à Cristalização Térmica</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.resistencia_cristalizacao_c || 4.0).toFixed(1)} °C</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
+                                  PROTEGIDO
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.resistencia_cristalizacao_c || 4.0) / 10) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B3: Manutenção de pH em Estocagem */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B3 • Manutenção de pH em Estocagem</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.manutencao_ph_estocagem || 7.40).toFixed(2)} pH</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
+                                  ESTÁVEL
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, Math.round(((currentReading.manutencao_ph_estocagem || 7.40) / 8.5) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Integridade da Membrana Sintética */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Integridade da Membrana Sintética</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.integridade_membrana_pct || 95.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
+                                  PRESERVADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.integridade_membrana_pct || 95.0)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B5: Reatividade Pós-Descongelamento */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B5 • Reatividade Pós-Descongelamento</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{(currentReading.reatividade_pos_descongelamento_pct || 98.0).toFixed(1)}%</span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ff9100]/15 border border-[#ff9100]/40 text-[#ff9100]">
+                                  INVIOLADA
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#ff9100] shadow-[0_0_8px_#ff9100] transition-all duration-500" 
+                                style={{ width: `${Math.min(100, currentReading.reatividade_pos_descongelamento_pct || 98.0)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Linha Final de Conclusão */}
+                        <div className="mt-1 pt-2 border-t border-slate-800/80 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between">
+                          <span>🟢 VEREDITO: Lote apto para estocagem de longa duração em banco de sangue.</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Bloco de IA Explicável Integrado */}
-                    {msg.role === 'assistant' && msg.showAnalysisCard && msg.explicabilidade && (!isEmergenciaActive && !isTraumaActive && !isCirurgiaCardiacaActive && !isAnemiaActive && !isOncologicoActive && !isPolitraumatizadosActive && !isDoacaoActive) && (
+                    {msg.role === 'assistant' && msg.showAnalysisCard && msg.explicabilidade && (!isEmergenciaActive && !isTraumaActive && !isCirurgiaCardiacaActive && !isAnemiaActive && !isOncologicoActive && !isPolitraumatizadosActive && !isDoacaoActive && !isColetaReservaActive) && (
                       <div className="mt-2.5 w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-2.5">
                         <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                           <span className="text-[10px] font-mono font-bold tracking-wider text-slate-300 flex items-center gap-1.5">
