@@ -375,7 +375,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
-        { role: 'assistant', content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.` }
+        { 
+          role: 'assistant', 
+          content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`,
+          showAnalysisCard: true
+        }
       ]);
       setInputValue('');
       return;
@@ -399,7 +403,8 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           setMessages(prev => [...prev, { 
             role: 'assistant', 
             content: data.resposta, 
-            explicabilidade: data.explicabilidade 
+            explicabilidade: data.explicabilidade,
+            showAnalysisCard: text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")
           }]);
           setIsTyping(false);
           
@@ -1582,8 +1587,8 @@ while True:
                       {msg.role === 'user' ? 'Visitante' : 'Flow'}
                     </span>
 
-                    {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência */}
-                    {msg.role === 'assistant' && isEmergenciaActive && (
+                    {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência (apenas no Status atual) */}
+                    {msg.role === 'assistant' && msg.showAnalysisCard && isEmergenciaActive && (
                       <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
