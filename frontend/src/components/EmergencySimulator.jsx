@@ -130,18 +130,18 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
     const vol = f.existe_sangramento === "Grave" ? 2000 : (f.existe_sangramento === "Moderado" ? 1200 : 500);
     
     const compat = isDesconhecido 
-      ? "Indicação Crítica de Doador Universal Sintético (Sangue Artificial PFC/HBOC Universal Isento de Antígenos Rh/ABO - Equivalente a O Negativo)."
-      : `Sangue Compatível Tipo ${f.tipo_sanguineo} (ou Sangue Artificial Universal Isento em caso de indisponibilidade).`;
+      ? "Isenção Antigênica / Doador Universal Sintético"
+      : `Sangue Compatível Tipo ${f.tipo_sanguineo} (ou Doador Universal Sintético)`;
 
-    const e1 = `### 📋 FICHA CLÍNICA DO PACIENTE\n- **Tipo de Ocorrência:** ${f.tipo_ocorrencia}\n- **Existe Sangramento?:** ${f.existe_sangramento}\n- **Tempo desde o Evento:** ${f.tempo_evento}\n- **Respiração:** ${f.respiracao}\n- **Estado de Consciência:** ${f.estado_consciencia}\n- **Lesões Aparentes:** ${f.lesoes_aparentes}\n- **Histórico Relevante:** ${f.historico_relevante}\n- **Idade do Paciente:** ${f.idade}\n- **Tipo Sanguíneo:** ${f.tipo_sanguineo}\n\n#### 🚑 Cenário de Emergência Pré-Hospitalar\nVítima de ${f.tipo_ocorrencia.toLowerCase()} com sangramento ${f.existe_sangramento.toLowerCase()} ativo há ${f.tempo_evento.toLowerCase()}. Ao exame físico, apresenta-se ${f.estado_consciencia.toLowerCase()}, com respiração ${f.respiracao.toLowerCase()} e lesões de gravidade ${f.lesoes_aparentes.toLowerCase()}.`;
+    const e1 = `### 📋 FICHA CLÍNICA DO PACIENTE\n- **Tipo de Ocorrência:** ${f.tipo_ocorrencia}\n- **Existe Sangramento?:** ${f.existe_sangramento}\n- **Tempo desde o Evento:** ${f.tempo_evento}\n- **Respiração:** ${f.respiracao}\n- **Estado de Consciência:** ${f.estado_consciencia}\n- **Lesões Aparentes:** ${f.lesoes_aparentes}\n- **Histórico Relevante:** ${f.historico_relevante}\n- **Idade do Paciente:** ${f.idade}\n- **Tipo Sanguíneo:** ${f.tipo_sanguineo}`;
 
-    const e2 = `#### 🧬 Impacto Fisiológico e Gravidade Sistêmica\n1. **Mecanismo de Choque**: O paciente desenvolve Choque Hipovolêmico Hemorrágico de Alto Risco por perda acelerada de volemia.\n2. **Comprometimento Respiratório**: A gravidade (${f.respiracao}) induz hipóxia tecidual severa com redução do transporte de oxigênio (DO₂).\n3. **Fator Tempo e Acidose**: O tempo decorrido (${f.tempo_evento}) eleva a produção anaeróbica de lactato.\n4. **Tríade Mortal do Trauma**: Risco iminente de acidose metabólica, hipotermia sintética e coagulopatia de consumo.`;
+    const e2 = `#### 🧬 Impacto Fisiológico e Gravidade Sistêmica\n1. Choque Hipovolêmico Hemorrágico (Risco de perda acelerada)\n2. Comprometimento Respiratório (Hipóxia tecidual)\n3. Fator Tempo (Produção de ácido láctico)\n4. Tríade do Trauma (Risco de coagulopatia e acidose)`;
 
-    const e3 = `#### 🩸 Protocolo de Análise e Indicação Sanguínea\n- **Compatibilidade Sanguínea:** ${compat}\n- **Volume Recomendado pela IA:** **${vol} mL** (Infusão aquecida a 37°C)\n- **Componentes Prioritários Formulados:**\n1. Carreadores Sintéticos de O₂ (HBOC-201 / PFC-40)\n2. Expansores Plasmáticos Oncóticos de Alta Densidade\n3. Tampão Fisiológico para Ajuste de pH (7.40)\n- **Objetivo Hemodinâmico:** Restabelecer a PAM ≥ 65 mmHg, oxigenação tecidual SpO₂ > 95% e prevenir parada cardiorrespiratória.`;
+    const e3 = `#### 🩸 Protocolo de Análise e Indicação Sanguínea\n- **Compatibilidade Sanguínea:** ${compat}\n- **Volume Recomendado:** ${vol} mL (Infusão aquecida a 37°C)\n- **Módulos Sugeridos:** HBOC-201, PFC-40, Tampão pH 7.40`;
 
-    const e4 = `#### 🧠 Raciocínio Lógico do Motor de IA\n1. **Matriz Sanguínea**: Como o tipo sanguíneo é '${f.tipo_sanguineo}', o motor ativou a infusão de Sangue Artificial 100% Universal Isento para evitar qualquer reação hemolítica imune.\n2. **Cálculo Volêmico**: Gravidade (${f.existe_sangramento}) + Lesões (${f.lesoes_aparentes}) justificaram a dose prescrevida de ${vol} mL.\n3. **Preservação de Órgãos**: Os compostos sintéticos garantem estabilidade osmótica (290 mOsm) e viscosidade ideal (2.5 cP) durante o transporte pré-hospitalar.`;
+    const e4 = `#### 🧠 Raciocínio Lógico do Motor de IA\n- Matriz Sanguínea: Ativação de Sangue Artificial Universal (Isento de Antígenos).\n- Balanço Volêmico: Cálculo proporcional à gravidade da hemorragia.\n- Estabilidade Osmótica: Manutenção da viscosidade em 2.5 cP.`;
 
-    const text = `## 🚑 RESOLUÇÃO DE TRIAGEM DE EMERGÊNCIA (MOTOR DE IA - FLOWTIFICIAL)\n**Modo de Criação:** \`${mode}\` \n\n### 1. DESCRIÇÃO DO PROBLEMA\n${e1}\n\n---\n### 2. EXPLICAÇÃO DO PROBLEMA\n${e2}\n\n---\n### 3. RESOLUÇÃO DO PROBLEMA (FOCO EM ANÁLISE SANGUÍNEA)\n${e3}\n\n---\n### 4. EXPLICAÇÃO DE COMO FOI RESOLVIDO\n${e4}`;
+    const text = `## 🚑 RESOLUÇÃO DE TRIAGEM DE EMERGÊNCIA (MOTOR DE IA - FLOWTIFICIAL)\n**Modo de Criação:** \`${mode}\` \n\n### 1. DESCRIÇÃO DO PROBLEMA\n${e1}\n\n---\n### 2. EXPLICAÇÃO DO PROBLEMA\n${e2}\n\n---\n### 3. RESOLUÇÃO DO PROBLEMA (FOCO EM ANÁLISE SANGUÍNEA)\n${e3}\n\n---\n### 4. RACIOCÍNIO DA IA E CONFIANÇA\n${e4}`;
 
     return {
       success: true,
@@ -156,7 +156,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
       prescricao: {
         volume_ml: vol,
         compatibilidade: compat,
-        componentes: "1. HBOC/PFC Carreador Sintético de O₂\n2. Expansor Plasmático Oncótico\n3. Tampão Fisiológico",
+        componentes: "1. HBOC-201 (Hemoglobina Sintética)\n2. PFC-40 (Perfluorocarbono Isento)\n3. Tampão pH 7.40",
         objetivo: "Restabelecer PAM ≥ 65 mmHg e SpO₂ > 95%"
       },
       texto_formatado: text
@@ -841,10 +841,10 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
         </div>
       )}
 
-      {/* MODAL POP-UP: RELATÓRIO COMPLETO DA IA (GLASSMORPHISM WITH BACKDROP-BLUR & GRID 2x2) */}
+      {/* MODAL POP-UP: RELATÓRIO COMPLETO DA IA (MINIMALISTA E SINTETIZADO - DARK NEON) */}
       {selectedPatientModal && (
         <Dialog open={!!selectedPatientModal} onOpenChange={() => setSelectedPatientModal(null)}>
-          <DialogContent className="glass-panel border-rose-500/40 sm:max-w-5xl bg-slate-950/95 backdrop-blur-xl text-slate-100 max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6">
+          <DialogContent className="glass-panel border-rose-500/40 sm:max-w-5xl bg-slate-950/95 backdrop-blur-xl text-slate-100 max-h-[92vh] overflow-y-auto rounded-2xl shadow-2xl p-6">
             <DialogHeader className="border-b border-slate-800 pb-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -859,7 +859,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                       </span>
                     </DialogTitle>
                     <DialogDescription className="text-xs text-slate-400 font-sans mt-0.5">
-                      Paciente: {selectedPatientModal.idade} • {selectedPatientModal.tipo_ocorrencia} • Resolução Estruturada em 4 Passos
+                      Paciente: {selectedPatientModal.idade} • {selectedPatientModal.tipo_ocorrencia} • Resolução Estruturada
                     </DialogDescription>
                   </div>
                 </div>
@@ -869,7 +869,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                     onClick={() => handleCopyReport(selectedPatientModal.triageReport)}
                     variant="outline"
                     size="sm"
-                    className="gap-2 text-xs border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white"
+                    className="gap-2 text-xs border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white font-mono"
                   >
                     {copiedReport ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-sky-400" />}
                     {copiedReport ? "LAUDO COPIADO!" : "Copiar Texto do Laudo"}
@@ -878,229 +878,254 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
             </DialogHeader>
 
-            {/* CONTEÚDO DO MODAL DA IA EM 4 QUADROS (GRID 2x2) */}
+            {/* CONTEÚDO DO MODAL SINTETIZADO E MINIMALISTA */}
             {selectedPatientModal.triageReport && (
               <div className="space-y-5 my-4">
                 
-                {/* BARRA DE RESUMO RÁPIDO DO PACIENTE NO MODAL */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2.5">
-                    <Activity className="h-4 w-4 text-emerald-400 shrink-0" />
-                    <div>
-                      <span className="text-[9px] font-mono text-slate-400 block uppercase">STATUS DA SIMULAÇÃO</span>
-                      <span className="text-xs font-bold font-mono text-emerald-400">FINALIZADA E ARMAZENADA</span>
-                    </div>
+                {/* 1. CABEÇALHO RESUMIDO (KPI TOP BAR COM 3 PÍLULAS INTEGRADAS) */}
+                <div className="flex flex-wrap items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/80">
+                  {/* Pílula Status */}
+                  <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg">
+                    <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+                    <span className="text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
+                      Status: FINALIZADA E ARMAZENADA
+                    </span>
                   </div>
 
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2.5">
-                    <UserCheck className="h-4 w-4 text-purple-400 shrink-0" />
-                    <div>
-                      <span className="text-[9px] font-mono text-slate-400 block uppercase">PACIENTE / TIPO ABO</span>
-                      <span className="text-xs font-bold text-white font-mono">
-                        {selectedPatientModal.idade} | ABO: <strong className="text-rose-400">{selectedPatientModal.tipo_sanguineo}</strong>
-                      </span>
-                    </div>
+                  {/* Pílula Paciente */}
+                  <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-3 py-1.5 rounded-lg">
+                    <UserCheck className="h-3.5 w-3.5 text-purple-400" />
+                    <span className="text-[11px] font-mono font-medium text-slate-200">
+                      Paciente: <strong className="text-white font-bold">{selectedPatientModal.idade}</strong> | ABO: <strong className="text-rose-400 font-bold">{selectedPatientModal.tipo_sanguineo}</strong>
+                    </span>
                   </div>
 
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2.5">
-                    <Clock className="h-4 w-4 text-cyan-400 shrink-0" />
-                    <div>
-                      <span className="text-[9px] font-mono text-slate-400 block uppercase">HORA DA ADMISSÃO</span>
-                      <span className="text-xs font-bold text-slate-200 font-mono">
-                        {selectedPatientModal.admitidoEm}
-                      </span>
-                    </div>
+                  {/* Pílula Admissão */}
+                  <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1.5 rounded-lg">
+                    <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                    <span className="text-[11px] font-mono font-medium text-slate-200">
+                      Admissão: <strong className="text-cyan-300 font-bold">{selectedPatientModal.admitidoEm}</strong>
+                    </span>
                   </div>
                 </div>
 
-                {/* GRADE 2x2 COMPLETA */}
+                {/* GRADE 2x2 COMPACTA E DE ALTO DESEMPENHO VISUAL */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   
-                  {/* QUADRO 1 */}
-                  <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-4 shadow-lg">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  {/* QUADRO 1: DESCRIÇÃO DO PROBLEMA (SINTETIZADO) */}
+                  <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-rose-500" />
-                        <h3 className="text-sm font-bold text-white font-display">1. DESCRIÇÃO DO PROBLEMA</h3>
+                        <FileText className="h-4 w-4 text-rose-400" />
+                        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                          1. DESCRIÇÃO DO PROBLEMA
+                        </h3>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded">
-                          PRIORIDADE 1
-                        </span>
-                        <span className="text-[10px] font-mono font-bold bg-red-600 text-white px-2 py-0.5 rounded">
-                          CRÍTICO
-                        </span>
-                      </div>
+                      <span className="text-[10px] font-mono font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2.5 py-1 rounded-md shadow-[0_0_10px_rgba(244,63,94,0.2)]">
+                        CRÍTICO - PRIORIDADE 1
+                      </span>
                     </div>
 
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
-                        INFORMAÇÕES PRINCIPAIS
-                      </span>
-                      <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-                        <div><span className="text-slate-400">Ocorrência:</span> <strong className="text-white block">{selectedPatientModal.triageReport.paciente.tipo_ocorrencia}</strong></div>
-                        <div><span className="text-slate-400">Sangramento:</span> <strong className="text-rose-400 block">{selectedPatientModal.triageReport.paciente.existe_sangramento}</strong></div>
-                        <div><span className="text-slate-400">Tempo Decorrido:</span> <strong className="text-amber-300 block">{selectedPatientModal.triageReport.paciente.tempo_evento}</strong></div>
-                        <div><span className="text-slate-400">Respiração:</span> <strong className="text-cyan-300 block">{selectedPatientModal.triageReport.paciente.respiracao}</strong></div>
-                        <div><span className="text-slate-400">Consciência:</span> <strong className="text-purple-300 block">{selectedPatientModal.triageReport.paciente.estado_consciencia}</strong></div>
-                        <div><span className="text-slate-400">Lesões:</span> <strong className="text-orange-300 block">{selectedPatientModal.triageReport.paciente.lesoes_aparentes}</strong></div>
-                        <div><span className="text-slate-400">Histórico:</span> <strong className="text-slate-200 block truncate">{selectedPatientModal.triageReport.paciente.historico_relevante}</strong></div>
-                        <div><span className="text-slate-400">Tipo Sanguíneo:</span> <strong className="text-rose-400 block">{selectedPatientModal.triageReport.paciente.tipo_sanguineo}</strong></div>
+                    <div className="grid grid-cols-2 gap-3 text-xs font-mono bg-slate-950/80 p-4 rounded-xl border border-slate-800/80">
+                      <div className="space-y-0.5">
+                        <span className="text-slate-400 text-[10px] uppercase block">Ocorrência</span>
+                        <strong className="text-white font-bold block">{selectedPatientModal.triageReport.paciente.tipo_ocorrencia}</strong>
                       </div>
-                    </div>
 
-                    <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/30 space-y-1">
-                      <span className="text-[10px] font-mono font-bold text-amber-400 uppercase flex items-center gap-1.5">
-                        <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-                        CENÁRIO DE EMERGÊNCIA PRÉ-HOSPITALAR
-                      </span>
-                      <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                        Vítima de {selectedPatientModal.triageReport.paciente.tipo_ocorrencia.toLowerCase()} com sangramento {selectedPatientModal.triageReport.paciente.existe_sangramento.toLowerCase()} ativo há {selectedPatientModal.triageReport.paciente.tempo_evento.toLowerCase()}. Ao exame físico, apresenta-se {selectedPatientModal.triageReport.paciente.estado_consciencia.toLowerCase()}, com respiração {selectedPatientModal.triageReport.paciente.respiracao.toLowerCase()} e lesões de gravidade {selectedPatientModal.triageReport.paciente.lesoes_aparentes.toLowerCase()}.
-                      </p>
+                      <div className="space-y-0.5">
+                        <span className="text-slate-400 text-[10px] uppercase block">Sangramento</span>
+                        <strong className="text-rose-400 font-bold block">{selectedPatientModal.triageReport.paciente.existe_sangramento}</strong>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <span className="text-slate-400 text-[10px] uppercase block">Tempo</span>
+                        <strong className="text-amber-300 font-bold block">{selectedPatientModal.triageReport.paciente.tempo_evento}</strong>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <span className="text-slate-400 text-[10px] uppercase block">Respiração</span>
+                        <strong className="text-cyan-300 font-bold block">{selectedPatientModal.triageReport.paciente.respiracao}</strong>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <span className="text-slate-400 text-[10px] uppercase block">Consciência</span>
+                        <strong className="text-purple-300 font-bold block">{selectedPatientModal.triageReport.paciente.estado_consciencia}</strong>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <span className="text-slate-400 text-[10px] uppercase block">Lesões</span>
+                        <strong className="text-orange-300 font-bold block">{selectedPatientModal.triageReport.paciente.lesoes_aparentes}</strong>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <span className="text-slate-400 text-[10px] uppercase block">Histórico</span>
+                        <strong className="text-slate-200 font-bold block truncate">{selectedPatientModal.triageReport.paciente.historico_relevante}</strong>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <span className="text-slate-400 text-[10px] uppercase block">Tipo Sanguíneo</span>
+                        <strong className="text-rose-400 font-bold block">{selectedPatientModal.triageReport.paciente.tipo_sanguineo}</strong>
+                      </div>
                     </div>
                   </div>
 
-                  {/* QUADRO 2 */}
-                  <div className="p-5 rounded-2xl border border-amber-500/30 bg-slate-900/60 space-y-4 shadow-lg">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  {/* QUADRO 2: EXPLICAÇÃO DO PROBLEMA (MINIMALISTA EM 4 PÍLULAS) */}
+                  <div className="p-5 rounded-2xl border border-amber-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                       <div className="flex items-center gap-2">
-                        <ShieldAlert className="h-5 w-5 text-amber-400" />
-                        <h3 className="text-sm font-bold text-white font-display">2. EXPLICAÇÃO DO PROBLEMA (FISIOPATOLOGIA)</h3>
+                        <ShieldAlert className="h-4 w-4 text-amber-400" />
+                        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                          2. EXPLICAÇÃO DO PROBLEMA (FISIOPATOLOGIA)
+                        </h3>
                       </div>
-                      <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">
                         RISCO ELEVADO
                       </span>
                     </div>
 
-                    <div className="space-y-3 text-xs text-slate-300 font-sans leading-relaxed">
-                      <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                        <span className="font-mono text-xs font-bold text-amber-300 block">1. Mecanismo de Choque:</span>
-                        <p className="text-slate-300">Desenvolvimento de Choque Hipovolêmico Hemorrágico por perda maciça acelerada de volume intravascular.</p>
+                    <div className="space-y-2">
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center gap-2.5 text-xs">
+                        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+                        <div>
+                          <strong className="text-amber-300 font-mono">1. Choque Hipovolêmico Hemorrágico</strong>
+                          <span className="text-slate-400 font-sans ml-1 text-[11px]">(Risco de perda acelerada)</span>
+                        </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                        <span className="font-mono text-xs font-bold text-cyan-300 block">2. Comprometimento Respiratório:</span>
-                        <p className="text-slate-300">Queda crítica no transporte tissular de oxigênio (DO₂), forçando anóxia celular periférica.</p>
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center gap-2.5 text-xs">
+                        <Activity className="h-4 w-4 text-cyan-400 shrink-0" />
+                        <div>
+                          <strong className="text-cyan-300 font-mono">2. Comprometimento Respiratório</strong>
+                          <span className="text-slate-400 font-sans ml-1 text-[11px]">(Hipóxia tecidual)</span>
+                        </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                        <span className="font-mono text-xs font-bold text-purple-300 block">3. Fator Tempo e Acidose:</span>
-                        <p className="text-slate-300">O tempo decorrido gera acúmulo acelerado de ácido láctico por glicólise anaeróbica.</p>
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center gap-2.5 text-xs">
+                        <Clock className="h-4 w-4 text-purple-400 shrink-0" />
+                        <div>
+                          <strong className="text-purple-300 font-mono">3. Fator Tempo</strong>
+                          <span className="text-slate-400 font-sans ml-1 text-[11px]">(Produção de ácido láctico)</span>
+                        </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                        <span className="font-mono text-xs font-bold text-rose-400 block">4. Risco de Lesão Múltipla & Tríade do Trauma:</span>
-                        <p className="text-slate-300">Vulnerabilidade iminente à tríade letal (Acidose Metabólica + Hipotermia + Coagulopatia por diluição).</p>
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center gap-2.5 text-xs">
+                        <Heart className="h-4 w-4 text-rose-400 shrink-0" />
+                        <div>
+                          <strong className="text-rose-400 font-mono">4. Tríade do Trauma</strong>
+                          <span className="text-slate-400 font-sans ml-1 text-[11px]">(Risco de coagulopatia e acidose)</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* QUADRO 3 */}
-                  <div className="p-5 rounded-2xl border border-cyan-500/30 bg-slate-900/60 space-y-4 shadow-lg">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  {/* QUADRO 3: RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA LIMPA E KPIS) */}
+                  <div className="p-5 rounded-2xl border border-cyan-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                       <div className="flex items-center gap-2">
-                        <Droplets className="h-5 w-5 text-cyan-400" />
-                        <h3 className="text-sm font-bold text-white font-display">3. RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA)</h3>
+                        <Droplets className="h-4 w-4 text-cyan-400" />
+                        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                          3. RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA)
+                        </h3>
                       </div>
-                      <span className="text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded">
                         SANGUE SINTÉTICO
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                          <span className="text-[9px] font-mono text-slate-400 uppercase block">PROTOCOLO DE ANÁLISE</span>
-                          <p className="text-xs font-semibold text-emerald-400 font-mono">
-                            {selectedPatientModal.triageReport.prescricao.compatibilidade}
-                          </p>
+                    <div className="space-y-3">
+                      {/* BADGE DE COMPATIBILIDADE SANGUÍNEA */}
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex items-center gap-2 text-xs font-mono">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                        <span className="text-emerald-400 font-bold">
+                          Isenção Antigênica / Doador Universal Sintético
+                        </span>
+                      </div>
+
+                      {/* CARDS NUMÉRICOS GRANDES (KPIs) */}
+                      <div className="grid grid-cols-2 gap-3 text-center">
+                        <div className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800/90 shadow-inner">
+                          <span className="text-[9px] font-mono text-slate-400 block uppercase mb-1">Volume Recomendado</span>
+                          <span className="font-mono text-2xl font-extrabold text-white tracking-tight">
+                            {selectedPatientModal.triageReport.prescricao.volume_ml} <span className="text-xs text-rose-400 font-bold">mL</span>
+                          </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-center">
-                          <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
-                            <span className="text-[9px] font-mono text-slate-400 block uppercase">VOLUME RECOMENDADO</span>
-                            <span className="text-lg font-bold font-mono text-white">{selectedPatientModal.triageReport.prescricao.volume_ml} mL</span>
-                          </div>
-                          <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
-                            <span className="text-[9px] font-mono text-slate-400 block uppercase">INFUSÃO AQUECIDA</span>
-                            <span className="text-lg font-bold font-mono text-cyan-300">37.0 °C</span>
-                          </div>
+                        <div className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800/90 shadow-inner">
+                          <span className="text-[9px] font-mono text-slate-400 block uppercase mb-1">Infusão Aquecida</span>
+                          <span className="font-mono text-2xl font-extrabold text-cyan-300 tracking-tight">
+                            37.0 <span className="text-xs text-cyan-400 font-bold">°C</span>
+                          </span>
                         </div>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-                        <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase block">
-                          MÓDULOS SUGERIDOS DE COMPOSIÇÃO
-                        </span>
-                        <div className="space-y-1.5 text-xs font-mono">
-                          <div className="p-2 rounded bg-slate-900 border border-slate-800 flex items-center gap-2">
-                            <span className="text-rose-400">🧬</span>
-                            <span className="text-slate-200">HBOC-201 (Hemoglobina Sintética)</span>
-                          </div>
-                          <div className="p-2 rounded bg-slate-900 border border-slate-800 flex items-center gap-2">
-                            <span className="text-cyan-400">🧪</span>
-                            <span className="text-slate-200">PFC-40 (Perfluorocarbono Isento)</span>
-                          </div>
-                          <div className="p-2 rounded bg-slate-900 border border-slate-800 flex items-center gap-2">
-                            <span className="text-purple-400">🩸</span>
-                            <span className="text-slate-200">Tampão pH 7.40 & Oncótico</span>
-                          </div>
+                      {/* TAGS HORIZONTAIS COMPACTAS DOS MÓDULOS */}
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-mono text-slate-400 uppercase block font-bold">Módulos Sugeridos:</span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[11px] font-mono bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-200 flex items-center gap-1.5">
+                            <span className="text-rose-400">🧬</span> HBOC-201
+                          </span>
+                          <span className="text-[11px] font-mono bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-200 flex items-center gap-1.5">
+                            <span className="text-cyan-400">🧪</span> PFC-40
+                          </span>
+                          <span className="text-[11px] font-mono bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-200 flex items-center gap-1.5">
+                            <span className="text-purple-400">🩸</span> Tampão pH 7.40
+                          </span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* QUADRO 4 */}
-                  <div className="p-5 rounded-2xl border border-purple-500/30 bg-slate-900/60 space-y-4 shadow-lg">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  {/* QUADRO 4: RACIOCÍNIO DA IA E CONFIANÇA */}
+                  <div className="p-5 rounded-2xl border border-purple-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                       <div className="flex items-center gap-2">
-                        <Brain className="h-5 w-5 text-purple-400" />
-                        <h3 className="text-sm font-bold text-white font-display">4. EXPLICAÇÃO DE COMO FOI RESOLVIDO (RACIOCÍNIO DA IA)</h3>
+                        <Brain className="h-4 w-4 text-purple-400" />
+                        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                          4. RACIOCÍNIO DA IA E CONFIANÇA
+                        </h3>
                       </div>
-                      <span className="text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-mono font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded">
                         INFERÊNCIA IA
                       </span>
                     </div>
 
-                    <div className="space-y-2.5 text-xs text-slate-300 font-sans">
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-2.5">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="text-white font-mono block">1. Matriz de Compatibilidade Sanguínea:</strong>
-                          Isenção Antigênica 100% Universal ativada devido à necessidade de infusão pré-hospitalar sem atraso por provas cruzadas.
-                        </div>
+                    <div className="space-y-2 text-xs font-sans">
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-start gap-2 text-slate-300">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <p>
+                          <strong className="text-white font-mono">Matriz Sanguínea:</strong> Ativação de Sangue Artificial Universal (Isento de Antígenos).
+                        </p>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-2.5">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="text-white font-mono block">2. Balanço Volêmico Proporcional:</strong>
-                          Cálculo da reposição baseada na severidade da hemorragia e no comprometimento respiratório detectado.
-                        </div>
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-start gap-2 text-slate-300">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <p>
+                          <strong className="text-white font-mono">Balanço Volêmico:</strong> Cálculo proporcional à gravidade da hemorragia.
+                        </p>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-2.5">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="text-white font-mono block">3. Estabilidade Osmótica & Viscosidade:</strong>
-                          Manutenção da viscosidade sanguínea em 2.5 cP e osmolaridade em 290 mOsm para preservação microcirculatória.
-                        </div>
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-start gap-2 text-slate-300">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <p>
+                          <strong className="text-white font-mono">Estabilidade Osmótica:</strong> Manutenção da viscosidade em 2.5 cP.
+                        </p>
                       </div>
                     </div>
 
+                    {/* RODAPÉ: INDICADOR DE CONFIANÇA */}
                     <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
-                        <span className="text-xs font-mono font-bold text-emerald-400 uppercase">
-                          RESULTADO: CONFIGURAÇÃO SIMULADA ESTÁVEL
+                        <span className="text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
+                          CONFIGURAÇÃO ESTÁVEL
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold">
+                      <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full text-[10px] font-mono font-extrabold shadow-[0_0_10px_rgba(0,229,163,0.2)]">
                         <BarChart3 className="h-3.5 w-3.5" />
-                        92% CONFIANÇA DA ANÁLISE
+                        92% CONFIANÇA
                       </div>
                     </div>
-
                   </div>
 
                 </div>
