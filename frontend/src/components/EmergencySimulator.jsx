@@ -27,7 +27,8 @@ import {
   ChevronRight,
   CheckCircle,
   BarChart3,
-  AlertCircle
+  AlertCircle,
+  Shuffle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -96,6 +97,22 @@ export const OPCOES_TRIAGEM = {
   ]
 };
 
+// HELPER DE SELEÇÃO ALEATÓRIA
+const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// GERADOR DE PARÂMETROS ALEATÓRIOS DO FORMULÁRIO
+export const getRandomFormParams = () => ({
+  tipo_ocorrencia: getRandomItem(OPCOES_TRIAGEM.tipo_ocorrencia),
+  existe_sangramento: getRandomItem(OPCOES_TRIAGEM.existe_sangramento),
+  tempo_evento: getRandomItem(OPCOES_TRIAGEM.tempo_evento),
+  respiracao: getRandomItem(OPCOES_TRIAGEM.respiracao),
+  estado_consciencia: getRandomItem(OPCOES_TRIAGEM.estado_consciencia),
+  lesoes_aparentes: getRandomItem(OPCOES_TRIAGEM.lesoes_aparentes),
+  historico_relevante: getRandomItem(OPCOES_TRIAGEM.historico_relevante),
+  idade: getRandomItem(OPCOES_TRIAGEM.idade),
+  tipo_sanguineo: getRandomItem(OPCOES_TRIAGEM.tipo_sanguineo)
+});
+
 export function EmergencySimulator({ onAddPatientToQueue }) {
   // Controle de Visualização: 'dashboard' (Visão Resumida de Pacientes) | 'form' (Formulário de Entrada)
   const [viewMode, setViewMode] = useState("dashboard"); 
@@ -105,18 +122,15 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
   const [copiedReport, setCopiedReport] = useState(false);
   const [selectedPatientModal, setSelectedPatientModal] = useState(null); // Modal da Simulação Completa
 
-  // Estado dos Campos do Formulário
-  const [formParams, setFormParams] = useState({
-    tipo_ocorrencia: "Hemorragia por perfuração",
-    existe_sangramento: "Grave",
-    tempo_evento: "10 - 30 minutos",
-    respiracao: "Muito comprometida",
-    estado_consciencia: "Não responde",
-    lesoes_aparentes: "Grave",
-    historico_relevante: "Informação desconhecida",
-    idade: "Adulto",
-    tipo_sanguineo: "Desconhecido"
-  });
+  // Estado dos Campos do Formulário (Inicializado de forma randômica)
+  const [formParams, setFormParams] = useState(getRandomFormParams);
+
+  // Re-randomizar todas as informações do formulário sempre que a tela de formulário for aberta
+  useEffect(() => {
+    if (viewMode === "form") {
+      setFormParams(getRandomFormParams());
+    }
+  }, [viewMode]);
 
   // Resultado da Última Triagem Gerada
   const [triageReport, setTriageReport] = useState(null);
@@ -501,7 +515,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
         </div>
       )}
 
-      {/* NAVEGAÇÃO 2: MODO FORMULÁRIO (FORMULÁRIO DE ENTRADA DE PACIENTE) */}
+      {/* NAVEGAÇÃO 2: MODO FORMULÁRIO (FORMULÁRIO DE ENTRADA DE PACIENTE COM DADOS RANDOMIZADOS) */}
       {viewMode === "form" && (
         <div className="space-y-6 animate-in fade-in duration-200">
           
@@ -523,7 +537,18 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 <span className="font-mono text-[10px] uppercase font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2.5 py-0.5 rounded-md">
                   SIMULAÇÃO DE TRIAGEM
                 </span>
+
+                {/* BOTÃO PARA RE-RANDOMIZAR MANUALMENTE */}
+                <button
+                  onClick={() => setFormParams(getRandomFormParams())}
+                  className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 px-2.5 py-1 rounded-md transition-all shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+                  title="Gerar novas seleções aleatórias"
+                >
+                  <RefreshCw className="h-3 w-3 text-cyan-400 hover:rotate-180 transition-transform duration-500" />
+                  Randomizar Dados
+                </button>
               </div>
+
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-display">
                 FORMULÁRIO DE ENTRADA DE PACIENTE
               </h1>
