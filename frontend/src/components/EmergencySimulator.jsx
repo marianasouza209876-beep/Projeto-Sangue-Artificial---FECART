@@ -22,7 +22,10 @@ import {
   Eye,
   Cpu,
   RefreshCw,
-  ChevronRight
+  ChevronRight,
+  CheckCircle,
+  BarChart3,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,7 +101,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
   const [copiedReport, setCopiedReport] = useState(false);
   const [selectedPatientModal, setSelectedPatientModal] = useState(null); // Modal da Simulação Completa
   
-  // Estado dos Campos do Formulário (8 Campos)
+  // Estado dos Campos do Formulário
   const [formParams, setFormParams] = useState({
     tipo_ocorrencia: "Hemorragia por perfuração",
     existe_sangramento: "Grave",
@@ -206,11 +209,11 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
         volumeMl: report.prescricao.volume_ml,
         solucao: "Sangue Sintético PFC/HBOC Universal (Isento Rh/ABO)",
         status: "TRIADO E PRONTO",
-        admitidoEm: "Agora mesmo",
+        admitidoEm: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         triageReport: report
       };
 
-      // Simulação do tempo de processamento da IA (1.2s)
+      // Simulação do tempo de inferência da IA (1.0s)
       setTimeout(() => {
         setActiveQueue(prev => [novoPaciente, ...prev]);
         if (onAddPatientToQueue) onAddPatientToQueue(novoPaciente);
@@ -218,7 +221,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
         setIsGenerating(false);
         setAlertSuccess(true);
         setTimeout(() => setAlertSuccess(false), 4000);
-      }, 1200);
+      }, 1000);
 
     } catch {
       setIsGenerating(false);
@@ -274,7 +277,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
           volumeMl: 2000,
           solucao: "Sangue Sintético PFC/HBOC Universal (Isento Rh/ABO)",
           status: "EM INFUSÃO RÁPIDA",
-          admitidoEm: "Há 4 min",
+          admitidoEm: "14:15",
           triageReport: r1
         },
         {
@@ -296,7 +299,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
           volumeMl: 2000,
           solucao: "Sangue Sintético O- Compatível",
           status: "AGUARDANDO LEITO",
-          admitidoEm: "Há 12 min",
+          admitidoEm: "14:02",
           triageReport: r2
         }
       ]);
@@ -317,7 +320,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-slate-950/90 border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-rose-500" />
         
-        {/* IDENTIFICAÇÃO E TÍTULOS (TOPO ESQUERDO) */}
+        {/* TOPO ESQUERDO: IDENTIFICAÇÃO E TÍTULO */}
         <div className="space-y-1.5 max-w-2xl">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2.5 py-0.5 rounded-md">
@@ -332,12 +335,12 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
           </p>
         </div>
 
-        {/* STEPPER & BADGE DE PRECISÃO DA IA (TOPO DIREITO) */}
+        {/* TOPO DIREITO: STEPPER & BADGE DE PRECISÃO DA IA */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
           
           {/* STEPPER EM 3 ETAPAS CIRCULARES */}
           <div className="flex items-center gap-3 bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl">
-            {/* ETAPA 1: DADOS DO PACIENTE */}
+            {/* ETAPA 1 */}
             <div className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
                 currentStep === 1
@@ -355,7 +358,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
 
             <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
 
-            {/* ETAPA 2: ANÁLISE DA IA */}
+            {/* ETAPA 2 */}
             <div className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
                 currentStep === 2
@@ -375,7 +378,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
 
             <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
 
-            {/* ETAPA 3: RESULTADO */}
+            {/* ETAPA 3 */}
             <div className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
                 currentStep === 3
@@ -392,7 +395,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* BADGE INFORMATIVO DO CANTO SUPERIOR DIREITO COM ÍCONE DE CÉREBRO */}
+          {/* BADGE INFORMATIVO CANTO SUPERIOR DIREITO */}
           <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex items-center gap-2.5 max-w-xs">
             <Brain className="h-5 w-5 text-purple-400 flex-shrink-0 animate-pulse" />
             <p className="text-[11px] text-slate-300 font-sans leading-tight">
@@ -406,11 +409,10 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
       {/* PAINEL PRINCIPAL DE FORMULÁRIO (BARRA LATERAL + GRID 3x3) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* 2. BARRA LATERAL ESQUERDA (PAINEL INFORMATIVO DO PACIENTE - 4 COLUNAS) */}
+        {/* 2. BARRA LATERAL ESQUERDA (PAINEL INFORMATIVO DO PACIENTE) */}
         <div className="lg:col-span-4 flex flex-col justify-between glass-panel border border-slate-800 bg-slate-950/90 rounded-2xl p-5 space-y-6 relative overflow-hidden">
           <div className="space-y-4">
             
-            {/* Título do Painel Informativo */}
             <div className="border-b border-slate-800 pb-3">
               <span className="font-mono text-xs font-bold text-rose-400 flex items-center gap-2">
                 <Heart className="h-4 w-4 text-rose-500 animate-pulse" />
@@ -424,7 +426,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             {/* SILHUETA CORPORAL EM NEON / LINHA FINA COM BATIMENTO CARDÍACO (ECG) */}
             <div className="relative rounded-xl border border-slate-800/80 bg-slate-900/60 p-4 flex flex-col items-center justify-center space-y-3 shadow-inner min-h-[260px]">
               
-              {/* Gráfico ECG batimento cardíaco animado */}
               <div className="w-full flex items-center justify-between px-3 text-[10px] font-mono text-slate-400 border-b border-slate-800/60 pb-2">
                 <span className="flex items-center gap-1.5 text-rose-400">
                   <Activity className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
@@ -433,26 +434,17 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 <span className="text-emerald-400 font-bold">142 BPM</span>
               </div>
 
-              {/* Desenho da Silhueta Humana em Linha Neon */}
               <div className="relative my-2 flex items-center justify-center">
                 <svg className="w-28 h-44 text-slate-700" viewBox="0 0 100 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Cabeça */}
                   <circle cx="50" cy="22" r="14" stroke="#ff0055" strokeWidth="1.8" strokeDasharray="3 3" className="animate-pulse" />
-                  {/* Torax / Tronco */}
                   <path d="M32 40 L68 40 L62 105 L38 105 Z" stroke="#00d8ff" strokeWidth="1.8" />
-                  {/* Braço Esquerdo */}
                   <path d="M30 42 L16 90 L12 120" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
-                  {/* Braço Direito */}
                   <path d="M70 42 L84 90 L88 120" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
-                  {/* Perna Esquerda */}
                   <path d="M42 105 L38 165" stroke="#00ff9d" strokeWidth="1.8" strokeLinecap="round" />
-                  {/* Perna Direita */}
                   <path d="M58 105 L62 165" stroke="#00ff9d" strokeWidth="1.8" strokeLinecap="round" />
-                  {/* Ponto Vermelho de Pulso no Coração */}
                   <circle cx="45" cy="55" r="4" fill="#ff0055" className="animate-ping" />
                 </svg>
 
-                {/* Linha de batimento ECG passando sobre o peito */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="w-full h-8 bg-rose-500/10 border-y border-rose-500/30 flex items-center justify-center">
                     <Activity className="h-6 w-full text-rose-400 animate-pulse" />
@@ -460,7 +452,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 </div>
               </div>
 
-              {/* Status do Paciente na Silhueta */}
               <div className="text-center font-mono text-[10px] text-slate-300 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
                 MONITORAMENTO PRÉ-HOSPITALAR ATIVO
               </div>
@@ -468,7 +459,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
 
           </div>
 
-          {/* BLOCO NO RODAPÉ DA BARRA COM ÍCONE DE MICROCHIP */}
           <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl flex items-start gap-3">
             <Cpu className="h-5 w-5 text-cyan-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-slate-300 font-sans leading-relaxed">
@@ -478,10 +468,10 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
 
         </div>
 
-        {/* 3. GRADE DE FORMULÁRIO DE SELEÇÃO (GRID 3x3 - 8 COLUNAS) */}
+        {/* 3. GRADE DE FORMULÁRIO DE SELEÇÃO (GRID 3x3) */}
         <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           
-          {/* CARD 01: TIPO DE OCORRÊNCIA */}
+          {/* CARD 01 */}
           <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <AlertTriangle className="h-4 w-4 text-amber-400" />
@@ -499,7 +489,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* CARD 02: NÍVEL DE SANGRAMENTO */}
+          {/* CARD 02 */}
           <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <Droplets className="h-4 w-4 text-rose-500" />
@@ -517,7 +507,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* CARD 03: TEMPO DESDE O EVENTO */}
+          {/* CARD 03 */}
           <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <Clock className="h-4 w-4 text-sky-400" />
@@ -535,7 +525,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* CARD 04: ESTADO DE CONSCIÊNCIA */}
+          {/* CARD 04 */}
           <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <Brain className="h-4 w-4 text-purple-400" />
@@ -553,7 +543,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* CARD 05: LESÕES APARENTES */}
+          {/* CARD 05 */}
           <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <ShieldAlert className="h-4 w-4 text-orange-400" />
@@ -571,7 +561,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* CARD 06: HISTÓRICO RELEVANTE */}
+          {/* CARD 06 */}
           <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <FileText className="h-4 w-4 text-emerald-400" />
@@ -589,7 +579,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* CARD 07: IDADE DO PACIENTE */}
+          {/* CARD 07 */}
           <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <UserCheck className="h-4 w-4 text-cyan-400" />
@@ -607,7 +597,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* CARD 08: TIPO SANGUÍNEO */}
+          {/* CARD 08 */}
           <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <Heart className="h-4 w-4 text-rose-400" />
@@ -625,7 +615,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
           </div>
 
-          {/* 4. CARD 09: ÁREA DE AÇÃO E BOTÃO DE SUBMISSÃO DESTACADO */}
+          {/* 4. CARD 09: BOTÃO PRINCIPAL "INICIAR ANÁLISE >" */}
           <div className="p-4 rounded-xl border border-rose-500/50 bg-gradient-to-br from-rose-950/60 via-slate-900 to-fuchsia-950/60 shadow-[0_0_25px_rgba(244,63,94,0.3)] flex flex-col justify-between space-y-3 transition-all">
             <div className="flex items-center justify-between border-b border-rose-500/30 pb-2">
               <span className="font-mono text-[11px] font-bold text-rose-300 uppercase flex items-center gap-1.5">
@@ -642,7 +632,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 Processar parâmetros com o motor de inferência da IA.
               </p>
 
-              {/* BOTÃO PRINCIPAL DESTACADO: "INICIAR ANÁLISE >" */}
               <Button
                 onClick={handleRunTriage}
                 disabled={isGenerating}
@@ -658,7 +647,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
 
       </div>
 
-      {/* NOTIFICAÇÃO DE FEEDBACK VISUAL AO ADICIONAR PACIENTE */}
+      {/* NOTIFICAÇÃO DE FEEDBACK VISUAL */}
       {alertSuccess && (
         <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/60 text-emerald-300 flex items-center justify-between gap-4 shadow-[0_0_25px_rgba(0,229,163,0.2)] animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-3">
@@ -667,16 +656,296 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             </div>
             <div>
               <p className="font-bold text-white text-xs sm:text-sm">
-                PACIENTE TRIADO E ADICIONADO ÀS SIMULAÇÕES!
+                PACIENTE TRIADO E ANÁLISE DE IA CONCLUÍDA!
               </p>
               <p className="text-[11px] text-emerald-400/90 font-mono">
-                Análise da IA concluída com prescrição de suporte sanguíneo. Clique em "Ver Simulação Completa" em seu card para abrir a análise em 4 passos.
+                Prescrição de suporte sanguíneo gerada em 4 passos. Veja abaixo a análise completa ou no modal.
               </p>
             </div>
           </div>
           <span className="text-[10px] font-mono font-bold bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/40 hidden sm:inline-block">
-            TRIAGEM FINALIZADA
+            PROCESSADO
           </span>
+        </div>
+      )}
+
+      {/* SEÇÃO REFATORADA: ANÁLISE DE IA & SIMULAÇÃO COMPLETA (SEM BARRA LATERAL ESQUERDA - 100% LARGURA ÚTIL EM GRADE 2x2) */}
+      {triageReport && (
+        <div className="space-y-5 glass-panel border border-slate-800 bg-slate-950/95 p-6 rounded-2xl shadow-2xl relative">
+          
+          {/* 1. CABEÇALHO E MÉTRICAS DE TOPO (HEADER & SUMMARY BAR) */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping" />
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white font-display">
+                  ANÁLISE DE IA & SIMULAÇÃO COMPLETA
+                </h2>
+              </div>
+              <p className="text-xs font-mono text-slate-400 bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800 inline-block">
+                PAC-7442 • Paciente em situação crítica – {triageReport.paciente.tipo_ocorrencia}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                <RefreshCw className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
+                ANÁLISE ESTRUTURADA EM 4 PASSOS CONCLUÍDA
+              </span>
+            </div>
+          </div>
+
+          {/* BARRA HORIZONTAL DE ATALHO DE MÉTRICAS RÁPIDAS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+            {/* STATUS DA SIMULAÇÃO */}
+            <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-3">
+              <div className="p-2 rounded-md bg-emerald-500/20 text-emerald-400">
+                <Activity className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="text-[9px] font-mono text-slate-400 block uppercase">STATUS DA SIMULAÇÃO</span>
+                <span className="text-xs font-bold font-mono text-emerald-400">FINALIZADA E ARMAZENADA</span>
+              </div>
+            </div>
+
+            {/* PACIENTE / IDADE E TIPO SANGUÍNEO */}
+            <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-3">
+              <div className="p-2 rounded-md bg-purple-500/20 text-purple-400">
+                <UserCheck className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="text-[9px] font-mono text-slate-400 block uppercase">PACIENTE</span>
+                <span className="text-xs font-bold text-white font-mono">
+                  {triageReport.paciente.idade} | ABO: <strong className="text-rose-400">{triageReport.paciente.tipo_sanguineo}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* DATA / HORA DA ANÁLISE */}
+            <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-3">
+              <div className="p-2 rounded-md bg-cyan-500/20 text-cyan-400">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="text-[9px] font-mono text-slate-400 block uppercase">DATA/HORA DA ANÁLISE</span>
+                <span className="text-xs font-bold text-slate-200 font-mono">
+                  {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+
+            {/* BOTÃO DE AÇÃO DA BARRA */}
+            <div className="flex items-center justify-end">
+              <Button
+                onClick={() => handleCopyReport(triageReport)}
+                variant="outline"
+                className="w-full h-full gap-2 text-xs border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800 hover:text-white"
+              >
+                {copiedReport ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-sky-400" />}
+                {copiedReport ? "LAUDO COPIADO!" : "COPIAR TEXTO DO LAUDO"}
+              </Button>
+            </div>
+          </div>
+
+          {/* 3. LAYOUT DOS 4 PASSOS DA ANÁLISE (GRADE 2x2 SEM BARRA LATERAL ESQUERDA - 100% LARGURA ÚTIL) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+            
+            {/* QUADRO 1 (Superior Esquerdo) - "1. DESCRIÇÃO DO PROBLEMA" */}
+            <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-4 shadow-lg hover:border-slate-700 transition-all">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-rose-500" />
+                  <h3 className="text-sm font-bold text-white font-display">1. DESCRIÇÃO DO PROBLEMA</h3>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2.5 py-0.5 rounded">
+                    PRIORIDADE 1
+                  </span>
+                  <span className="text-[10px] font-mono font-bold bg-red-600 text-white px-2.5 py-0.5 rounded">
+                    CRÍTICO
+                  </span>
+                </div>
+              </div>
+
+              {/* SEÇÃO INFORMAÇÕES PRINCIPAIS EM 2 COLUNAS */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                  INFORMAÇÕES PRINCIPAIS
+                </span>
+                <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+                  <div><span className="text-slate-400">Ocorrência:</span> <strong className="text-white block">{triageReport.paciente.tipo_ocorrencia}</strong></div>
+                  <div><span className="text-slate-400">Sangramento:</span> <strong className="text-rose-400 block">{triageReport.paciente.existe_sangramento}</strong></div>
+                  <div><span className="text-slate-400">Tempo Decorrido:</span> <strong className="text-amber-300 block">{triageReport.paciente.tempo_evento}</strong></div>
+                  <div><span className="text-slate-400">Respiração:</span> <strong className="text-cyan-300 block">{triageReport.paciente.respiracao}</strong></div>
+                  <div><span className="text-slate-400">Consciência:</span> <strong className="text-purple-300 block">{triageReport.paciente.estado_consciencia}</strong></div>
+                  <div><span className="text-slate-400">Lesões:</span> <strong className="text-orange-300 block">{triageReport.paciente.lesoes_aparentes}</strong></div>
+                  <div><span className="text-slate-400">Histórico:</span> <strong className="text-slate-200 block truncate">{triageReport.paciente.historico_relevante}</strong></div>
+                  <div><span className="text-slate-400">Tipo Sanguíneo:</span> <strong className="text-rose-400 block">{triageReport.paciente.tipo_sanguineo}</strong></div>
+                </div>
+              </div>
+
+              {/* SEÇÃO CENÁRIO DE EMERGÊNCIA PRÉ-HOSPITALAR */}
+              <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/30 space-y-1">
+                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                  CENÁRIO DE EMERGÊNCIA PRÉ-HOSPITALAR
+                </span>
+                <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                  {triageReport.paciente.cenario}
+                </p>
+              </div>
+            </div>
+
+            {/* QUADRO 2 (Superior Direito) - "2. EXPLICAÇÃO DO PROBLEMA (FISIOPATOLOGIA)" */}
+            <div className="p-5 rounded-2xl border border-amber-500/30 bg-slate-900/60 space-y-4 shadow-lg hover:border-amber-500/40 transition-all">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="h-5 w-5 text-amber-400" />
+                  <h3 className="text-sm font-bold text-white font-display">2. EXPLICAÇÃO DO PROBLEMA (FISIOPATOLOGIA)</h3>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded">
+                  RISCO ELEVADO
+                </span>
+              </div>
+
+              {/* LISTA NUMERADA 1 A 4 */}
+              <div className="space-y-3 text-xs text-slate-300 font-sans leading-relaxed">
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <span className="font-mono text-xs font-bold text-amber-300 block">1. Mecanismo de Choque:</span>
+                  <p className="text-slate-300">Desenvolvimento de Choque Hipovolêmico Hemorrágico por perda maciça acelerada de volume intravascular e perfusão coronariana reduzida.</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <span className="font-mono text-xs font-bold text-cyan-300 block">2. Comprometimento Respiratório:</span>
+                  <p className="text-slate-300">Queda crítica no transporte tissular de oxigênio (DO₂), forçando anóxia celular periférica e sofrimento tecidual agudo.</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <span className="font-mono text-xs font-bold text-purple-300 block">3. Fator Tempo e Acidose:</span>
+                  <p className="text-slate-300">O tempo decorrido gera acúmulo acelerado de ácido láctico por glicólise anaeróbica, reduzindo o pH fisiológico.</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <span className="font-mono text-xs font-bold text-rose-400 block">4. Risco de Lesão Múltipla & Tríade do Trauma:</span>
+                  <p className="text-slate-300">Vulnerabilidade iminente à tríade letal (Acidose Metabólica + Hipotermia + Coagulopatia por diluição).</p>
+                </div>
+              </div>
+            </div>
+
+            {/* QUADRO 3 (Inferior Esquerdo) - "3. RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA)" */}
+            <div className="p-5 rounded-2xl border border-cyan-500/30 bg-slate-900/60 space-y-4 shadow-lg hover:border-cyan-500/40 transition-all">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Droplets className="h-5 w-5 text-cyan-400" />
+                  <h3 className="text-sm font-bold text-white font-display">3. RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA)</h3>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded">
+                  SANGUE SINTÉTICO
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* LADO ESQUERDO: PROTOCOLO E CARDS DE VOLUME */}
+                <div className="space-y-3">
+                  <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                    <span className="text-[9px] font-mono text-slate-400 uppercase block">PROTOCOLO DE ANÁLISE</span>
+                    <p className="text-xs font-semibold text-emerald-400 font-mono">
+                      {triageReport.prescricao.compatibilidade}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                      <span className="text-[9px] font-mono text-slate-400 block uppercase">VOLUME RECOMENDADO</span>
+                      <span className="text-lg font-bold font-mono text-white">{triageReport.prescricao.volume_ml} mL</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                      <span className="text-[9px] font-mono text-slate-400 block uppercase">INFUSÃO AQUECIDA</span>
+                      <span className="text-lg font-bold font-mono text-cyan-300">37.0 °C</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* LADO DIREITO: MÓDULOS SUGERIDOS DE SANGUE SINTÉTICO */}
+                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase block">
+                    MÓDULOS SUGERIDOS DE COMPOSIÇÃO
+                  </span>
+                  <div className="space-y-1.5 text-xs font-mono">
+                    <div className="p-2 rounded bg-slate-900 border border-slate-800 flex items-center gap-2">
+                      <span className="text-rose-400">🧬</span>
+                      <span className="text-slate-200">HBOC-201 (Hemoglobina Sintética)</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-900 border border-slate-800 flex items-center gap-2">
+                      <span className="text-cyan-400">🧪</span>
+                      <span className="text-slate-200">PFC-40 (Perfluorocarbono Isento)</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-900 border border-slate-800 flex items-center gap-2">
+                      <span className="text-purple-400">🩸</span>
+                      <span className="text-slate-200">Tampão pH 7.40 & Oncótico</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* QUADRO 4 (Inferior Direito) - "4. EXPLICAÇÃO DE COMO FOI RESOLVIDO (RACIOCÍNIO DA IA)" */}
+            <div className="p-5 rounded-2xl border border-purple-500/30 bg-slate-900/60 space-y-4 shadow-lg hover:border-purple-500/40 transition-all">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-purple-400" />
+                  <h3 className="text-sm font-bold text-white font-display">4. EXPLICAÇÃO DE COMO FOI RESOLVIDO (RACIOCÍNIO DA IA)</h3>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded">
+                  INFERÊNCIA IA
+                </span>
+              </div>
+
+              {/* CHECKLIST DE SEQUÊNCIA LÓGICA */}
+              <div className="space-y-2.5 text-xs text-slate-300 font-sans">
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-white font-mono block">1. Matriz de Compatibilidade Sanguínea:</strong>
+                    Isenção Antigênica 100% Universal ativada devido à necessidade de infusão pré-hospitalar sem atraso por provas cruzadas.
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-white font-mono block">2. Balanço Volêmico Proporcional:</strong>
+                    Cálculo da reposição baseada na severidade da hemorragia e no comprometimento respiratório detectado.
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-white font-mono block">3. Estabilidade Osmótica & Viscosidade:</strong>
+                    Manutenção da viscosidade sanguínea em 2.5 cP e osmolaridade em 290 mOsm para preservação microcirculatória.
+                  </div>
+                </div>
+              </div>
+
+              {/* BLOCO DE RODAPÉ "RESULTADO DA ANÁLISE" COM GRAFICO/BADGE DE CONFIANÇA */}
+              <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="text-xs font-mono font-bold text-emerald-400 uppercase">
+                    RESULTADO: CONFIGURAÇÃO SIMULADA ESTÁVEL
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  92% CONFIANÇA DA ANÁLISE
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
         </div>
       )}
 
@@ -705,7 +974,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 key={paciente.id}
                 className="group relative overflow-hidden rounded-2xl glass-panel border border-slate-800 hover:border-rose-500/40 bg-slate-950/90 p-5 transition-all duration-300 shadow-lg hover:shadow-2xl"
               >
-                {/* Linha decorativa no topo do Card */}
                 <div className={`absolute top-0 left-0 right-0 h-1 ${
                   paciente.prioridade.includes("VERMELHA") 
                     ? "bg-gradient-to-r from-rose-600 via-red-500 to-rose-600" 
@@ -713,8 +981,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 }`} />
 
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
-                  
-                  {/* ESQUERDA: ID, PACIENTE, TIPO OCORRÊNCIA E SANGRAMENTO */}
                   <div className="space-y-2 max-w-md">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-xs font-bold text-white bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800">
@@ -753,7 +1019,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                     </div>
                   </div>
 
-                  {/* CENTRO: GRID DE SINAIS VITAIS ORGANIZADO EM COLUNAS DESTACADAS */}
                   <div className="grid grid-cols-3 gap-2.5 w-full lg:w-auto">
                     <div className="p-2.5 rounded-xl border border-rose-500/30 bg-rose-950/20 text-center min-w-[90px]">
                       <span className="text-[9px] font-mono font-bold text-slate-400 block">FC (BPM)</span>
@@ -771,7 +1036,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                     </div>
                   </div>
 
-                  {/* DIREITA: PRESCRIÇÃO E BOTÃO INTERATIVO "VER SIMULAÇÃO COMPLETA" */}
                   <div className="flex flex-col sm:flex-row lg:flex-col items-end justify-between gap-3 w-full lg:w-auto pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
                     <div className="text-left sm:text-right lg:text-right">
                       <span className="text-[10px] font-mono uppercase text-slate-400 block">PRESCRIÇÃO SINTÉTICA</span>
@@ -799,7 +1063,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                       </button>
                     </div>
                   </div>
-
                 </div>
               </div>
             ))}
@@ -807,10 +1070,10 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
         )}
       </div>
 
-      {/* MODAL EXPANSÍVEL DA SIMULAÇÃO COMPLETA DA IA EM 4 PASSOS */}
+      {/* MODAL EXPANSÍVEL DA SIMULAÇÃO COMPLETA DA IA EM 4 PASSOS (TAMBÉM SEM BARRA LATERAL ESQUERDA) */}
       {selectedPatientModal && (
         <Dialog open={!!selectedPatientModal} onOpenChange={() => setSelectedPatientModal(null)}>
-          <DialogContent className="glass-panel border-rose-500/40 sm:max-w-4xl bg-slate-950/95 text-slate-100 max-h-[90vh] overflow-y-auto">
+          <DialogContent className="glass-panel border-rose-500/40 sm:max-w-5xl bg-slate-950/95 text-slate-100 max-h-[92vh] overflow-y-auto">
             <DialogHeader className="border-b border-slate-800 pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -829,7 +1092,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
             </DialogHeader>
 
-            {/* CONTEÚDO EXPANDIDO DAS 4 ETAPAS OBRIGATÓRIAS */}
             {selectedPatientModal.triageReport && (
               <div className="space-y-5 my-3">
                 <div className="flex items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-slate-800">
@@ -847,8 +1109,9 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   </Button>
                 </div>
 
+                {/* GRADE 2x2 SEM BARRA LATERAL ESQUERDA */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* PASSO 1: DESCRIÇÃO DO PROBLEMA */}
+                  {/* QUADRO 1 */}
                   <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50 space-y-2">
                     <div className="flex items-center gap-2 text-rose-400 border-b border-slate-800 pb-2">
                       <FileText className="h-4 w-4" />
@@ -859,10 +1122,10 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                     </div>
                   </div>
 
-                  {/* PASSO 2: EXPLICAÇÃO DO PROBLEMA */}
+                  {/* QUADRO 2 */}
                   <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-950/10 space-y-2">
                     <div className="flex items-center gap-2 text-amber-400 border-b border-slate-800 pb-2">
-                      <AlertTriangle className="h-4 w-4" />
+                      <ShieldAlert className="h-4 w-4" />
                       <h4 className="text-xs font-mono font-bold uppercase">2. EXPLICAÇÃO DO PROBLEMA (FISIOPATOLOGIA)</h4>
                     </div>
                     <div className="text-xs text-slate-300 leading-relaxed font-sans whitespace-pre-line">
@@ -870,7 +1133,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                     </div>
                   </div>
 
-                  {/* PASSO 3: RESOLUÇÃO DO PROBLEMA (FOCO EM ANÁLISE SANGUÍNEA) */}
+                  {/* QUADRO 3 */}
                   <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-950/10 space-y-2">
                     <div className="flex items-center gap-2 text-cyan-400 border-b border-slate-800 pb-2">
                       <Droplets className="h-4 w-4" />
@@ -881,9 +1144,9 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                     </div>
                   </div>
 
-                  {/* PASSO 4: EXPLICAÇÃO DE COMO FOI RESOLVIDO */}
-                  <div className="p-4 rounded-xl border border-fuchsia-500/30 bg-fuchsia-950/10 space-y-2">
-                    <div className="flex items-center gap-2 text-fuchsia-400 border-b border-slate-800 pb-2">
+                  {/* QUADRO 4 */}
+                  <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-950/10 space-y-2">
+                    <div className="flex items-center gap-2 text-purple-400 border-b border-slate-800 pb-2">
                       <Brain className="h-4 w-4" />
                       <h4 className="text-xs font-mono font-bold uppercase">4. EXPLICAÇÃO DE COMO FOI RESOLVIDO (RACIOCÍNIO DA IA)</h4>
                     </div>
