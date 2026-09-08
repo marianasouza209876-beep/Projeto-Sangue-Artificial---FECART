@@ -18,7 +18,9 @@ import {
   Check,
   Brain,
   Layers,
-  Trash2
+  Trash2,
+  Eye,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,7 +94,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [alertSuccess, setAlertSuccess] = useState(false);
   const [copiedReport, setCopiedReport] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedPatientModal, setSelectedPatientModal] = useState(null); // Modal da Simulação Completa em 4 Passos
   
   // Estado dos Campos Manuais
   const [formParams, setFormParams] = useState({
@@ -107,80 +109,14 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
     tipo_sanguineo: "Desconhecido"
   });
 
-  // Resultado da Triagem em 4 Etapas
-  const [triageReport, setTriageReport] = useState(null);
+  // Lista de Cards de Pacientes Triados
+  const [activeQueue, setActiveQueue] = useState([]);
 
-  // Fila de Atendimento
-  const [activeQueue, setActiveQueue] = useState([
-    {
-      id: "PAC-9041",
-      nome: "Paciente Triado (Perfurante)",
-      idade: "Adulto",
-      quadro: "Hemorragia por perfuração • Sangramento Grave",
-      fc: 142,
-      pa: "75/45 mmHg",
-      spo2: 82,
-      volumeMl: 2000,
-      solucao: "Sangue Sintético PFC/HBOC Universal (Isento Rh/ABO)",
-      status: "EM INFUSÃO RÁPIDA",
-      admitidoEm: "Há 4 min",
-      prioridade: "EMERGÊNCIA VERMELHA"
-    }
-  ]);
-
-  // Função Principal de Execução da Triagem
-  const handleRunTriage = async (overrideMode = null) => {
-    const modeToUse = overrideMode || creationMode;
-    setIsGenerating(true);
-    setAlertSuccess(false);
-
-    try {
-      // Tentar requisitar do backend FastAPI
-      const API_URL = import.meta.env.VITE_API_URL || "";
-      const response = await fetch(`${API_URL}/api/triage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          modo: modeToUse,
-          ...(modeToUse === "Manual" ? formParams : {})
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTriageReport(data);
-      } else {
-        throw new Error("Erro na API de triagem");
-      }
-    } catch (err) {
-      console.warn("Fallback offline local da Triagem por IA:", err);
-      // Fallback local se a API estiver indisponível
-      const localResult = generateLocalTriage(modeToUse, formParams);
-      setTriageReport(localResult);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // Fallback Local de Triagem
-  const generateLocalTriage = (mode, params) => {
-    let f = { ...params };
-    if (mode === "Com IA") {
-      f = {
-        tipo_ocorrencia: OPCOES_TRIAGEM.tipo_ocorrencia[Math.floor(Math.random() * OPCOES_TRIAGEM.tipo_ocorrencia.length)],
-        existe_sangramento: OPCOES_TRIAGEM.existe_sangramento[3], // Grave
-        tempo_evento: OPCOES_TRIAGEM.tempo_evento[1], // 10 - 30 min
-        respiracao: OPCOES_TRIAGEM.respiracao[3], // Muito comprometida
-        estado_consciencia: OPCOES_TRIAGEM.estado_consciencia[3], // Não responde
-        lesoes_aparentes: OPCOES_TRIAGEM.lesoes_aparentes[3], // Grave
-        historico_relevante: "Informação desconhecida (Paciente Inconsciente)",
-        idade: "Adulto",
-        tipo_sanguineo: "Desconhecido"
-      };
-    }
-
+  // Função Auxiliar para Gerar o Laudo de Triagem Completo em 4 Etapas
+  const buildTriageReport = (mode, f) => {
     const isDesconhecido = f.tipo_sanguineo === "Desconhecido";
     const vol = f.existe_sangramento === "Grave" ? 2000 : (f.existe_sangramento === "Moderado" ? 1200 : 500);
+    
     const compat = isDesconhecido 
       ? "Indicação Crítica de Doador Universal Sintético (Sangue Artificial PFC/HBOC Universal Isento de Antígenos Rh/ABO - Equivalente a O Negativo)."
       : `Sangue Compatível Tipo ${f.tipo_sanguineo} (ou Sangue Artificial Universal Isento em caso de indisponibilidade).`;
@@ -215,43 +151,167 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
     };
   };
 
-  // Executa uma simulação inicial ao carregar
+  // Função Principal de Execução da Triagem
+  const handleRunTriage = async (overrideMode = null) => {
+    const modeToUse = overrideMode || creationMode;
+    setIsGenerating(true);
+    setAlertSuccess(false);
+
+    try {
+      let params = { ...formParams };
+
+      if (modeToUse === "Com IA") {
+        params = {
+          tipo_ocorrencia: OPCOES_TRIAGEM.tipo_ocorrencia[Math.floor(Math.random() * OPCOES_TRIAGEM.tipo_ocorrencia.length)],
+          existe_sangramento: OPCOES_TRIAGEM.existe_sangramento[Math.floor(Math.random() * 2 + 2)], // Moderado ou Grave
+          tempo_evento: OPCOES_TRIAGEM.tempo_evento[Math.floor(Math.random() * 3)],
+          respiracao: OPCOES_TRIAGEM.respiracao[Math.floor(Math.random() * 2 + 2)],
+          estado_consciencia: OPCOES_TRIAGEM.estado_consciencia[Math.floor(Math.random() * 2 + 2)],
+          lesoes_aparentes: OPCOES_TRIAGEM.lesoes_aparentes[Math.floor(Math.random() * 2 + 2)],
+          historico_relevante: "Informação desconhecida (Paciente Inconsciente)",
+          idade: OPCOES_TRIAGEM.idade[Math.floor(Math.random() * OPCOES_TRIAGEM.idade.length)],
+          tipo_sanguineo: OPCOES_TRIAGEM.tipo_sanguineo[Math.floor(Math.random() * OPCOES_TRIAGEM.tipo_sanguineo.length)]
+        };
+      }
+
+      let report = null;
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || "";
+        const response = await fetch(`${API_URL}/api/triage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            modo: modeToUse,
+            ...(modeToUse === "Manual" ? formParams : params)
+          })
+        });
+
+        if (response.ok) {
+          report = await response.json();
+        } else {
+          report = buildTriageReport(modeToUse, params);
+        }
+      } catch {
+        report = buildTriageReport(modeToUse, params);
+      }
+
+      const p = report.paciente;
+      const novoPaciente = {
+        id: `PAC-${Math.floor(1000 + Math.random() * 9000)}`,
+        nome: `Paciente Triado (${p.tipo_ocorrencia})`,
+        idade: p.idade,
+        prioridade: p.existe_sangramento === "Grave" ? "EMERGÊNCIA VERMELHA" : "URGÊNCIA LARANJA",
+        tipo_ocorrencia: p.tipo_ocorrencia,
+        existe_sangramento: p.existe_sangramento,
+        tempo_evento: p.tempo_evento,
+        respiracao: p.respiracao,
+        estado_consciencia: p.estado_consciencia,
+        lesoes_aparentes: p.lesoes_aparentes,
+        historico_relevante: p.historico_relevante,
+        tipo_sanguineo: p.tipo_sanguineo,
+        fc: p.existe_sangramento === "Grave" ? Math.floor(135 + Math.random() * 20) : Math.floor(105 + Math.random() * 15),
+        pa: p.existe_sangramento === "Grave" ? `${Math.floor(70 + Math.random() * 15)}/${Math.floor(40 + Math.random() * 10)} mmHg` : "95/60 mmHg",
+        spo2: p.respiracao.includes("comprometida") ? Math.floor(80 + Math.random() * 7) : Math.floor(90 + Math.random() * 5),
+        volumeMl: report.prescricao.volume_ml,
+        solucao: "Sangue Sintético PFC/HBOC Universal (Isento Rh/ABO)",
+        status: "TRIADO E PRONTO",
+        admitidoEm: "Agora mesmo",
+        triageReport: report
+      };
+
+      setActiveQueue(prev => [novoPaciente, ...prev]);
+      if (onAddPatientToQueue) onAddPatientToQueue(novoPaciente);
+
+      setAlertSuccess(true);
+      setTimeout(() => setAlertSuccess(false), 3500);
+
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Inicializa com 2 pacientes exemplares bem estruturados ao carregar
   useEffect(() => {
-    if (!triageReport) {
-      handleRunTriage("Com IA");
+    if (activeQueue.length === 0) {
+      const p1Params = {
+        tipo_ocorrencia: "Hemorragia por perfuração",
+        existe_sangramento: "Grave",
+        tempo_evento: "10 - 30 minutos",
+        respiracao: "Muito comprometida",
+        estado_consciencia: "Não responde",
+        lesoes_aparentes: "Grave",
+        historico_relevante: "Informação desconhecida (Paciente Inconsciente)",
+        idade: "Adulto",
+        tipo_sanguineo: "Desconhecido"
+      };
+      const r1 = buildTriageReport("Com IA", p1Params);
+
+      const p2Params = {
+        tipo_ocorrencia: "Acidente de carro",
+        existe_sangramento: "Grave",
+        tempo_evento: "Menos de 10 minutos",
+        respiracao: "Irregular",
+        estado_consciencia: "Responde parcialmente",
+        lesoes_aparentes: "Grave",
+        historico_relevante: "Condição prévia conhecida",
+        idade: "Adolescente",
+        tipo_sanguineo: "O-"
+      };
+      const r2 = buildTriageReport("Manual", p2Params);
+
+      setActiveQueue([
+        {
+          id: "PAC-9041",
+          nome: "Paciente Triado (Hemorragia Profunda)",
+          idade: "Adulto",
+          prioridade: "EMERGÊNCIA VERMELHA",
+          tipo_ocorrencia: p1Params.tipo_ocorrencia,
+          existe_sangramento: p1Params.existe_sangramento,
+          tempo_evento: p1Params.tempo_evento,
+          respiracao: p1Params.respiracao,
+          estado_consciencia: p1Params.estado_consciencia,
+          lesoes_aparentes: p1Params.lesoes_aparentes,
+          historico_relevante: p1Params.historico_relevante,
+          tipo_sanguineo: p1Params.tipo_sanguineo,
+          fc: 142,
+          pa: "75/45 mmHg",
+          spo2: 82,
+          volumeMl: 2000,
+          solucao: "Sangue Sintético PFC/HBOC Universal (Isento Rh/ABO)",
+          status: "EM INFUSÃO RÁPIDA",
+          admitidoEm: "Há 4 min",
+          triageReport: r1
+        },
+        {
+          id: "PAC-8812",
+          nome: "Vítima de Colisão Automobilística",
+          idade: "Adolescente",
+          prioridade: "EMERGÊNCIA VERMELHA",
+          tipo_ocorrencia: p2Params.tipo_ocorrencia,
+          existe_sangramento: p2Params.existe_sangramento,
+          tempo_evento: p2Params.tempo_evento,
+          respiracao: p2Params.respiracao,
+          estado_consciencia: p2Params.estado_consciencia,
+          lesoes_aparentes: p2Params.lesoes_aparentes,
+          historico_relevante: p2Params.historico_relevante,
+          tipo_sanguineo: p2Params.tipo_sanguineo,
+          fc: 135,
+          pa: "80/50 mmHg",
+          spo2: 86,
+          volumeMl: 2000,
+          solucao: "Sangue Sintético O- Compatível",
+          status: "AGUARDANDO LEITO",
+          admitidoEm: "Há 12 min",
+          triageReport: r2
+        }
+      ]);
     }
   }, []);
 
-  // Enviar paciente triado para a fila
-  const handleSendToQueue = () => {
-    if (!triageReport) return;
-    const p = triageReport.paciente;
-    const novo = {
-      id: `PAC-${Math.floor(1000 + Math.random() * 9000)}`,
-      nome: `Paciente (${p.tipo_ocorrencia})`,
-      idade: p.idade,
-      quadro: `${p.tipo_ocorrencia} • Sangramento ${p.existe_sangramento}`,
-      fc: p.existe_sangramento === "Grave" ? 142 : 110,
-      pa: p.existe_sangramento === "Grave" ? "75/45 mmHg" : "90/60 mmHg",
-      spo2: p.respiracao.includes("comprometida") ? 82 : 89,
-      volumeMl: triageReport.prescricao.volume_ml,
-      solucao: "Sangue Sintético PFC/HBOC Universal",
-      status: "AGUARDANDO INFUSÃO",
-      admitidoEm: "Agora mesmo",
-      prioridade: "EMERGÊNCIA VERMELHA"
-    };
-
-    setActiveQueue(prev => [novo, ...prev]);
-    if (onAddPatientToQueue) onAddPatientToQueue(novo);
-
-    setAlertSuccess(true);
-    setTimeout(() => setAlertSuccess(false), 3500);
-  };
-
-  // Copiar Relatório Formatado
-  const handleCopyReport = () => {
-    if (!triageReport) return;
-    navigator.clipboard.writeText(triageReport.texto_formatado);
+  // Copiar Relatório Formatado do Modal
+  const handleCopyReport = (report) => {
+    if (!report) return;
+    navigator.clipboard.writeText(report.texto_formatado);
     setCopiedReport(true);
     setTimeout(() => setCopiedReport(false), 2500);
   };
@@ -259,8 +319,8 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
-      {/* BANNER PRINCIPAL DO MOTOR DE TRIAGEM IA */}
-      <div className="relative overflow-hidden rounded-2xl glass-panel border border-rose-500/40 bg-gradient-to-r from-rose-950/50 via-slate-950 to-fuchsia-950/40 p-6 shadow-[0_0_30px_rgba(255,42,66,0.25)]">
+      {/* 1. CABEÇALHO E REESTRUTURAÇÃO DE CONTEÚDO (TITULO DEFINIDO: TRIAGEM DE PACIENTES) */}
+      <div className="relative overflow-hidden rounded-2xl glass-panel border border-rose-500/30 bg-gradient-to-r from-rose-950/40 via-slate-950 to-fuchsia-950/30 p-6 shadow-[0_0_30px_rgba(255,42,66,0.15)]">
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 -mb-8 w-64 h-64 bg-fuchsia-600/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -270,21 +330,21 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping" />
               <span className="font-mono text-xs uppercase tracking-widest text-rose-400 font-bold flex items-center gap-1.5">
                 <Brain className="h-4 w-4 text-rose-500" />
-                MOTOR DE IA DE TRIAGEM DE EMERGÊNCIA & ANÁLISE SANGUÍNEA (FECART)
+                SISTEMA BIOMÉDICO DE SUPORTE EM URGÊNCIA (FECART)
               </span>
             </div>
+            {/* Título Principal Reestruturado */}
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-display">
-              Simulação de Triagem: <span className="text-gradient-blood">Análise e Prescrição de Sangue Sintético</span>
+              Triagem de Pacientes: <span className="text-gradient-blood">Análise e Suporte Sanguíneo de Emergência</span>
             </h1>
+            {/* Subcabeçalho Atualizado */}
             <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
-              O motor de IA simula a triagem completa pré-hospitalar em 4 etapas estritas: 
-              <strong> 1. Descrição do Problema</strong>, <strong>2. Explicação Fisiológica</strong>, 
-              <strong> 3. Resolução com Foco Sanguíneo</strong> e <strong>4. Raciocínio Lógico da IA</strong>.
+              Avaliação biomédica contínua e triagem pré-hospitalar em tempo real. O motor de IA prescreve o sangue sintético de emergência (HBOCs / PFCs) para manutenção hemodinâmica antes da chegada ao hospital.
             </p>
           </div>
 
-          {/* SELETOR DE MODO E BOTÃO DISPARADOR */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+          {/* SELETOR DE MODO E DISPARADOR DE TRIAGEM */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
             <div className="flex rounded-lg bg-slate-950 p-1 border border-slate-800">
               <button
                 onClick={() => setCreationMode("Com IA")}
@@ -312,22 +372,22 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               onClick={() => handleRunTriage()}
               disabled={isGenerating}
               size="lg"
-              className="gap-2 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white font-bold tracking-wide shadow-[0_0_20px_rgba(255,42,66,0.5)] border border-rose-400/40 px-5 py-5 text-xs rounded-xl"
+              className="gap-2 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white font-bold tracking-wide shadow-[0_0_20px_rgba(255,42,66,0.4)] border border-rose-400/30 px-5 py-5 text-xs rounded-xl"
             >
               <Zap className={`h-4 w-4 ${isGenerating ? "animate-spin" : "animate-bounce"}`} />
-              {isGenerating ? "EXECUTANDO TRIAGEM..." : "SIMULAR TRIAGEM E RESOLVER"}
+              {isGenerating ? "PROCESSANDO..." : "NOVA TRIAGEM"}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* FORMULÁRIO DE ENTRADA MANUAL (Exibido apenas no Modo Manual) */}
+      {/* FORMULÁRIO DE ENTRADA MANUAL (Exibido no Modo Manual) */}
       {creationMode === "Manual" && (
         <div className="glass-panel rounded-2xl p-5 border-rose-500/30 bg-slate-950/90 space-y-4 animate-in slide-in-from-top duration-300">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <span className="font-mono text-xs font-bold text-rose-400 flex items-center gap-2">
               <Edit3 className="h-4 w-4" />
-              ENTRADA MANUAL DE DADOS DO PACIENTE (9 CAMPOS EXIGIDOS)
+              FORMULÁRIO DE ENTRADA DE PACIENTE (9 PARAMETROS EXIGIDOS)
             </span>
             <span className="text-[10px] font-mono text-slate-400">
               Caso inconsciente, o histórico relevante é opcional.
@@ -335,7 +395,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {/* 1. Tipo de Ocorrência */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">1. Tipo de ocorrência</label>
               <select
@@ -347,7 +406,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </select>
             </div>
 
-            {/* 2. Existe Sangramento? */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">2. Existe sangramento?</label>
               <select
@@ -359,7 +417,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </select>
             </div>
 
-            {/* 3. Tempo desde o Evento */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">3. Tempo desde o evento</label>
               <select
@@ -371,7 +428,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </select>
             </div>
 
-            {/* 4. Respiração */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">4. Respiração</label>
               <select
@@ -383,7 +439,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </select>
             </div>
 
-            {/* 5. Estado de Consciência */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">5. Estado de Consciência</label>
               <select
@@ -395,7 +450,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </select>
             </div>
 
-            {/* 6. Lesões Aparentes */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">6. Lesões aparentes</label>
               <select
@@ -407,7 +461,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </select>
             </div>
 
-            {/* 7. Histórico Relevante */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">
                 7. Histórico relevante {formParams.estado_consciencia === "Não responde" && "(Opcional)"}
@@ -421,7 +474,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </select>
             </div>
 
-            {/* 8. Idade do Paciente */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">8. Idade do paciente</label>
               <select
@@ -433,7 +485,6 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </select>
             </div>
 
-            {/* 9. Tipo Sanguíneo */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono font-bold text-slate-300">9. Tipo sanguíneo</label>
               <select
@@ -448,187 +499,255 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
         </div>
       )}
 
-      {/* NOTIFICAÇÃO DE SUCESSO DE ENVIO À FILA */}
+      {/* NOTIFICAÇÃO DE FEEDBACK VISUAL AO ADICIONAR PACIENTE */}
       {alertSuccess && (
-        <div className="p-4 rounded-xl border border-emerald-500/50 bg-emerald-950/50 text-emerald-300 flex items-center justify-between gap-4 shadow-[0_0_20px_rgba(0,229,163,0.25)] animate-in slide-in-from-top duration-300">
+        <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/60 text-emerald-300 flex items-center justify-between gap-4 shadow-[0_0_25px_rgba(0,229,163,0.2)] animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+            <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
             <div>
-              <p className="font-bold text-white text-sm">
-                PACIENTE TRIADO E ADMITIDO NA FILA DE TRIAGEM CRÍTICA!
+              <p className="font-bold text-white text-xs sm:text-sm">
+                PACIENTE TRIADO E ADICIONADO ÀS SIMULAÇÕES!
               </p>
-              <p className="text-xs text-emerald-400/90 font-mono">
-                Prescrição de {triageReport?.prescricao?.volume_ml} mL enviada para infusão pré-hospitalar imediata.
+              <p className="text-[11px] text-emerald-400/90 font-mono">
+                Análise da IA concluída com prescrição de suporte sanguíneo. Clique em "Ver Simulação Completa" em seu card para abrir a análise em 4 passos.
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-mono font-bold bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/40">
-            INFUSÃO AUTORIZADA
+          <span className="text-[10px] font-mono font-bold bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/40 hidden sm:inline-block">
+            TRIAGEM FINALIZADA
           </span>
         </div>
       )}
 
-      {/* RENDERIZAÇÃO DA RESPOSTA ESTRUTURADA EM 4 ETAPAS OBRIGATÓRIAS */}
-      {triageReport && (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 p-4 rounded-2xl border border-slate-800">
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-emerald-400 animate-ping"></span>
-              <h2 className="text-base font-bold text-white font-display">
-                RESOLUÇÃO DA IA (ESTRUTURA EM 4 ETAPAS)
-              </h2>
-              <span className="text-xs font-mono bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30">
-                MODO: {triageReport.modo}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCopyReport}
-                variant="outline"
-                size="sm"
-                className="gap-2 text-xs border-slate-700 bg-slate-900 text-slate-200"
-              >
-                {copiedReport ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                {copiedReport ? "RELATÓRIO COPIADO!" : "COPIAR LAUDO COMPLETO"}
-              </Button>
-
-              <Button
-                onClick={handleSendToQueue}
-                size="sm"
-                className="gap-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold"
-              >
-                <UserCheck className="h-3.5 w-3.5" />
-                ADMITIR NA FILA CRÍTICA
-              </Button>
-            </div>
+      {/* 2. LAYOUT E ORGANIZAÇÃO DOS CARDS DE PACIENTES INDIVIDUAIS E LIMPOS */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-rose-500" />
+            <h2 className="text-lg font-bold text-white font-display">
+              Pacientes em Triagem ({activeQueue.length})
+            </h2>
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* ETAPA 1: DESCRIÇÃO DO PROBLEMA */}
-            <div className="glass-panel rounded-2xl p-5 border-slate-800 bg-slate-950/80 space-y-3">
-              <div className="flex items-center gap-2 text-rose-400 border-b border-slate-800 pb-2">
-                <FileText className="h-4 w-4" />
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider">1. DESCRIÇÃO DO PROBLEMA</h3>
-              </div>
-              <div className="text-xs text-slate-300 leading-relaxed font-sans space-y-2 whitespace-pre-line">
-                {triageReport.etapas["1_descricao_problema"]}
-              </div>
-            </div>
-
-            {/* ETAPA 2: EXPLICAÇÃO DO PROBLEMA */}
-            <div className="glass-panel rounded-2xl p-5 border-amber-500/30 bg-slate-950/80 space-y-3">
-              <div className="flex items-center gap-2 text-amber-400 border-b border-slate-800 pb-2">
-                <AlertTriangle className="h-4 w-4" />
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider">2. EXPLICAÇÃO DO PROBLEMA (IMPACTO FISIOLÓGICO)</h3>
-              </div>
-              <div className="text-xs text-slate-300 leading-relaxed font-sans space-y-2 whitespace-pre-line">
-                {triageReport.etapas["2_explicacao_problema"]}
-              </div>
-            </div>
-
-            {/* ETAPA 3: RESOLUÇÃO DO PROBLEMA (FOCO EM ANÁLISE SANGUÍNEA) */}
-            <div className="glass-panel rounded-2xl p-5 border-cyan-500/30 bg-slate-950/80 space-y-3">
-              <div className="flex items-center gap-2 text-cyan-400 border-b border-slate-800 pb-2">
-                <Droplets className="h-4 w-4" />
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider">3. RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA)</h3>
-              </div>
-              <div className="text-xs text-slate-300 leading-relaxed font-sans space-y-2 whitespace-pre-line">
-                {triageReport.etapas["3_resolucao_problema"]}
-              </div>
-            </div>
-
-            {/* ETAPA 4: EXPLICAÇÃO DE COMO FOI RESOLVIDO */}
-            <div className="glass-panel rounded-2xl p-5 border-fuchsia-500/30 bg-slate-950/80 space-y-3">
-              <div className="flex items-center gap-2 text-fuchsia-400 border-b border-slate-800 pb-2">
-                <Sparkles className="h-4 w-4" />
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider">4. EXPLICAÇÃO DE COMO FOI RESOLVIDO (RACIOCÍNIO DA IA)</h3>
-              </div>
-              <div className="text-xs text-slate-300 leading-relaxed font-sans space-y-2 whitespace-pre-line">
-                {triageReport.etapas["4_explicacao_como_resolvido"]}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FILA DE TRIAGEM CRÍTICA DE ATENDIMENTO */}
-      <div className="glass-panel rounded-2xl p-6 border-slate-800 bg-slate-950/70">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <span className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
-              <Activity className="h-5 w-5" />
-            </span>
-            <div>
-              <h2 className="text-lg font-bold text-white font-display flex items-center gap-2">
-                Fila de Atendimento de Emergência & Triagem Crítica
-                <span className="text-xs font-mono font-bold bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-full border border-rose-500/30">
-                  {activeQueue.length} Pacientes
-                </span>
-              </h2>
-              <p className="text-xs text-slate-400">
-                Pacientes triados com indicação ativa de infusão rápida de sangue artificial
-              </p>
-            </div>
-          </div>
+          <span className="text-xs font-mono text-slate-400">
+            Cards individuais e delimitados • Clique para expandir a simulação da IA
+          </span>
         </div>
 
-        <div className="mt-5 space-y-3">
-          {activeQueue.length === 0 ? (
-            <div className="text-center py-10 text-slate-500 text-sm">
-              Nenhum paciente na fila de emergência no momento. Simule uma triagem acima para iniciar!
-            </div>
-          ) : (
-            activeQueue.map((paciente) => (
+        {activeQueue.length === 0 ? (
+          <div className="text-center py-12 rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 text-slate-500 text-sm">
+            Nenhum paciente triado no momento. Clique em <strong>"NOVA TRIAGEM"</strong> acima para gerar uma simulação!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {activeQueue.map((paciente) => (
               <div
                 key={paciente.id}
-                className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 hover:border-slate-700 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                className="group relative overflow-hidden rounded-2xl glass-panel border border-slate-800 hover:border-rose-500/40 bg-slate-950/90 p-5 transition-all duration-300 shadow-lg hover:shadow-2xl"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-white bg-slate-800 px-2 py-0.5 rounded">
-                      {paciente.id}
-                    </span>
-                    <span className="font-bold text-white text-sm">
-                      {paciente.nome} ({paciente.idade})
-                    </span>
-                    <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-                      {paciente.prioridade}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 font-sans">{paciente.quadro}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-slate-400 pt-1">
-                    <span>FC: <strong className="text-rose-400">{paciente.fc} BPM</strong></span>
-                    <span>PA: <strong className="text-amber-300">{paciente.pa}</strong></span>
-                    <span>SpO2: <strong className="text-cyan-300">{paciente.spo2}%</strong></span>
-                    <span>Prescrição: <strong className="text-white">{paciente.volumeMl} mL</strong></span>
-                  </div>
-                </div>
+                {/* Linha decorativa no topo do Card */}
+                <div className={`absolute top-0 left-0 right-0 h-1 ${
+                  paciente.prioridade.includes("VERMELHA") 
+                    ? "bg-gradient-to-r from-rose-600 via-red-500 to-rose-600" 
+                    : "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500"
+                }`} />
 
-                <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
-                  <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
-                    paciente.status.includes("ESTABILIZADO") 
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                      : paciente.status.includes("INFUSÃO")
-                      ? "bg-rose-500/10 text-rose-400 border-rose-500/30 animate-pulse"
-                      : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                  }`}>
-                    {paciente.status}
-                  </span>
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+                  
+                  {/* ESQUERDA: ID, PACIENTE, TIPO OCORRÊNCIA E SANGRAMENTO */}
+                  <div className="space-y-2 max-w-md">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-white bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800">
+                        {paciente.id}
+                      </span>
 
-                  <button
-                    onClick={() => setActiveQueue(prev => prev.filter(p => p.id !== paciente.id))}
-                    className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
-                    title="Remover paciente"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                      {/* BADGE DE CORRESPONDÊNCIA DE GRAVIDADE */}
+                      <span className={`text-[10px] font-mono font-extrabold px-3 py-1 rounded-full border flex items-center gap-1 ${
+                        paciente.prioridade.includes("VERMELHA")
+                          ? "bg-rose-500/15 text-rose-300 border-rose-500/40 shadow-[0_0_10px_rgba(244,63,94,0.2)]"
+                          : "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                      }`}>
+                        <ShieldAlert className="h-3 w-3" />
+                        {paciente.prioridade}
+                      </span>
+
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-1 rounded border border-slate-850">
+                        {paciente.admitidoEm}
+                      </span>
+                    </div>
+
+                    <h3 className="text-base sm:text-lg font-bold text-white font-display flex items-center gap-2">
+                      {paciente.nome}
+                      <span className="text-xs text-slate-400 font-normal font-sans">({paciente.idade})</span>
+                    </h3>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="bg-slate-900/90 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-800 font-medium">
+                        📌 {paciente.tipo_ocorrencia}
+                      </span>
+                      <span className="bg-rose-950/40 text-rose-300 px-2.5 py-1 rounded-lg border border-rose-900/40 font-medium">
+                        🩸 Sangramento {paciente.existe_sangramento}
+                      </span>
+                      <span className="bg-slate-900/90 text-sky-300 px-2.5 py-1 rounded-lg border border-slate-800 font-mono">
+                        Tipo ABO/Rh: {paciente.tipo_sanguineo}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* CENTRO: GRID DE SINAIS VITAIS ORGANIZADO EM COLUNAS DESTACADAS */}
+                  <div className="grid grid-cols-3 gap-2.5 w-full lg:w-auto">
+                    {/* FC */}
+                    <div className="p-2.5 rounded-xl border border-rose-500/30 bg-rose-950/20 text-center min-w-[90px]">
+                      <span className="text-[9px] font-mono font-bold text-slate-400 block">FC (BPM)</span>
+                      <span className="font-mono text-lg font-bold text-rose-400">{paciente.fc}</span>
+                    </div>
+
+                    {/* PA */}
+                    <div className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20 text-center min-w-[95px]">
+                      <span className="text-[9px] font-mono font-bold text-slate-400 block">PA (mmHg)</span>
+                      <span className="font-mono text-sm font-bold text-amber-300 leading-6">{paciente.pa}</span>
+                    </div>
+
+                    {/* SpO2 */}
+                    <div className="p-2.5 rounded-xl border border-cyan-500/30 bg-cyan-950/20 text-center min-w-[85px]">
+                      <span className="text-[9px] font-mono font-bold text-slate-400 block">SpO₂ (%)</span>
+                      <span className="font-mono text-lg font-bold text-cyan-300">{paciente.spo2}%</span>
+                    </div>
+                  </div>
+
+                  {/* DIREITA: PRESCRIÇÃO E BOTÃO INTERATIVO "VER SIMULAÇÃO COMPLETA" */}
+                  <div className="flex flex-col sm:flex-row lg:flex-col items-end justify-between gap-3 w-full lg:w-auto pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+                    <div className="text-left sm:text-right lg:text-right">
+                      <span className="text-[10px] font-mono uppercase text-slate-400 block">PRESCRIÇÃO SINTÉTICA</span>
+                      <span className="font-mono text-xl font-extrabold text-white">
+                        {paciente.volumeMl} <span className="text-xs text-rose-400 font-bold">mL</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      {/* BOTÃO EXIGIDO: "VER SIMULAÇÃO COMPLETA" */}
+                      <Button
+                        onClick={() => setSelectedPatientModal(paciente)}
+                        size="sm"
+                        className="gap-2 bg-gradient-to-r from-rose-600 to-fuchsia-600 hover:from-rose-500 hover:to-fuchsia-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(244,63,94,0.3)] px-4 py-2 rounded-xl"
+                      >
+                        <Eye className="h-4 w-4" />
+                        VER SIMULAÇÃO COMPLETA
+                      </Button>
+
+                      <button
+                        onClick={() => setActiveQueue(prev => prev.filter(p => p.id !== paciente.id))}
+                        className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
+                        title="Remover paciente"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* 3. MODAL EXPANSÍVEL DA SIMULAÇÃO COMPLETA DA IA EM 4 PASSOS */}
+      {selectedPatientModal && (
+        <Dialog open={!!selectedPatientModal} onOpenChange={() => setSelectedPatientModal(null)}>
+          <DialogContent className="glass-panel border-rose-500/40 sm:max-w-4xl bg-slate-950/95 text-slate-100 max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="border-b border-slate-800 pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-rose-500/20 text-rose-400">
+                    <Sparkles className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <DialogTitle className="text-lg font-bold text-white font-display flex items-center gap-2">
+                      Análise de IA & Simulação Completa ({selectedPatientModal.id})
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-400">
+                      Resolução estruturada em 4 Passos para {selectedPatientModal.nome} • {selectedPatientModal.idade}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+            </DialogHeader>
+
+            {/* CONTEÚDO EXPANDIDO DAS 4 ETAPAS OBRIGATÓRIAS */}
+            {selectedPatientModal.triageReport && (
+              <div className="space-y-5 my-3">
+                
+                {/* BOTÃO COPIAR LAUDO NO TOPO DO MODAL */}
+                <div className="flex items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                  <span className="text-xs font-mono text-slate-300">
+                    STATUS: <strong className="text-emerald-400">SIMULAÇÃO FINALIZADA E ARMAZENADA</strong>
+                  </span>
+                  <Button
+                    onClick={() => handleCopyReport(selectedPatientModal.triageReport)}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-xs border-slate-700 bg-slate-900 text-slate-200"
+                  >
+                    {copiedReport ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedReport ? "LAUDO COPIADO!" : "COPIAR TEXTO DO LAUDO"}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* PASSO 1: DESCRIÇÃO DO PROBLEMA */}
+                  <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50 space-y-2">
+                    <div className="flex items-center gap-2 text-rose-400 border-b border-slate-800 pb-2">
+                      <FileText className="h-4 w-4" />
+                      <h4 className="text-xs font-mono font-bold uppercase">1. DESCRIÇÃO DO PROBLEMA</h4>
+                    </div>
+                    <div className="text-xs text-slate-300 leading-relaxed font-sans whitespace-pre-line">
+                      {selectedPatientModal.triageReport.etapas["1_descricao_problema"]}
+                    </div>
+                  </div>
+
+                  {/* PASSO 2: EXPLICAÇÃO DO PROBLEMA */}
+                  <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-950/10 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-400 border-b border-slate-800 pb-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <h4 className="text-xs font-mono font-bold uppercase">2. EXPLICAÇÃO DO PROBLEMA (FISIOPATOLOGIA)</h4>
+                    </div>
+                    <div className="text-xs text-slate-300 leading-relaxed font-sans whitespace-pre-line">
+                      {selectedPatientModal.triageReport.etapas["2_explicacao_problema"]}
+                    </div>
+                  </div>
+
+                  {/* PASSO 3: RESOLUÇÃO DO PROBLEMA (FOCO EM ANÁLISE SANGUÍNEA) */}
+                  <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-950/10 space-y-2">
+                    <div className="flex items-center gap-2 text-cyan-400 border-b border-slate-800 pb-2">
+                      <Droplets className="h-4 w-4" />
+                      <h4 className="text-xs font-mono font-bold uppercase">3. RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA)</h4>
+                    </div>
+                    <div className="text-xs text-slate-300 leading-relaxed font-sans whitespace-pre-line">
+                      {selectedPatientModal.triageReport.etapas["3_resolucao_problema"]}
+                    </div>
+                  </div>
+
+                  {/* PASSO 4: EXPLICAÇÃO DE COMO FOI RESOLVIDO */}
+                  <div className="p-4 rounded-xl border border-fuchsia-500/30 bg-fuchsia-950/10 space-y-2">
+                    <div className="flex items-center gap-2 text-fuchsia-400 border-b border-slate-800 pb-2">
+                      <Brain className="h-4 w-4" />
+                      <h4 className="text-xs font-mono font-bold uppercase">4. EXPLICAÇÃO DE COMO FOI RESOLVIDO (RACIOCÍNIO DA IA)</h4>
+                    </div>
+                    <div className="text-xs text-slate-300 leading-relaxed font-sans whitespace-pre-line">
+                      {selectedPatientModal.triageReport.etapas["4_explicacao_como_resolvido"]}
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
 
     </div>
   );
