@@ -624,6 +624,32 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const a_b5_pct = Math.min(100, Math.max(0, a_b5_val));
   const a_b5_status = getStatusBadge(a_b5_pct, arduinoData.isConnected);
 
+  // Leituras dinâmicas em tempo real dos sensores para Tratamento Oncológico
+  // B1: Compatibilidade com Quimioterápicos (usa diretamente gas_value) - Barra Neon Verde-Água (#02c39a)
+  const o_b1_val = rawGas;
+  const o_b1_pct = Math.min(100, Math.max(0, o_b1_val));
+  const o_b1_status = getStatusBadge(o_b1_pct, arduinoData.isConnected);
+
+  // B2: Proteção contra Estresse Oxidativo (usa diretamente gas_value) - Barra Neon Verde (#00ff9d)
+  const o_b2_val = rawGas;
+  const o_b2_pct = Math.min(100, Math.max(0, o_b2_val));
+  const o_b2_status = getStatusBadge(o_b2_pct, arduinoData.isConnected);
+
+  // B3: Permeabilidade em Microcirculação (usa diretamente flow_value) - Barra Neon Ciano (#00d8ff)
+  const o_b3_val = rawFlow;
+  const o_b3_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const o_b3_status = getStatusBadge(o_b3_pct, arduinoData.isConnected);
+
+  // B4: Estabilidade em Neutropênicos = (temp_value * 0.5) + (flow_value * 0.5) - Barra Neon Roxa (#a855f7)
+  const o_b4_val = (temp_pct_for_card * 0.5) + (flow_pct_for_b5 * 0.5);
+  const o_b4_pct = Math.min(100, Math.max(0, o_b4_val));
+  const o_b4_status = getStatusBadge(o_b4_pct, arduinoData.isConnected);
+
+  // B5: Índice de Purificação Molecular = (gas_value * 0.5) + (flow_value * 0.5) - Barra Neon Amarela (#ffb703)
+  const o_b5_val = (rawGas * 0.5) + (flow_pct_for_b5 * 0.5);
+  const o_b5_pct = Math.min(100, Math.max(0, o_b5_val));
+  const o_b5_status = getStatusBadge(o_b5_pct, arduinoData.isConnected);
+
   const getSparkValues = (key) => {
     if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
     return history.map(item => item[key]);
@@ -1153,27 +1179,27 @@ while True:
                   {/* CARD B1: COMPATIBILIDADE COM QUIMIOTERÁPICOS */}
                   <MetricCard
                     title="B1 • COMPATIBILIDADE COM QUIMIOTERÁPICOS"
-                    subtitle="Estabilidade diante de compostos citostáticos"
-                    value={(currentReading.compatibilidade_quimioterapicos_pct || 99.0).toFixed(1)}
+                    subtitle="Usa diretamente gas_value"
+                    value={o_b1_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.compatibilidade_quimioterapicos_pct || 99.0}
-                    level="success"
-                    badgeText="INERTE"
+                    percent={o_b1_pct}
+                    level={o_b1_pct >= 90 ? "success" : o_b1_pct >= 70 ? "warning" : "error"}
+                    badgeText={o_b1_status.badgeText}
                     detail="Não reage nem degrada compostos citostáticos na corrente sanguínea."
                     icon={ShieldCheck}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('compatibilidade_quimioterapicos_pct')} color="#a855f7" />}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('compatibilidade_quimioterapicos_pct')} color="#02c39a" />}
                   />
 
                   {/* CARD B2: PROTEÇÃO CONTRA ESTRESSE OXIDATIVO */}
                   <MetricCard
                     title="B2 • PROTEÇÃO CONTRA ESTRESSE OXIDATIVO"
-                    subtitle="Neutralização de radicais livres de radioterapia"
-                    value={(currentReading.protecao_estresse_oxidativo_pct || 94.0).toFixed(1)}
+                    subtitle="Usa diretamente gas_value"
+                    value={o_b2_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.protecao_estresse_oxidativo_pct || 94.0}
-                    level="success"
-                    badgeText="ELEVADA"
+                    percent={o_b2_pct}
+                    level={o_b2_pct >= 90 ? "success" : o_b2_pct >= 70 ? "warning" : "error"}
+                    badgeText={o_b2_status.badgeText}
                     detail="Neutraliza radicais livres gerados por tratamentos radioterápicos."
                     icon={FlaskConical}
                     accentColor="bg-[#00ff9d]"
@@ -1183,46 +1209,46 @@ while True:
                   {/* CARD B3: PERMEABILIDADE EM MICROCIRCULAÇÃO */}
                   <MetricCard
                     title="B3 • PERMEABILIDADE EM MICROCIRCULAÇÃO"
-                    subtitle="Penetração em capilares comprimidos por tumores"
-                    value={(currentReading.permeabilidade_microcirculacao_cp || 2.0).toFixed(1)}
-                    unit="cP"
-                    percent={Math.min(100, ((currentReading.permeabilidade_microcirculacao_cp || 2.0) / 5) * 100)}
-                    level="success"
-                    badgeText="LIVRE"
+                    subtitle="Usa diretamente flow_value"
+                    value={o_b3_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "cP"}
+                    percent={o_b3_pct}
+                    level={o_b3_pct >= 90 ? "success" : o_b3_pct >= 70 ? "warning" : "error"}
+                    badgeText={o_b3_status.badgeText}
                     detail="Penetra redes capilares comprimidas por massas tumorais."
                     icon={Waves}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('permeabilidade_microcirculacao_cp')} color="#02c39a" />}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('permeabilidade_microcirculacao_cp')} color="#00d8ff" />}
                   />
 
-                  {/* CARD B4: ESTABILIDADE EM PACIENTES NEUTROPÉNICOS */}
+                  {/* CARD B4: ESTABILIDADE EM NEUTROPÉNICOS */}
                   <MetricCard
-                    title="B4 • ESTABILIDADE EM PACIENTES NEUTROPÉNICOS"
-                    subtitle="Segurança para imunodeprimidos"
-                    value={(currentReading.estabilidade_neutropenicos_pct || 100.0).toFixed(1)}
+                    title="B4 • ESTABILIDADE EM NEUTROPÉNICOS"
+                    subtitle="Calculado via (temp_value × 0.5) + (flow_value × 0.5)"
+                    value={o_b4_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.estabilidade_neutropenicos_pct || 100.0}
-                    level="success"
-                    badgeText="SEGURO"
+                    percent={o_b4_pct}
+                    level={o_b4_pct >= 90 ? "success" : o_b4_pct >= 70 ? "warning" : "error"}
+                    badgeText={o_b4_status.badgeText}
                     detail="Formulação livre de contaminantes que possam ameaçar imunodeprimidos."
                     icon={Droplets}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_neutropenicos_pct')} color="#00d8ff" />}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_neutropenicos_pct')} color="#a855f7" />}
                   />
 
                   {/* CARD B5: ÍNDICE DE PURIFICAÇÃO MOLECULAR */}
                   <MetricCard
                     title="B5 • ÍNDICE DE PURIFICAÇÃO MOLECULAR"
-                    subtitle="Proteção sobre fígado e rins fragilizados"
-                    value={(currentReading.purificacao_molecular_pct || 99.5).toFixed(1)}
+                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
+                    value={o_b5_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.purificacao_molecular_pct || 99.5}
-                    level="success"
-                    badgeText="PUREZA MÁXIMA"
+                    percent={o_b5_pct}
+                    level={o_b5_pct >= 90 ? "success" : o_b5_pct >= 70 ? "warning" : "error"}
+                    badgeText={o_b5_status.badgeText}
                     detail="Minimiza a carga metabólica sobre fígado e rins fragilizados."
                     icon={Thermometer}
-                    accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('purificacao_molecular_pct')} color="#39ff14" />}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('purificacao_molecular_pct')} color="#ffb703" />}
                   />
                 </>
               ) : isPolitraumatizadosActive ? (
@@ -2195,16 +2221,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B1 • Compatibilidade Quimioterápica</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.compatibilidade_quimioterapica_pct || 99.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#c084fc]/15 border border-[#c084fc]/40 text-[#c084fc]">
-                                  INERTE
+                                <span className="text-white font-bold font-mono">{o_b1_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${o_b1_status.bgColor} ${o_b1_status.borderColor} ${o_b1_status.textColor}`}>
+                                  {o_b1_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#c084fc] shadow-[0_0_8px_#c084fc] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.compatibilidade_quimioterapica_pct || 99.0)}%` }}
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${o_b1_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2214,16 +2240,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B2 • Proteção Estresse Oxidativo</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.protecao_estresse_oxidativo_pct || 94.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
-                                  ELEVADA
+                                <span className="text-white font-bold font-mono">{o_b2_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${o_b2_status.bgColor} ${o_b2_status.borderColor} ${o_b2_status.textColor}`}>
+                                  {o_b2_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.protecao_estresse_oxidativo_pct || 94.0)}%` }}
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${o_b2_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2233,16 +2259,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B3 • Permeabilidade Microcirculação</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.permeabilidade_microcirculacao_cp || 2.0).toFixed(1)} cP</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
-                                  LIVRE
+                                <span className="text-white font-bold font-mono">{o_b3_val.toFixed(1)} {rawFlow > 10 ? "%" : "cP"}</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${o_b3_status.bgColor} ${o_b3_status.borderColor} ${o_b3_status.textColor}`}>
+                                  {o_b3_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.permeabilidade_microcirculacao_cp || 2.0) / 5) * 100))}%` }}
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${o_b3_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2252,16 +2278,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B4 • Estabilidade Neutropênica</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_neutropenica_pct || 100.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
-                                  SEGURO
+                                <span className="text-white font-bold font-mono">{o_b4_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${o_b4_status.bgColor} ${o_b4_status.borderColor} ${o_b4_status.textColor}`}>
+                                  {o_b4_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.estabilidade_neutropenica_pct || 100.0)}%` }}
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${o_b4_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2271,16 +2297,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B5 • Índice Purificação Molecular</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.purificacao_molecular_pct || 99.5).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffb703]/15 border border-[#ffb703]/40 text-[#ffb703]">
-                                  PUREZA MÁXIMA
+                                <span className="text-white font-bold font-mono">{o_b5_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${o_b5_status.bgColor} ${o_b5_status.borderColor} ${o_b5_status.textColor}`}>
+                                  {o_b5_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.purificacao_molecular_pct || 99.5)}%` }}
+                                style={{ width: `${o_b5_pct}%` }}
                               />
                             </div>
                           </div>
