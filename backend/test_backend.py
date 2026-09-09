@@ -6,6 +6,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.processing import processar_leituras, limpar_e_converter_float
 from app.ai_model import analisar_risco_ia
+from app.triage_engine import executar_triagem_emergencia
 
 def testar_limpeza_string():
     print("Testando Camada de Processamento (Limpeza de Ruídos)...")
@@ -56,6 +57,36 @@ def testar_ia_explicavel():
     
     print("OK: Camada de IA Explicavel: Laudos e calculo de risco estruturado validados!")
 
+def testar_triagem_emergencia():
+    print("Testando Motor de Triagem de Emergencia em 4 Etapas...")
+    
+    # Testar Modo com IA (Autonomo)
+    res_ia = executar_triagem_emergencia(modo="Com IA")
+    assert res_ia["success"] is True
+    assert "1_descricao_problema" in res_ia["etapas"]
+    assert "2_explicacao_problema" in res_ia["etapas"]
+    assert "3_resolucao_problema" in res_ia["etapas"]
+    assert "4_explicacao_como_resolvido" in res_ia["etapas"]
+    
+    # Testar Modo Manual
+    res_manual = executar_triagem_emergencia(
+        modo="Manual",
+        tipo_ocorrencia="Hemorragia por perfuração",
+        existe_sangramento="Grave",
+        tempo_evento="10 - 30 minutos",
+        respiracao="Muito comprometida",
+        estado_consciencia="Não responde",
+        lesoes_aparentes="Grave",
+        historico_relevante="Informação desconhecida",
+        idade="Adulto",
+        tipo_sanguineo="Desconhecido"
+    )
+    assert res_manual["success"] is True
+    assert res_manual["prescricao"]["volume_ml"] == 2000
+    assert "Doador Universal Sintético" in res_manual["prescricao"]["compatibilidade"]
+    
+    print("OK: Motor de Triagem de Emergencia validado com sucesso nas 4 etapas!")
+
 if __name__ == "__main__":
     print("=============================================")
     print("    RODANDO SUITE DE TESTES DO BACKEND       ")
@@ -64,6 +95,7 @@ if __name__ == "__main__":
         testar_limpeza_string()
         testar_normalizacao_e_alarmes()
         testar_ia_explicavel()
+        testar_triagem_emergencia()
         print("\n[SUCESSO] TODOS OS TESTES PASSARAM COM SUCESSO!")
         sys.exit(0)
     except AssertionError as e:

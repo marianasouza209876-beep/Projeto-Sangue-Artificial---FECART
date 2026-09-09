@@ -10,6 +10,7 @@ from .database import engine, SessionLocal, init_db, Lote, LeituraSensor, Trilha
 from .processing import processar_leituras
 from .ai_model import analisar_risco_ia
 from .translator import responder_pergunta_cientifica
+from .triage_engine import executar_triagem_emergencia, OPCOES_VALIDAS
 
 app = FastAPI(title="Flowtificial API - Sangue Artificial Inteligente")
 
@@ -55,11 +56,53 @@ class LoteCreate(BaseModel):
 class ChatInput(BaseModel):
     pergunta: str
 
+class TriageInput(BaseModel):
+    modo: Optional[str] = "Com IA"
+    tipo_ocorrencia: Optional[str] = None
+    existe_sangramento: Optional[str] = None
+    tempo_evento: Optional[str] = None
+    respiracao: Optional[str] = None
+    estado_consciencia: Optional[str] = None
+    lesoes_aparentes: Optional[str] = None
+    historico_relevante: Optional[str] = None
+    idade: Optional[str] = None
+    tipo_sanguineo: Optional[str] = None
+
 # --- ENDPOINTS ---
 
 @app.get("/")
 def read_root():
     return {"status": "online", "message": "FastAPI Biomédico Flowtificial Ativo"}
+
+@app.get("/api/triage/options")
+def get_triage_options():
+    return OPCOES_VALIDAS
+
+@app.post("/api/triage")
+def create_triage_simulation(triage_in: TriageInput, db: Session = Depends(get_db)):
+    resultado = executar_triagem_emergencia(
+        modo=triage_in.modo,
+        tipo_ocorrencia=triage_in.tipo_ocorrencia,
+        existe_sangramento=triage_in.existe_sangramento,
+        tempo_evento=triage_in.tempo_evento,
+        respiracao=triage_in.respiracao,
+        estado_consciencia=triage_in.estado_consciencia,
+        lesoes_aparentes=triage_in.lesoes_aparentes,
+        historico_relevante=triage_in.historico_relevante,
+        idade=triage_in.idade,
+        tipo_sanguineo=triage_in.tipo_sanguineo
+    )
+    
+    # Gravar na Trilha de Auditoria
+    db.add(TrilhaAuditoria(
+        modulo="Triagem",
+        acao="Simulação de Triagem IA",
+        descricao=f"Triagem em modo '{triage_in.modo}'. Ocorrência: {resultado['paciente']['tipo_ocorrencia']}. Prescritos {resultado['prescricao']['volume_ml']} mL.",
+        operador="Motor de IA / Triagem"
+    ))
+    db.commit()
+    
+    return resultado
 
 @app.post("/api/sensor-data")
 def receive_sensor_data(data: SensorDataInput, db: Session = Depends(get_db)):

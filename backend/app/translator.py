@@ -2,6 +2,7 @@ import re
 from sqlalchemy.orm import Session
 from .database import Lote, LeituraSensor
 from .ai_model import analisar_risco_ia
+from .triage_engine import executar_triagem_emergencia
 
 def responder_pergunta_cientifica(pergunta: str, db: Session) -> str:
     """
@@ -10,6 +11,12 @@ def responder_pergunta_cientifica(pergunta: str, db: Session) -> str:
     no banco de dados (Camada 1), e retorna um diagnóstico simplificado e explicável.
     """
     txt = pergunta.strip().upper()
+    
+    # 0. Perguntas ou comandos de Triagem de Emergência
+    if any(palavra in txt for palavra in ["TRIAGEM", "SIMULAR TRIAGEM", "MODO MANUAL", "MODO COM IA", "PACIENTE DE EMERGENCIA", "OCORRENCIA"]):
+        modo = "Manual" if "MANUAL" in txt else "Com IA"
+        res = executar_triagem_emergencia(modo=modo)
+        return res["texto_formatado"]
     
     # 1. Procurar por menção de lotes (ex: SA-023, SA-024, SA-025)
     match_lote = re.search(r"SA-\d{3}", txt)
