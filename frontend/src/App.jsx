@@ -544,6 +544,32 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const b5_pct = Math.min(100, Math.max(0, b5_val));
   const b5_status = getStatusBadge(b5_pct, arduinoData.isConnected);
 
+  // Leituras dinâmicas em tempo real dos sensores para Trauma e Hemorragia Grave
+  // B1: Capacidade de Carga de O₂ (usa diretamente gas_value) - Barra Neon Vermelha (#ff4d4d)
+  const t_b1_val = rawGas;
+  const t_b1_pct = Math.min(100, Math.max(0, t_b1_val));
+  const t_b1_status = getStatusBadge(t_b1_pct, arduinoData.isConnected);
+
+  // B2: Pressão Oncótica (usa diretamente flow_value) - Barra Neon Azul (#00d8ff)
+  const t_b2_val = rawFlow;
+  const t_b2_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const t_b2_status = getStatusBadge(t_b2_pct, arduinoData.isConnected);
+
+  // B3: Permutabilidade Gasosa (usa diretamente gas_value) - Barra Neon Verde (#00ff9d)
+  const t_b3_val = rawGas;
+  const t_b3_pct = Math.min(100, Math.max(0, t_b3_val));
+  const t_b3_status = getStatusBadge(t_b3_pct, arduinoData.isConnected);
+
+  // B4: Resistência à Compressão Mecânica (usa diretamente flow_value) - Barra Neon Roxa (#a855f7)
+  const t_b4_val = rawFlow;
+  const t_b4_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const t_b4_status = getStatusBadge(t_b4_pct, arduinoData.isConnected);
+
+  // B5: Tamponamento Ácido-Básico = (gas_value * 0.7) + (temp_value * 0.3) - Barra Neon Amarela (#ffb703)
+  const t_b5_val = (rawGas * 0.7) + (rawTemp * 0.3);
+  const t_b5_pct = Math.min(100, Math.max(0, t_b5_val));
+  const t_b5_status = getStatusBadge(t_b5_pct, arduinoData.isConnected);
+
   const getSparkValues = (key) => {
     if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
     return history.map(item => item[key]);
@@ -842,57 +868,57 @@ while True:
                   {/* CARD B1: CAPACIDADE DE CARGA DE O₂ */}
                   <MetricCard
                     title="B1 • CAPACIDADE DE CARGA DE O₂"
-                    subtitle="Compensação volêmica e de hemácias"
-                    value={(currentReading.carga_o2_pct || 99.0).toFixed(1)}
+                    subtitle="Usa diretamente gas_value"
+                    value={t_b1_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.carga_o2_pct || 99.0}
-                    level="success"
-                    badgeText="MÁXIMA"
+                    percent={t_b1_pct}
+                    level={t_b1_pct >= 90 ? "success" : t_b1_pct >= 70 ? "warning" : "error"}
+                    badgeText={t_b1_status.badgeText}
                     detail="Compensa rapidamente a perda massiva de volemia e glóbulos vermelhos."
                     icon={ShieldCheck}
-                    accentColor="bg-[#ff9f1c]"
-                    sparkline={<Sparkline data={getSparkValues('carga_o2_pct')} color="#ff9f1c" />}
+                    accentColor="bg-[#ff4d4d]"
+                    sparkline={<Sparkline data={getSparkValues('carga_o2_pct')} color="#ff4d4d" />}
                   />
 
-                  {/* CARD B2: PRESSÃO ONCÓTICA (EXPANSÃO) */}
+                  {/* CARD B2: PRESSÃO ONCÓTICA */}
                   <MetricCard
-                    title="B2 • PRESSÃO ONCÓTICA (EXPANSÃO)"
-                    subtitle="Estabilidade da pressão arterial"
-                    value={(currentReading.pressao_oncotica_mmhg || 25.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.pressao_oncotica_mmhg || 25.0) / 30) * 100)}
-                    level="success"
-                    badgeText="FISIOLÓGICA"
+                    title="B2 • PRESSÃO ONCÓTICA"
+                    subtitle="Usa diretamente flow_value"
+                    value={t_b2_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "cP"}
+                    percent={t_b2_pct}
+                    level={t_b2_pct >= 90 ? "success" : t_b2_pct >= 70 ? "warning" : "error"}
+                    badgeText={t_b2_status.badgeText}
                     detail="Evita extravasamento de plasma e mantém a pressão arterial estável."
                     icon={Waves}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('pressao_oncotica_mmhg')} color="#00ff9d" />}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('pressao_oncotica_mmhg')} color="#00d8ff" />}
                   />
 
                   {/* CARD B3: PERMUTABILIDADE GASOSA */}
                   <MetricCard
                     title="B3 • PERMUTABILIDADE GASOSA"
-                    subtitle="Troca de O₂ e CO₂ alveolar"
-                    value={(currentReading.permutabilidade_gasosa_pct || 95.0).toFixed(1)}
+                    subtitle="Usa diretamente gas_value ajustado à curva de desaturação"
+                    value={t_b3_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.permutabilidade_gasosa_pct || 95.0}
-                    level="success"
-                    badgeText="EFICIENTE"
+                    percent={t_b3_pct}
+                    level={t_b3_pct >= 90 ? "success" : t_b3_pct >= 70 ? "warning" : "error"}
+                    badgeText={t_b3_status.badgeText}
                     detail="Assegura rápida troca de O₂ e CO₂ nos alvéolos pulmonares."
                     icon={FlaskConical}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('permutabilidade_gasosa_pct')} color="#00d8ff" />}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('permutabilidade_gasosa_pct')} color="#00ff9d" />}
                   />
 
                   {/* CARD B4: RESISTÊNCIA À COMPRESSÃO MECÂNICA */}
                   <MetricCard
                     title="B4 • RESISTÊNCIA À COMPRESSÃO MECÂNICA"
-                    subtitle="Suporte a bombas de infusão rápida"
-                    value={(currentReading.resistencia_compressao_pct || 90.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.resistencia_compressao_pct || 90.0}
-                    level="success"
-                    badgeText="ALTA"
+                    subtitle="Usa diretamente flow_value sob vazão máxima"
+                    value={t_b4_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "cP"}
+                    percent={t_b4_pct}
+                    level={t_b4_pct >= 90 ? "success" : t_b4_pct >= 70 ? "warning" : "error"}
+                    badgeText={t_b4_status.badgeText}
                     detail="Suporta bombas de infusão rápida em ressuscitação volêmica."
                     icon={Droplets}
                     accentColor="bg-[#a855f7]"
@@ -902,16 +928,16 @@ while True:
                   {/* CARD B5: TAMPONAMENTO ÁCIDO-BÁSICO */}
                   <MetricCard
                     title="B5 • TAMPONAMENTO ÁCIDO-BÁSICO"
-                    subtitle="Prevenção da acidose por hipoperfusão"
-                    value={(currentReading.tamponamento_ph || 7.40).toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, ((currentReading.tamponamento_ph || 7.40) / 8.5) * 100)}
-                    level="success"
-                    badgeText="NEUTRO"
+                    subtitle="Calculado via (gas_value × 0.7) + (temp_value × 0.3)"
+                    value={t_b5_val.toFixed(1)}
+                    unit="%"
+                    percent={t_b5_pct}
+                    level={t_b5_pct >= 90 ? "success" : t_b5_pct >= 70 ? "warning" : "error"}
+                    badgeText={t_b5_status.badgeText}
                     detail="Previne acidose metabólica decorrente da hipoperfusão tecidual."
                     icon={Thermometer}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('tamponamento_ph')} color="#02c39a" />}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('tamponamento_ph')} color="#ffb703" />}
                   />
                 </>
               ) : isCirurgiaCardiacaActive ? (
@@ -1758,16 +1784,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B1 • Capacidade de Carga de O₂</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.carga_o2_pct || 99.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ff0055]/15 border border-[#ff0055]/40 text-[#ff0055]">
-                                  MÁXIMA
+                                <span className="text-white font-bold font-mono">{t_b1_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${t_b1_status.bgColor} ${t_b1_status.borderColor} ${t_b1_status.textColor}`}>
+                                  {t_b1_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#ff0055] shadow-[0_0_8px_#ff0055] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.carga_o2_pct || 99.0)}%` }}
+                                className="h-full rounded-full bg-[#ff4d4d] shadow-[0_0_8px_#ff4d4d] transition-all duration-500" 
+                                style={{ width: `${t_b1_pct}%` }}
                               />
                             </div>
                           </div>
@@ -1777,16 +1803,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B2 • Pressão Oncótica</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.pressao_oncotica_mmhg || 25.0).toFixed(1)} mmHg</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
-                                  FISIOLÓGICA
+                                <span className="text-white font-bold font-mono">{t_b2_val.toFixed(1)} {rawFlow > 10 ? "%" : "cP"}</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${t_b2_status.bgColor} ${t_b2_status.borderColor} ${t_b2_status.textColor}`}>
+                                  {t_b2_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.pressao_oncotica_mmhg || 25.0) / 30) * 100))}%` }}
+                                style={{ width: `${t_b2_pct}%` }}
                               />
                             </div>
                           </div>
@@ -1796,16 +1822,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B3 • Permutabilidade Gasosa</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.permutabilidade_gasosa_pct || 95.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
-                                  EFICIENTE
+                                <span className="text-white font-bold font-mono">{t_b3_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${t_b3_status.bgColor} ${t_b3_status.borderColor} ${t_b3_status.textColor}`}>
+                                  {t_b3_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.permutabilidade_gasosa_pct || 95.0)}%` }}
+                                style={{ width: `${t_b3_pct}%` }}
                               />
                             </div>
                           </div>
@@ -1815,16 +1841,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B4 • Resistência à Compressão Mecânica</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.resistencia_compressao_pct || 90.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ff9100]/15 border border-[#ff9100]/40 text-[#ff9100]">
-                                  ALTA
+                                <span className="text-white font-bold font-mono">{t_b4_val.toFixed(1)} {rawFlow > 10 ? "%" : "cP"}</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${t_b4_status.bgColor} ${t_b4_status.borderColor} ${t_b4_status.textColor}`}>
+                                  {t_b4_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#ff9100] shadow-[0_0_8px_#ff9100] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.resistencia_compressao_pct || 90.0)}%` }}
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${t_b4_pct}%` }}
                               />
                             </div>
                           </div>
@@ -1834,16 +1860,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B5 • Tamponamento Ácido-Básico</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.tamponamento_ph || 7.40).toFixed(2)} pH</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
-                                  NEUTRO
+                                <span className="text-white font-bold font-mono">{t_b5_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${t_b5_status.bgColor} ${t_b5_status.borderColor} ${t_b5_status.textColor}`}>
+                                  {t_b5_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.tamponamento_ph || 7.40) / 8.5) * 100))}%` }}
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${t_b5_pct}%` }}
                               />
                             </div>
                           </div>
