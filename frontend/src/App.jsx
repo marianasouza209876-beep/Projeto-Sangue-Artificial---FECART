@@ -570,6 +570,34 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const t_b5_pct = Math.min(100, Math.max(0, t_b5_val));
   const t_b5_status = getStatusBadge(t_b5_pct, arduinoData.isConnected);
 
+  // Leituras dinâmicas em tempo real dos sensores para Cirurgia Cardíaca e Cardiovascular
+  const temp_pct_for_card = rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100);
+
+  // B1: Compatibilidade com Perfusão Mecânica - CEC = (flow_value * 0.6) + (gas_value * 0.4) - Barra Neon Ciano (#00d8ff)
+  const c_b1_val = (flow_pct_for_b5 * 0.6) + (rawGas * 0.4);
+  const c_b1_pct = Math.min(100, Math.max(0, c_b1_val));
+  const c_b1_status = getStatusBadge(c_b1_pct, arduinoData.isConnected);
+
+  // B2: Tensão de Cisalhamento (usa diretamente flow_value) - Barra Neon Roxa (#a855f7)
+  const c_b2_val = rawFlow;
+  const c_b2_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const c_b2_status = getStatusBadge(c_b2_pct, arduinoData.isConnected);
+
+  // B3: Tempo de Meia-Vida Extended = (gas_value * 0.5) + (temp_value * 0.5) - Barra Neon Verde (#00ff9d)
+  const c_b3_val = (rawGas * 0.5) + (temp_pct_for_card * 0.5);
+  const c_b3_pct = Math.min(100, Math.max(0, c_b3_val));
+  const c_b3_status = getStatusBadge(c_b3_pct, arduinoData.isConnected);
+
+  // B4: Tamponamento de Lactato (usa diretamente gas_value) - Barra Neon Amarela (#ffb703)
+  const c_b4_val = rawGas;
+  const c_b4_pct = Math.min(100, Math.max(0, c_b4_val));
+  const c_b4_status = getStatusBadge(c_b4_pct, arduinoData.isConnected);
+
+  // B5: Viscosidade em Hypothermia = (flow_value * 0.6) + (temp_value * 0.4) - Barra Neon Azul-Claro (#3a86ef)
+  const c_b5_val = (flow_pct_for_b5 * 0.6) + (temp_pct_for_card * 0.4);
+  const c_b5_pct = Math.min(100, Math.max(0, c_b5_val));
+  const c_b5_status = getStatusBadge(c_b5_pct, arduinoData.isConnected);
+
   const getSparkValues = (key) => {
     if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
     return history.map(item => item[key]);
@@ -945,76 +973,76 @@ while True:
                   {/* CARD B1: COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC) */}
                   <MetricCard
                     title="B1 • COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC)"
-                    subtitle="Estabilidade em circuitos de circulação extracorpórea"
-                    value={(currentReading.compatibilidade_cec_pct || 98.5).toFixed(1)}
+                    subtitle="Calculado via (flow_value × 0.6) + (gas_value × 0.4)"
+                    value={c_b1_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.compatibilidade_cec_pct || 98.5}
-                    level="success"
-                    badgeText="EXCELENTE"
+                    percent={c_b1_pct}
+                    level={c_b1_pct >= 90 ? "success" : c_b1_pct >= 70 ? "warning" : "error"}
+                    badgeText={c_b1_status.badgeText}
                     detail="Mantém a estabilidade molecular em circuitos de circulação extracorpórea."
                     icon={Waves}
                     accentColor="bg-[#00d8ff]"
                     sparkline={<Sparkline data={getSparkValues('compatibilidade_cec_pct')} color="#00d8ff" />}
                   />
 
-                  {/* CARD B2: TENSÃO DE CISAILHAMENTO (SHEAR STRESS) */}
+                  {/* CARD B2: TENSÃO DE CISAILHAMENTO */}
                   <MetricCard
-                    title="B2 • TENSÃO DE CISAILHAMENTO (SHEAR STRESS)"
-                    subtitle="Tolerância à fricção mecânica das bombas"
-                    value={(currentReading.tensao_cisalhamento_cp || 1.8).toFixed(1)}
-                    unit="cP"
-                    percent={Math.min(100, ((currentReading.tensao_cisalhamento_cp || 1.8) / 5) * 100)}
-                    level="success"
-                    badgeText="TOLERANTE"
+                    title="B2 • TENSÃO DE CISAILHAMENTO"
+                    subtitle="Usa diretamente flow_value"
+                    value={c_b2_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "cP"}
+                    percent={c_b2_pct}
+                    level={c_b2_pct >= 90 ? "success" : c_b2_pct >= 70 ? "warning" : "error"}
+                    badgeText={c_b2_status.badgeText}
                     detail="Previne degradação mecânica por bombas rotativas e oxigenadores."
                     icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('tensao_cisalhamento_cp')} color="#00ff9d" />}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('tensao_cisalhamento_cp')} color="#a855f7" />}
                   />
 
                   {/* CARD B3: TEMPO DE MEIA-VIDA EXTENDED */}
                   <MetricCard
                     title="B3 • TEMPO DE MEIA-VIDA EXTENDED"
-                    subtitle="Cirurgias de longa duração"
-                    value={(currentReading.meia_vida_extended_h || 48.0).toFixed(1)}
+                    subtitle="Calculado via (gas_value × 0.5) + (temp_value × 0.5)"
+                    value={c_b3_val.toFixed(1)}
                     unit="h"
-                    percent={Math.min(100, ((currentReading.meia_vida_extended_h || 48.0) / 72) * 100)}
-                    level="success"
-                    badgeText="PROLONGADO"
+                    percent={c_b3_pct}
+                    level={c_b3_pct >= 90 ? "success" : c_b3_pct >= 70 ? "warning" : "error"}
+                    badgeText={c_b3_status.badgeText}
                     detail="Suporta procedimentos cirúrgicos de longa duração sem perda funcional."
                     icon={Clock}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('meia_vida_extended_h')} color="#02c39a" />}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('meia_vida_extended_h')} color="#00ff9d" />}
                   />
 
                   {/* CARD B4: TAMPONAMENTO DE LACTATO */}
                   <MetricCard
                     title="B4 • TAMPONAMENTO DE LACTATO"
-                    subtitle="Redução de metabólitos ácidos em clampeamento"
-                    value={(currentReading.tamponamento_lactato_ph || 7.42).toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, ((currentReading.tamponamento_lactato_ph || 7.42) / 8.5) * 100)}
-                    level="success"
-                    badgeText="ATIVO"
+                    subtitle="Usa diretamente gas_value"
+                    value={c_b4_val.toFixed(1)}
+                    unit="%"
+                    percent={c_b4_pct}
+                    level={c_b4_pct >= 90 ? "success" : c_b4_pct >= 70 ? "warning" : "error"}
+                    badgeText={c_b4_status.badgeText}
                     detail="Minimiza acúmulo de metabólitos ácidos durante o clampeamento vascular."
                     icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('tamponamento_lactato_ph')} color="#a855f7" />}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('tamponamento_lactato_ph')} color="#ffb703" />}
                   />
 
                   {/* CARD B5: VISCOSIDADE EM HYPOTHERMIA */}
                   <MetricCard
                     title="B5 • VISCOSIDADE EM HYPOTHERMIA"
-                    subtitle="Fluidez em hipotermia cirúrgica induzida"
-                    value={(currentReading.viscosidade_hipotermia_cp || 3.0).toFixed(1)}
-                    unit="cP"
-                    percent={Math.min(100, ((currentReading.viscosidade_hipotermia_cp || 3.0) / 6) * 100)}
-                    level="success"
-                    badgeText="CONTROLADA"
+                    subtitle="Calculado via flow_value correlacionado com a queda em temp_value"
+                    value={c_b5_val.toFixed(1)}
+                    unit="%"
+                    percent={c_b5_pct}
+                    level={c_b5_pct >= 90 ? "success" : c_b5_pct >= 70 ? "warning" : "error"}
+                    badgeText={c_b5_status.badgeText}
                     detail="Preserva a fluidez hemodinâmica sob hipotermia cirúrgica induzida."
                     icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('viscosidade_hipotermia_cp')} color="#ffb703" />}
+                    accentColor="bg-[#3a86ef]"
+                    sparkline={<Sparkline data={getSparkValues('viscosidade_hipotermia_cp')} color="#3a86ef" />}
                   />
                 </>
               ) : isAnemiaActive ? (
@@ -1903,35 +1931,35 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B1 • Compatibilidade Perfusão CEC</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.compatibilidade_cec_pct || 98.5).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
-                                  EXCELENTE
+                                <span className="text-white font-bold font-mono">{c_b1_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${c_b1_status.bgColor} ${c_b1_status.borderColor} ${c_b1_status.textColor}`}>
+                                  {c_b1_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.compatibilidade_cec_pct || 98.5)}%` }}
+                                style={{ width: `${c_b1_pct}%` }}
                               />
                             </div>
                           </div>
 
-                          {/* B2: Tensão de Cisalhamento */}
+                          {/* B2: Tensión de Cisalhamento */}
                           <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B2 • Tensão de Cisalhamento</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.tensao_cisalhamento_cp || 1.8).toFixed(1)} cP</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
-                                  TOLERANTE
+                                <span className="text-white font-bold font-mono">{c_b2_val.toFixed(1)} {rawFlow > 10 ? "%" : "cP"}</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${c_b2_status.bgColor} ${c_b2_status.borderColor} ${c_b2_status.textColor}`}>
+                                  {c_b2_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.tensao_cisalhamento_cp || 1.8) / 5) * 100))}%` }}
+                                style={{ width: `${c_b2_pct}%` }}
                               />
                             </div>
                           </div>
@@ -1941,16 +1969,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B3 • Tempo de Meia-Vida Extended</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.meia_vida_extended_h || 48.0).toFixed(1)} h</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
-                                  PROLONGADO
+                                <span className="text-white font-bold font-mono">{c_b3_val.toFixed(1)} h</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${c_b3_status.bgColor} ${c_b3_status.borderColor} ${c_b3_status.textColor}`}>
+                                  {c_b3_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.meia_vida_extended_h || 48.0) / 72) * 100))}%` }}
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${c_b3_pct}%` }}
                               />
                             </div>
                           </div>
@@ -1960,16 +1988,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B4 • Tamponamento de Lactato</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.tamponamento_lactato_ph || 7.42).toFixed(2)} pH</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
-                                  ATIVO
+                                <span className="text-white font-bold font-mono">{c_b4_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${c_b4_status.bgColor} ${c_b4_status.borderColor} ${c_b4_status.textColor}`}>
+                                  {c_b4_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.tamponamento_lactato_ph || 7.42) / 8.5) * 100))}%` }}
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${c_b4_pct}%` }}
                               />
                             </div>
                           </div>
@@ -1979,16 +2007,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B5 • Viscosidade em Hipotermia</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.viscosidade_hipotermia_cp || 3.0).toFixed(1)} cP</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
-                                  CONTROLADA
+                                <span className="text-white font-bold font-mono">{c_b5_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${c_b5_status.bgColor} ${c_b5_status.borderColor} ${c_b5_status.textColor}`}>
+                                  {c_b5_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.viscosidade_hipotermia_cp || 3.0) / 6) * 100))}%` }}
+                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500" 
+                                style={{ width: `${c_b5_pct}%` }}
                               />
                             </div>
                           </div>
