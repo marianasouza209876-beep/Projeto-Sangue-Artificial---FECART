@@ -728,6 +728,32 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const cr_b5_pct = Math.min(100, Math.max(0, cr_b5_val));
   const cr_b5_status = getStatusBadge(cr_b5_pct, arduinoData.isConnected);
 
+  // Leituras dinâmicas em tempo real dos sensores para Tipagem Sanguínea e Testes de Compatibilidade
+  // B1: Reatividade em Prova Cruzada (Crossmatch) (usa diretamente flow_value) - Barra Neon Verde (#00ff9d)
+  const tc_b1_val = rawFlow;
+  const tc_b1_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const tc_b1_status = getStatusBadge(tc_b1_pct, arduinoData.isConnected);
+
+  // B2: Neutralidade de Anticorpos Irregulares (usa diretamente gas_value) - Barra Neon Ciano (#02c39a)
+  const tc_b2_val = rawGas;
+  const tc_b2_pct = Math.min(100, Math.max(0, tc_b2_val));
+  const tc_b2_status = getStatusBadge(tc_b2_pct, arduinoData.isConnected);
+
+  // B3: Fidelidade de Padrão Molecular = (flow_value * 0.5) + (gas_value * 0.5) - Barra Neon Azul (#00d8ff)
+  const tc_b3_val = (flow_pct_for_b5 * 0.5) + (rawGas * 0.5);
+  const tc_b3_pct = Math.min(100, Math.max(0, tc_b3_val));
+  const tc_b3_status = getStatusBadge(tc_b3_pct, arduinoData.isConnected);
+
+  // B4: Estabilidade em Painel Imuno-Hematológico (usa diretamente flow_value) - Barra Neon Roxa (#a855f7)
+  const tc_b4_val = rawFlow;
+  const tc_b4_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const tc_b4_status = getStatusBadge(tc_b4_pct, arduinoData.isConnected);
+
+  // B5: Limpidez Espectrofotométrica (usa diretamente gas_value) - Barra Neon Amarela (#ffb703)
+  const tc_b5_val = rawGas;
+  const tc_b5_pct = Math.min(100, Math.max(0, tc_b5_val));
+  const tc_b5_status = getStatusBadge(tc_b5_pct, arduinoData.isConnected);
+
   const getSparkValues = (key) => {
     if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
     return history.map(item => item[key]);
@@ -1565,76 +1591,76 @@ while True:
                   {/* CARD B1: REATIVIDADE EM PROVA CRUZADA (CROSSMATCH) */}
                   <MetricCard
                     title="B1 • REATIVIDADE EM PROVA CRUZADA (CROSSMATCH)"
-                    subtitle="Zero aglutinação com soro ou plasma de receptores"
-                    value={(currentReading.reatividade_crossmatch_pct !== undefined ? currentReading.reatividade_crossmatch_pct : 0.0).toFixed(1)}
-                    unit="%"
-                    percent={100}
-                    level="success"
-                    badgeText="NULA"
+                    subtitle="Usa diretamente flow_value"
+                    value={tc_b1_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "L/min"}
+                    percent={tc_b1_pct}
+                    level={tc_b1_pct >= 90 ? "success" : tc_b1_pct >= 70 ? "warning" : "error"}
+                    badgeText={tc_b1_status.badgeText}
                     detail="Zero aglutinação em contato com soro ou plasma de qualquer receptor."
                     icon={ShieldCheck}
-                    accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#39ff14" />}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#00ff9d" />}
                   />
 
                   {/* CARD B2: NEUTRALIDADE DE ANTICORPOS IRREGULARES */}
                   <MetricCard
                     title="B2 • NEUTRALIDADE DE ANTICORPOS IRREGULARES"
-                    subtitle="Segurança em receptores multitransfundidos"
-                    value={(currentReading.neutralidade_anticorpos_pct || 100.0).toFixed(1)}
+                    subtitle="Usa diretamente gas_value"
+                    value={tc_b2_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.neutralidade_anticorpos_pct || 100.0}
-                    level="success"
-                    badgeText="NEUTRO"
+                    percent={tc_b2_pct}
+                    level={tc_b2_pct >= 90 ? "success" : tc_b2_pct >= 70 ? "warning" : "error"}
+                    badgeText={tc_b2_status.badgeText}
                     detail="Não induz resposta imune em receptores multitransfundidos ou sensibilizados."
                     icon={Waves}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('neutralidade_anticorpos_pct')} color="#00ff9d" />}
+                    accentColor="bg-[#02c39a]"
+                    sparkline={<Sparkline data={getSparkValues('neutralidade_anticorpos_pct')} color="#02c39a" />}
                   />
 
                   {/* CARD B3: FIDELIDADE DE PADRÃO MOLECULAR */}
                   <MetricCard
                     title="B3 • FIDELIDADE DE PADRÃO MOLECULAR"
-                    subtitle="Resposta uniforme em testes automatizados"
-                    value={(currentReading.fidelidade_padrao_molecular_pct || 99.0).toFixed(1)}
+                    subtitle="Calculado via (flow_value × 0.5) + (gas_value × 0.5)"
+                    value={tc_b3_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.fidelidade_padrao_molecular_pct || 99.0}
-                    level="success"
-                    badgeText="PADRONIZADO"
+                    percent={tc_b3_pct}
+                    level={tc_b3_pct >= 90 ? "success" : tc_b3_pct >= 70 ? "warning" : "error"}
+                    badgeText={tc_b3_status.badgeText}
                     detail="Resposta uniforme e previsível em testes laboratoriais automatizados."
                     icon={FlaskConical}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('fidelidade_padrao_molecular_pct')} color="#02c39a" />}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('fidelidade_padrao_molecular_pct')} color="#00d8ff" />}
                   />
 
                   {/* CARD B4: ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO */}
                   <MetricCard
                     title="B4 • ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO"
-                    subtitle="Comportamento inerte em anticorpos raros"
-                    value={(currentReading.estabilidade_painel_pct || 98.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.estabilidade_painel_pct || 98.0}
-                    level="success"
-                    badgeText="ALTÍSSIMA"
+                    subtitle="Usa diretamente flow_value"
+                    value={tc_b4_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "L/min"}
+                    percent={tc_b4_pct}
+                    level={tc_b4_pct >= 90 ? "success" : tc_b4_pct >= 70 ? "warning" : "error"}
+                    badgeText={tc_b4_status.badgeText}
                     detail="Mantém o comportamento inerte mesmo na presença de anticorpos raros."
                     icon={Droplets}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_painel_pct')} color="#00d8ff" />}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('estabilidade_painel_pct')} color="#a855f7" />}
                   />
 
                   {/* CARD B5: LIMPIDEZ SPECTROFOTOMÉTRICA */}
                   <MetricCard
-                    title="B5 • LIMPIDEZ SPECTROFOTOMÉTRICA"
-                    subtitle="Leitura óptica precisa sem interferências"
-                    value={(currentReading.limpidez_spectrofotometrica_pct || 99.9).toFixed(1)}
+                    title="B5 • LIMPIDEZ ESPECTROFOTOMÉTRICA"
+                    subtitle="Usa diretamente gas_value"
+                    value={tc_b5_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.limpidez_spectrofotometrica_pct || 99.9}
-                    level="success"
-                    badgeText="TRANSPARENTE"
+                    percent={tc_b5_pct}
+                    level={tc_b5_pct >= 90 ? "success" : tc_b5_pct >= 70 ? "warning" : "error"}
+                    badgeText={tc_b5_status.badgeText}
                     detail="Permite leitura óptica precisa sem interferir nos reagentes de tipagem."
                     icon={Thermometer}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('limpidez_spectrofotometrica_pct')} color="#a855f7" />}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('limpidez_spectrofotometrica_pct')} color="#ffb703" />}
                   />
                 </>
               ) : (
@@ -2770,40 +2796,40 @@ while True:
 
                         {/* 5 Parâmetros com Barras Neon */}
                         <div className="flex flex-col gap-2 mt-0.5">
-                          {/* B1: Reatividade em Prova Cruzada */}
+                          {/* B1: Reatividade em Prova Cruzada (Crossmatch) */}
                           <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                              <span className="text-slate-300 font-semibold">B1 • Reatividade em Prova Cruzada</span>
+                              <span className="text-slate-300 font-semibold">B1 • Reatividade em Prova Cruzada (Crossmatch)</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.reatividade_crossmatch_pct || 0.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
-                                  NULA
+                                <span className="text-white font-bold font-mono">{tc_b1_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${tc_b1_status.bgColor} ${tc_b1_status.borderColor} ${tc_b1_status.textColor}`}>
+                                  {tc_b1_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
-                                style={{ width: `${Math.max(5, 100 - (currentReading.reatividade_crossmatch_pct || 0.0))}%` }}
+                                style={{ width: `${tc_b1_pct}%` }}
                               />
                             </div>
                           </div>
 
-                          {/* B2: Neutralidade de Anticorpos */}
+                          {/* B2: Neutralidade de Anticorpos Irregulares */}
                           <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                              <span className="text-slate-300 font-semibold">B2 • Neutralidade de Anticorpos</span>
+                              <span className="text-slate-300 font-semibold">B2 • Neutralidade de Anticorpos Irregulares</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.neutralidade_anticorpos_pct || 100.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
-                                  NEUTRO
+                                <span className="text-white font-bold font-mono">{tc_b2_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${tc_b2_status.bgColor} ${tc_b2_status.borderColor} ${tc_b2_status.textColor}`}>
+                                  {tc_b2_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.neutralidade_anticorpos_pct || 100.0)}%` }}
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${tc_b2_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2813,35 +2839,35 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B3 • Fidelidade de Padrão Molecular</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.fidelidade_padrao_molecular_pct || 99.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
-                                  PADRONIZADO
+                                <span className="text-white font-bold font-mono">{tc_b3_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${tc_b3_status.bgColor} ${tc_b3_status.borderColor} ${tc_b3_status.textColor}`}>
+                                  {tc_b3_status.badgeText}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                                style={{ width: `${tc_b3_pct}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* B4: Estabilidade em Painel Imuno-Hematológico */}
+                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
+                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                              <span className="text-slate-300 font-semibold">B4 • Estabilidade em Painel Imuno-Hematológico</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-white font-bold font-mono">{tc_b4_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${tc_b4_status.bgColor} ${tc_b4_status.borderColor} ${tc_b4_status.textColor}`}>
+                                  {tc_b4_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.fidelidade_padrao_molecular_pct || 99.0)}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* B4: Estabilidade em Painel Imuno */}
-                          <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
-                            <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                              <span className="text-slate-300 font-semibold">B4 • Estabilidade em Painel Imuno</span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_painel_imuno_pct || 98.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
-                                  ALTÍSSIMA
-                                </span>
-                              </div>
-                            </div>
-                            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.estabilidade_painel_imuno_pct || 98.0)}%` }}
+                                style={{ width: `${tc_b4_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2851,16 +2877,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B5 • Limpidez Espectrofotométrica</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.limpidez_espectrofotometrica_pct || 99.9).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#e2e8f0]/15 border border-[#e2e8f0]/40 text-[#e2e8f0]">
-                                  TRANSPARENTE
+                                <span className="text-white font-bold font-mono">{tc_b5_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${tc_b5_status.bgColor} ${tc_b5_status.borderColor} ${tc_b5_status.textColor}`}>
+                                  {tc_b5_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#e2e8f0] shadow-[0_0_8px_#e2e8f0] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.limpidez_espectrofotometrica_pct || 99.9)}%` }}
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${tc_b5_pct}%` }}
                               />
                             </div>
                           </div>
