@@ -598,6 +598,32 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const c_b5_pct = Math.min(100, Math.max(0, c_b5_val));
   const c_b5_status = getStatusBadge(c_b5_pct, arduinoData.isConnected);
 
+  // Leituras dinâmicas em tempo real dos sensores para Tratamento de Anemias Graves
+  // B1: Eficiência de Liberação de O₂ - P50 (usa diretamente gas_value) - Barra Neon Verde (#00ff9d)
+  const a_b1_val = rawGas;
+  const a_b1_pct = Math.min(100, Math.max(0, a_b1_val));
+  const a_b1_status = getStatusBadge(a_b1_pct, arduinoData.isConnected);
+
+  // B2: Ausência de Resposta Imunogênica = (gas_value * 0.5) + (flow_value * 0.5) - Barra Neon Verde-Água (#02c39a)
+  const a_b2_val = (rawGas * 0.5) + (flow_pct_for_b5 * 0.5);
+  const a_b2_pct = Math.min(100, Math.max(0, a_b2_val));
+  const a_b2_status = getStatusBadge(a_b2_pct, arduinoData.isConnected);
+
+  // B3: Estabilidade Plasmática (usa diretamente flow_value) - Barra Neon Azul (#00d8ff)
+  const a_b3_val = rawFlow;
+  const a_b3_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const a_b3_status = getStatusBadge(a_b3_pct, arduinoData.isConnected);
+
+  // B4: Tolerância a Infusão Lenta (usa diretamente flow_value) - Barra Neon Amarela (#ffb703)
+  const a_b4_val = rawFlow;
+  const a_b4_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const a_b4_status = getStatusBadge(a_b4_pct, arduinoData.isConnected);
+
+  // B5: Retenção Vascular = (flow_value * 0.6) + (temp_value * 0.4) - Barra Neon Roxa (#a855f7)
+  const a_b5_val = (flow_pct_for_b5 * 0.6) + (temp_pct_for_card * 0.4);
+  const a_b5_pct = Math.min(100, Math.max(0, a_b5_val));
+  const a_b5_status = getStatusBadge(a_b5_pct, arduinoData.isConnected);
+
   const getSparkValues = (key) => {
     if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
     return history.map(item => item[key]);
@@ -1050,12 +1076,12 @@ while True:
                   {/* CARD B1: EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50) */}
                   <MetricCard
                     title="B1 • EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50)"
-                    subtitle="Entrega de O₂ em baixas concentrações"
-                    value={(currentReading.eficiencia_p50_mmhg || 28.0).toFixed(1)}
-                    unit="mmHg"
-                    percent={Math.min(100, ((currentReading.eficiencia_p50_mmhg || 28.0) / 40) * 100)}
-                    level="success"
-                    badgeText="OTIMIZADA"
+                    subtitle="Usa diretamente gas_value"
+                    value={a_b1_val.toFixed(1)}
+                    unit="%"
+                    percent={a_b1_pct}
+                    level={a_b1_pct >= 90 ? "success" : a_b1_pct >= 70 ? "warning" : "error"}
+                    badgeText={a_b1_status.badgeText}
                     detail="Entrega oxigênio aos tecidos mesmo em baixas concentrações circulantes."
                     icon={Waves}
                     accentColor="bg-[#00ff9d]"
@@ -1065,12 +1091,12 @@ while True:
                   {/* CARD B2: AUSÊNCIA DE RESPOSTA IMUNOGÊNICA */}
                   <MetricCard
                     title="B2 • AUSÊNCIA DE RESPOSTA IMUNOGÊNICA"
-                    subtitle="Isenção de reações em transfusões crônicas"
-                    value={(currentReading.ausencia_imunogenica_pct || 100.0).toFixed(1)}
+                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
+                    value={a_b2_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.ausencia_imunogenica_pct || 100.0}
-                    level="success"
-                    badgeText="ISENTO"
+                    percent={a_b2_pct}
+                    level={a_b2_pct >= 90 ? "success" : a_b2_pct >= 70 ? "warning" : "error"}
+                    badgeText={a_b2_status.badgeText}
                     detail="Reduz risco de reações alérgicas ou rejeição em transfusões crônicas."
                     icon={ShieldCheck}
                     accentColor="bg-[#02c39a]"
@@ -1080,12 +1106,12 @@ while True:
                   {/* CARD B3: ESTABILIDADE PLASMÁTICA */}
                   <MetricCard
                     title="B3 • ESTABILIDADE PLASMÁTICA"
-                    subtitle="Prevenção de flutuações de hemoglobina"
-                    value={(currentReading.estabilidade_plasmatica_pct || 96.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.estabilidade_plasmatica_pct || 96.0}
-                    level="success"
-                    badgeText="ALTA"
+                    subtitle="Usa diretamente flow_value"
+                    value={a_b3_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "cP"}
+                    percent={a_b3_pct}
+                    level={a_b3_pct >= 90 ? "success" : a_b3_pct >= 70 ? "warning" : "error"}
+                    badgeText={a_b3_status.badgeText}
                     detail="Evita flutuações na concentração de hemoglobina sintética."
                     icon={FlaskConical}
                     accentColor="bg-[#00d8ff]"
@@ -1095,31 +1121,31 @@ while True:
                   {/* CARD B4: TOLERÂNCIA A INFUSÃO LENTA */}
                   <MetricCard
                     title="B4 • TOLERÂNCIA A INFUSÃO LENTA"
-                    subtitle="Administração gradual em pacientes debilitados"
-                    value={(currentReading.tolerancia_infusao_lenta_h || 36.0).toFixed(1)}
-                    unit="h"
-                    percent={Math.min(100, ((currentReading.tolerancia_infusao_lenta_h || 36.0) / 48) * 100)}
-                    level="success"
-                    badgeText="ADAPTADO"
+                    subtitle="Usa diretamente flow_value em baixa rotação"
+                    value={a_b4_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "cP"}
+                    percent={a_b4_pct}
+                    level={a_b4_pct >= 90 ? "success" : a_b4_pct >= 70 ? "warning" : "error"}
+                    badgeText={a_b4_status.badgeText}
                     detail="Ideal para esquemas de administração gradual em pacientes debilitados."
                     icon={Clock}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('tolerancia_infusao_lenta_h')} color="#a855f7" />}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('tolerancia_infusao_lenta_h')} color="#ffb703" />}
                   />
 
                   {/* CARD B5: RETENÇÃO VASCULAR */}
                   <MetricCard
                     title="B5 • RETENÇÃO VASCULAR"
-                    subtitle="Duração estendida no leito vascular"
-                    value={(currentReading.retencao_vascular_h || 30.0).toFixed(1)}
-                    unit="h"
-                    percent={Math.min(100, ((currentReading.retencao_vascular_h || 30.0) / 48) * 100)}
-                    level="success"
-                    badgeText="ESTÁVEL"
+                    subtitle="Calculado via (flow_value × 0.6) + (temp_value × 0.4)"
+                    value={a_b5_val.toFixed(1)}
+                    unit="%"
+                    percent={a_b5_pct}
+                    level={a_b5_pct >= 90 ? "success" : a_b5_pct >= 70 ? "warning" : "error"}
+                    badgeText={a_b5_status.badgeText}
                     detail="Impede filtração glomerular precoce, prolongando o benefício terapêutico."
                     icon={Droplets}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('retencao_vascular_h')} color="#ffb703" />}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('retencao_vascular_h')} color="#a855f7" />}
                   />
                 </>
               ) : isOncologicoActive ? (
@@ -2050,16 +2076,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B1 • Eficiência de Liberação O₂ (P50)</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.eficiencia_p50_mmhg || 28.0).toFixed(1)} mmHg</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ffd000]/15 border border-[#ffd000]/40 text-[#ffd000]">
-                                  OTIMIZADA
+                                <span className="text-white font-bold font-mono">{a_b1_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${a_b1_status.bgColor} ${a_b1_status.borderColor} ${a_b1_status.textColor}`}>
+                                  {a_b1_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#ffd000] shadow-[0_0_8px_#ffd000] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.eficiencia_p50_mmhg || 28.0) / 40) * 100))}%` }}
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                                style={{ width: `${a_b1_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2069,16 +2095,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B2 • Ausência de Resposta Imunogênica</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.ausencia_imunogenica_pct || 100.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
-                                  ISENTO
+                                <span className="text-white font-bold font-mono">{a_b2_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${a_b2_status.bgColor} ${a_b2_status.borderColor} ${a_b2_status.textColor}`}>
+                                  {a_b2_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.ausencia_imunogenica_pct || 100.0)}%` }}
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                                style={{ width: `${a_b2_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2088,16 +2114,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B3 • Estabilidade Plasmática</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.estabilidade_plasmatica_pct || 96.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
-                                  ALTA
+                                <span className="text-white font-bold font-mono">{a_b3_val.toFixed(1)} {rawFlow > 10 ? "%" : "cP"}</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${a_b3_status.bgColor} ${a_b3_status.borderColor} ${a_b3_status.textColor}`}>
+                                  {a_b3_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.estabilidade_plasmatica_pct || 96.0)}%` }}
+                                style={{ width: `${a_b3_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2107,16 +2133,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B4 • Tolerância a Infusão Lenta</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.tolerancia_infusao_lenta_h || 24.0).toFixed(1)} h</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
-                                  EXCELENTE
+                                <span className="text-white font-bold font-mono">{a_b4_val.toFixed(1)} {rawFlow > 10 ? "%" : "cP"}</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${a_b4_status.bgColor} ${a_b4_status.borderColor} ${a_b4_status.textColor}`}>
+                                  {a_b4_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.tolerancia_infusao_lenta_h || 24.0) / 48) * 100))}%` }}
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${a_b4_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2126,16 +2152,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B5 • Retenção Vascular</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.retencao_vascular_pct || 94.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#02c39a]/15 border border-[#02c39a]/40 text-[#02c39a]">
-                                  PRESERVADA
+                                <span className="text-white font-bold font-mono">{a_b5_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${a_b5_status.bgColor} ${a_b5_status.borderColor} ${a_b5_status.textColor}`}>
+                                  {a_b5_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.retencao_vascular_pct || 94.0)}%` }}
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${a_b5_pct}%` }}
                               />
                             </div>
                           </div>
