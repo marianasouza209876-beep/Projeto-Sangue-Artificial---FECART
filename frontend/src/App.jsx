@@ -702,6 +702,32 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const d_b5_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
   const d_b5_status = getStatusBadge(d_b5_pct, arduinoData.isConnected);
 
+  // Leituras dinâmicas em tempo real dos sensores para Coleta e Reserva de Sangue
+  // B1: Longevidade de Armazenamento = (temp_value * 0.6) + (gas_value * 0.4) - Barra Neon Azul-Escuro (#3a86ef)
+  const cr_b1_val = (temp_pct_for_card * 0.6) + (rawGas * 0.4);
+  const cr_b1_pct = Math.min(100, Math.max(0, cr_b1_val));
+  const cr_b1_status = getStatusBadge(cr_b1_pct, arduinoData.isConnected);
+
+  // B2: Resistência à Cristalização Térmica (usa diretamente temp_value) - Barra Neon Ciano (#00d8ff)
+  const cr_b2_val = rawTemp;
+  const cr_b2_pct = rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100);
+  const cr_b2_status = getStatusBadge(cr_b2_pct, arduinoData.isConnected);
+
+  // B3: Manutenção de pH em Estocagem (usa diretamente gas_value) - Barra Neon Verde (#00ff9d)
+  const cr_b3_val = rawGas;
+  const cr_b3_pct = Math.min(100, Math.max(0, cr_b3_val));
+  const cr_b3_status = getStatusBadge(cr_b3_pct, arduinoData.isConnected);
+
+  // B4: Integridade da Membrana Sintética (usa diretamente flow_value) - Barra Neon Amarela (#ffb703)
+  const cr_b4_val = rawFlow;
+  const cr_b4_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
+  const cr_b4_status = getStatusBadge(cr_b4_pct, arduinoData.isConnected);
+
+  // B5: Reatividade Pós-Descongelamento = (temp_value * 0.5) + (gas_value * 0.5) - Barra Neon Roxa (#a855f7)
+  const cr_b5_val = (temp_pct_for_card * 0.5) + (rawGas * 0.5);
+  const cr_b5_pct = Math.min(100, Math.max(0, cr_b5_val));
+  const cr_b5_status = getStatusBadge(cr_b5_pct, arduinoData.isConnected);
+
   const getSparkValues = (key) => {
     if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
     return history.map(item => item[key]);
@@ -1462,76 +1488,76 @@ while True:
                   {/* CARD B1: LONGEVIDADE DE ARMAZENAMENTO */}
                   <MetricCard
                     title="B1 • LONGEVIDADE DE ARMAZENAMENTO"
-                    subtitle="Estocagem prolongada em bancos de reserva"
-                    value={(currentReading.longevidade_armazenamento_dias || 60.0).toFixed(1)}
-                    unit="dias"
-                    percent={Math.min(100, ((currentReading.longevidade_armazenamento_dias || 60.0) / 90) * 100)}
-                    level="success"
-                    badgeText="MÁXIMA"
+                    subtitle="Calculado via (temp_value × 0.6) + (gas_value × 0.4)"
+                    value={cr_b1_val.toFixed(1)}
+                    unit="%"
+                    percent={cr_b1_pct}
+                    level={cr_b1_pct >= 90 ? "success" : cr_b1_pct >= 70 ? "warning" : "error"}
+                    badgeText={cr_b1_status.badgeText}
                     detail="Formulado para suportar longos períodos em bancos de reserva sem degradação."
                     icon={Clock}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('longevidade_armazenamento_dias')} color="#00ff9d" />}
+                    accentColor="bg-[#3a86ef]"
+                    sparkline={<Sparkline data={getSparkValues('longevidade_armazenamento_dias')} color="#3a86ef" />}
                   />
 
                   {/* CARD B2: RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA */}
                   <MetricCard
                     title="B2 • RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA"
-                    subtitle="Refrigeração profunda sem danos moleculares"
-                    value={(currentReading.resistencia_cristalizacao_termica_c || 4.0).toFixed(1)}
-                    unit="°C"
-                    percent={Math.min(100, ((currentReading.resistencia_cristalizacao_termica_c || 4.0) / 10) * 100)}
-                    level="success"
-                    badgeText="PROTEGIDO"
+                    subtitle="Usa diretamente temp_value"
+                    value={cr_b2_val.toFixed(1)}
+                    unit={rawTemp > 10 ? "%" : "°C"}
+                    percent={cr_b2_pct}
+                    level={cr_b2_pct >= 90 ? "success" : cr_b2_pct >= 70 ? "warning" : "error"}
+                    badgeText={cr_b2_status.badgeText}
                     detail="Previne danos moleculares sob congelamento ou refrigeração profunda."
                     icon={Thermometer}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('resistencia_cristalizacao_termica_c')} color="#02c39a" />}
+                    accentColor="bg-[#00d8ff]"
+                    sparkline={<Sparkline data={getSparkValues('resistencia_cristalizacao_termica_c')} color="#00d8ff" />}
                   />
 
                   {/* CARD B3: MANUTENÇÃO DE pH EM ESTOCAGEM */}
                   <MetricCard
                     title="B3 • MANUTENÇÃO DE pH EM ESTOCAGEM"
-                    subtitle="Estabilidade do pH ao longo do tempo"
-                    value={(currentReading.manutencao_ph_estocagem || 7.40).toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, ((currentReading.manutencao_ph_estocagem || 7.40) / 8.5) * 100)}
-                    level="success"
-                    badgeText="ESTÁVEL"
+                    subtitle="Usa diretamente gas_value"
+                    value={cr_b3_val.toFixed(1)}
+                    unit="%"
+                    percent={cr_b3_pct}
+                    level={cr_b3_pct >= 90 ? "success" : cr_b3_pct >= 70 ? "warning" : "error"}
+                    badgeText={cr_b3_status.badgeText}
                     detail="Evita a acidificação da amostra durante o tempo de reserva."
                     icon={FlaskConical}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('manutencao_ph_estocagem')} color="#00d8ff" />}
+                    accentColor="bg-[#00ff9d]"
+                    sparkline={<Sparkline data={getSparkValues('manutencao_ph_estocagem')} color="#00ff9d" />}
                   />
 
                   {/* CARD B4: INTEGRIDADE DA MEMBRANA SINTÉTICA */}
                   <MetricCard
                     title="B4 • INTEGRIDADE DA MEMBRANA SINTÉTICA"
-                    subtitle="Ausência de agregação ou precipitação"
-                    value={(currentReading.integridade_membrana_sintetica_pct || 95.0).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.integridade_membrana_sintetica_pct || 95.0}
-                    level="success"
-                    badgeText="PRESERVADA"
+                    subtitle="Usa diretamente flow_value"
+                    value={cr_b4_val.toFixed(1)}
+                    unit={rawFlow > 10 ? "%" : "L/min"}
+                    percent={cr_b4_pct}
+                    level={cr_b4_pct >= 90 ? "success" : cr_b4_pct >= 70 ? "warning" : "error"}
+                    badgeText={cr_b4_status.badgeText}
                     detail="Mantém a estrutura das micropartículas sem agregação ou precipitação."
                     icon={ShieldCheck}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('integridade_membrana_sintetica_pct')} color="#a855f7" />}
+                    accentColor="bg-[#ffb703]"
+                    sparkline={<Sparkline data={getSparkValues('integridade_membrana_sintetica_pct')} color="#ffb703" />}
                   />
 
                   {/* CARD B5: REATIVIDADE PÓS-DESCONGELAMENTO */}
                   <MetricCard
                     title="B5 • REATIVIDADE PÓS-DESCONGELAMENTO"
-                    subtitle="Capacidade de O₂ após aquecimento"
-                    value={(currentReading.reatividade_pos_descongelamento_pct || 98.0).toFixed(1)}
+                    subtitle="Calculado via (temp_value × 0.5) + (gas_value × 0.5)"
+                    value={cr_b5_val.toFixed(1)}
                     unit="%"
-                    percent={currentReading.reatividade_pos_descongelamento_pct || 98.0}
-                    level="success"
-                    badgeText="INVIOLADA"
+                    percent={cr_b5_pct}
+                    level={cr_b5_pct >= 90 ? "success" : cr_b5_pct >= 70 ? "warning" : "error"}
+                    badgeText={cr_b5_status.badgeText}
                     detail="Retoma a capacidade total de transporte de O₂ após o aquecimento."
                     icon={Waves}
-                    accentColor="bg-[#39ff14]"
-                    sparkline={<Sparkline data={getSparkValues('reatividade_pos_descongelamento_pct')} color="#39ff14" />}
+                    accentColor="bg-[#a855f7]"
+                    sparkline={<Sparkline data={getSparkValues('reatividade_pos_descongelamento_pct')} color="#a855f7" />}
                   />
                 </>
               ) : isTipagemCompatibilidadeActive ? (
@@ -2615,10 +2641,10 @@ while True:
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
-                            <Activity className="w-3.5 h-3.5 text-[#38bdf8] animate-pulse" />
+                            <Activity className="w-3.5 h-3.5 text-[#3a86ef] animate-pulse" />
                             LAUDO CLÍNICO: BANCO DE RESERVA E ARMAZENAMENTO
                           </h4>
-                          <span className="text-[10px] font-mono font-bold bg-[#38bdf8]/10 border border-[#38bdf8]/30 text-[#38bdf8] px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-mono font-bold bg-[#3a86ef]/10 border border-[#3a86ef]/30 text-[#3a86ef] px-2 py-0.5 rounded">
                             LOTE {selectedLot}
                           </span>
                         </div>
@@ -2630,16 +2656,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B1 • Longevidade de Armazenamento</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.longevidade_armazenamento_dias || 60.0).toFixed(1)} dias</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#38bdf8]/15 border border-[#38bdf8]/40 text-[#38bdf8]">
-                                  MÁXIMA
+                                <span className="text-white font-bold font-mono">{cr_b1_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${cr_b1_status.bgColor} ${cr_b1_status.borderColor} ${cr_b1_status.textColor}`}>
+                                  {cr_b1_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.longevidade_armazenamento_dias || 60.0) / 90) * 100))}%` }}
+                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500" 
+                                style={{ width: `${cr_b1_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2649,16 +2675,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B2 • Resistência à Cristalização Térmica</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.resistencia_cristalizacao_c || 4.0).toFixed(1)} °C</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00d8ff]/15 border border-[#00d8ff]/40 text-[#00d8ff]">
-                                  PROTEGIDO
+                                <span className="text-white font-bold font-mono">{cr_b2_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${cr_b2_status.bgColor} ${cr_b2_status.borderColor} ${cr_b2_status.textColor}`}>
+                                  {cr_b2_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.resistencia_cristalizacao_c || 4.0) / 10) * 100))}%` }}
+                                style={{ width: `${cr_b2_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2668,16 +2694,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B3 • Manutenção de pH em Estocagem</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.manutencao_ph_estocagem || 7.40).toFixed(2)} pH</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#00ff9d]/15 border border-[#00ff9d]/40 text-[#00ff9d]">
-                                  ESTÁVEL
+                                <span className="text-white font-bold font-mono">{cr_b3_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${cr_b3_status.bgColor} ${cr_b3_status.borderColor} ${cr_b3_status.textColor}`}>
+                                  {cr_b3_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
                                 className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, Math.round(((currentReading.manutencao_ph_estocagem || 7.40) / 8.5) * 100))}%` }}
+                                style={{ width: `${cr_b3_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2687,16 +2713,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B4 • Integridade da Membrana Sintética</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.integridade_membrana_pct || 95.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#a855f7]">
-                                  PRESERVADA
+                                <span className="text-white font-bold font-mono">{cr_b4_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${cr_b4_status.bgColor} ${cr_b4_status.borderColor} ${cr_b4_status.textColor}`}>
+                                  {cr_b4_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.integridade_membrana_pct || 95.0)}%` }}
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                                style={{ width: `${cr_b4_pct}%` }}
                               />
                             </div>
                           </div>
@@ -2706,16 +2732,16 @@ while True:
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B5 • Reatividade Pós-Descongelamento</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{(currentReading.reatividade_pos_descongelamento_pct || 98.0).toFixed(1)}%</span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ff9100]/15 border border-[#ff9100]/40 text-[#ff9100]">
-                                  INVIOLADA
+                                <span className="text-white font-bold font-mono">{cr_b5_val.toFixed(1)}%</span>
+                                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${cr_b5_status.bgColor} ${cr_b5_status.borderColor} ${cr_b5_status.textColor}`}>
+                                  {cr_b5_status.badgeText}
                                 </span>
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                               <div 
-                                className="h-full rounded-full bg-[#ff9100] shadow-[0_0_8px_#ff9100] transition-all duration-500" 
-                                style={{ width: `${Math.min(100, currentReading.reatividade_pos_descongelamento_pct || 98.0)}%` }}
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                                style={{ width: `${cr_b5_pct}%` }}
                               />
                             </div>
                           </div>
