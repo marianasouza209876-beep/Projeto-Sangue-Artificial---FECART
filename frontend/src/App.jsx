@@ -1189,10 +1189,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
       {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
       {activeTab === 'dashboard' && (
-        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 items-stretch lg:grid-cols-12 gap-6">
           
           {/* COLUNA ESQUERDA (MÉTRICAS & LOTES - 5/12) */}
-          <section className="lg:col-span-5 flex flex-col gap-4">
+          <section className="lg:col-span-5 flex h-full flex-col gap-4">
             
             {/* Seletor de Lotes */}
             <div className="glass-panel rounded-xl p-4 flex flex-col gap-3 border-slate-800">
@@ -2068,7 +2068,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${
                 isChatFullscreen
                   ? 'fixed top-1/2 left-1/2 z-50 h-[85vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-[#0B0F19]'
-                  : 'relative h-[calc(100vh-160px)] max-h-[850px] min-h-[500px] flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0B0F19]'
+                  : 'relative flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0B0F19]'
               }`}
               role={isChatFullscreen ? 'dialog' : undefined}
               aria-modal={isChatFullscreen || undefined}
@@ -2078,11 +2078,11 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
               
               {/* Header do Chat */}
-              <div className="z-10 flex-none h-14 p-4 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
+              <div className="z-10 flex-none h-12 px-4 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
                   <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
-                    CAMADA 4: ASSISTENTE VIRTUAL FLOW
+                    IA FLOW
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2110,7 +2110,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               </div>
 
               {/* Mensagens do Chat */}
-              <div className={`flow-chat-messages scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent z-10 flex-1 overflow-y-auto min-h-0 pr-2 scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : ''}`}>
+              <div className={`flow-chat-messages scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent z-10 flex-1 overflow-y-auto min-h-0 pr-2 scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : ''}`}>
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
