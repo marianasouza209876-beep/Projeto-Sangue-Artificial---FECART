@@ -2059,7 +2059,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             {/* Chatbot Conversacional com IA Explicável */}
             {isChatFullscreen && (
               <div
-                className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
                 onClick={() => setIsChatFullscreen(false)}
                 aria-hidden="true"
               />
@@ -2067,7 +2067,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             <div
               className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${
                 isChatFullscreen
-                  ? 'fixed top-1/2 left-1/2 z-50 h-[85vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-[#0B0F19]'
+                  ? 'fixed top-1/2 left-1/2 z-[100] h-[85vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-[#0B0F19]'
                   : 'relative flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0B0F19]'
               }`}
               role={isChatFullscreen ? 'dialog' : undefined}
@@ -2110,7 +2110,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               </div>
 
               {/* Mensagens do Chat */}
-              <div className={`flow-chat-messages scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent z-10 flex-1 overflow-y-auto min-h-0 pr-2 scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : ''}`}>
+              <div className={`flow-chat-messages scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent z-10 flex-1 min-h-0 overflow-y-auto p-4 pr-2 scroll-smooth flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : ''}`}>
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
