@@ -51,7 +51,7 @@ export function MetricCard({
   const s = levelStyles[level] || levelStyles.success;
 
   return (
-    <article className="glass-panel glass-panel-hover group relative overflow-hidden rounded-xl p-5 transition-all duration-300">
+    <article className="glass-panel glass-panel-hover accessible-card group relative overflow-hidden rounded-xl p-5 transition-all duration-300">
       <div
         className={cn(
           "pointer-events-none absolute inset-x-0 top-0 h-1 transition-colors",

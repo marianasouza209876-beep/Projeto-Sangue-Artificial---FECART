@@ -251,3 +251,114 @@
 .animate-pulse-green {
   animation: pulse-green 1.8s infinite;
 }
+
+/* =========================================================================
+   RECURSOS DE ACESSIBILIDADE E LEITURA DINÂMICA
+   ========================================================================= */
+
+/* 1. Escalas de Fonte Global */
+html.font-scale-100 {
+  font-size: 100%;
+}
+html.font-scale-115 {
+  font-size: 115%;
+}
+html.font-scale-130 {
+  font-size: 130%;
+}
+
+/* 2. Efeito de Lupa e Aumento no Hover (Passar o Mouse) */
+.accessible-card,
+.glass-panel,
+article,
+.chat-message-bubble,
+.laudo-container,
+.sensor-metric-box {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease,
+              border-color 0.25s ease,
+              background-color 0.25s ease;
+  will-change: transform;
+}
+
+html.accessibility-hover-zoom .accessible-card:hover,
+html.accessibility-hover-zoom .glass-panel:not(.accessibility-menu-no-zoom):hover,
+html.accessibility-hover-zoom article:hover,
+html.accessibility-hover-zoom .chat-message-bubble:hover,
+html.accessibility-hover-zoom .laudo-container:hover,
+html.accessibility-hover-zoom .sensor-metric-box:hover {
+  transform: scale(1.035) translateY(-3px);
+  position: relative;
+  z-index: 30 !important;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.9),
+              0 0 25px rgba(56, 189, 248, 0.35),
+              0 0 0 1.5px rgba(56, 189, 248, 0.6) !important;
+  border-color: rgba(56, 189, 248, 0.75) !important;
+}
+
+html.accessibility-hover-zoom .accessible-card:hover p,
+html.accessibility-hover-zoom .accessible-card:hover span,
+html.accessibility-hover-zoom .glass-panel:not(.accessibility-menu-no-zoom):hover p,
+html.accessibility-hover-zoom .glass-panel:not(.accessibility-menu-no-zoom):hover span,
+html.accessibility-hover-zoom article:hover p,
+html.accessibility-hover-zoom article:hover span,
+html.accessibility-hover-zoom .laudo-container:hover p,
+html.accessibility-hover-zoom .laudo-container:hover span,
+html.accessibility-hover-zoom .chat-message-bubble:hover p,
+html.accessibility-hover-zoom .chat-message-bubble:hover span {
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+/* Evitar zoom no menu flutuante de acessibilidade */
+.accessibility-menu-no-zoom,
+.accessibility-menu-no-zoom * {
+  transform: none !important;
+}
+
+/* 3. Modo Alto Contraste */
+html.accessibility-high-contrast {
+  --color-background: #010409;
+  --color-foreground: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.4);
+}
+
+html.accessibility-high-contrast body,
+html.accessibility-high-contrast #root {
+  background-color: #010409 !important;
+  color: #ffffff !important;
+  background-image: none !important;
+}
+
+html.accessibility-high-contrast .glass-panel,
+html.accessibility-high-contrast article,
+html.accessibility-high-contrast .bg-slate-900,
+html.accessibility-high-contrast .bg-slate-950 {
+  background-color: #070c18 !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 10px 35px rgba(0, 0, 0, 0.95) !important;
+}
+
+html.accessibility-high-contrast .text-slate-400,
+html.accessibility-high-contrast .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+html.accessibility-high-contrast .text-slate-300,
+html.accessibility-high-contrast .text-slate-200,
+html.accessibility-high-contrast .text-slate-100 {
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+html.accessibility-high-contrast button {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+html.accessibility-high-contrast button:hover {
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.6) !important;
+}
+
+html.accessibility-high-contrast ::-webkit-scrollbar-thumb {
+  background: #64748b !important;
+}
+

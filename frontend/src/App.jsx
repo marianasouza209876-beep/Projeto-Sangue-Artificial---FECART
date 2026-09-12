@@ -31,6 +31,7 @@ import { DemandChart } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
 import { QuickEntryModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
+import { AccessibilityMenu } from '@/components/AccessibilityMenu';
 import {
   Dialog,
   DialogContent,
@@ -742,11 +743,14 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   // Se a aba for Landing Page, renderiza a tela de apresentação
   if (activeTab === 'landing') {
     return (
-      <LandingPage
-        onNavigate={setActiveTab}
-        onInjectReading={handleInjectReading}
-        apiBase={API_BASE}
-      />
+      <>
+        <LandingPage
+          onNavigate={setActiveTab}
+          onInjectReading={handleInjectReading}
+          apiBase={API_BASE}
+        />
+        <AccessibilityMenu />
+      </>
     );
   }
 
@@ -1747,7 +1751,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                     className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
                     <div 
-                      className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
+                      className={`chat-message-bubble accessible-card p-3.5 rounded-2xl text-sm leading-relaxed ${
                         msg.role === 'user' 
                           ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
                           : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
@@ -1762,7 +1766,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isEmergenciaActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -1881,7 +1885,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Trauma e Hemorragia Grave (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isTraumaActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2000,7 +2004,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Cirurgia Cardíaca e Cardiovascular (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isCirurgiaCardiacaActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2119,7 +2123,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Tratamento de Anemias Graves (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isAnemiaActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2238,7 +2242,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Tratamento Oncológico (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isOncologicoActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2357,7 +2361,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Atendimento a Pacientes Politraumatizados (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isPolitraumatizadosActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2476,7 +2480,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Doação de Sangue (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isDoacaoActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2595,7 +2599,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Coleta e Reserva de Sangue (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isColetaReservaActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2714,7 +2718,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Tipagem Sanguínea e Testes de Compatibilidade (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isTipagemCompatibilidadeActive && (
-                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -3169,6 +3173,9 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Botão e Menu Flutuante de Acessibilidade */}
+      <AccessibilityMenu />
 
       {/* Footer */}
       <footer className="z-10 py-3.5 border-t border-slate-900 bg-slate-950/80 px-6">
