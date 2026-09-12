@@ -23,7 +23,9 @@ import {
   Sparkles,
   Info,
   Plus,
-  Zap
+  Zap,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
@@ -138,13 +140,24 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [packetCount, setPacketCount] = useState(1420);
-  const [lastPacketTime, setLastPacketTime] = useState(null);
+  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Tecla ESC para sair do modo tela cheia do chat
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isChatFullscreen) {
+        setIsChatFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isChatFullscreen]);
 
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Olá! Sou a Flow, sua assistente virtual. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
+      content: 'Olá! Sou a Flow, sua assistente virtual clínica. Estou monitorando os sensores em bancada e os 5 parâmetros biofísicos. Utilize os botões de Ações Rápidas abaixo para obter laudos e análises em tempo real!',
       explicabilidade: null
     }
   ]);
@@ -346,15 +359,50 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       return;
     }
 
-    // Resposta fixa: Condições do sangue / Status atual
-    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
+    // Resposta rápida 1: Status e Laudo do Lote
+    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("status e laudo") || text.toLowerCase().includes("condições do sangue")) {
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
         { 
           role: 'assistant', 
-          content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`,
+          content: `📊 **Laudo Clínico em Tempo Real • Lote ${selectedLot || 'Ativo'}**:\n• Saturação de O₂: ${(currentReading.oxigenacao_limpa * 100).toFixed(1)}% (Faixa fisiológica ideal)\n• Potencial de pH: ${currentReading.ph.toFixed(2)} (Equilíbrio ácido-base em 7.40)\n• Temperatura: ${currentReading.temperatura_c.toFixed(1)}°C\n• Viscosidade: ${currentReading.viscosidade_cp.toFixed(1)} cP\n\nTodos os 5 parâmetros biofísicos (B1 a B5) foram calculados e estão exibidos no painel abaixo.`,
           showAnalysisCard: true
         }
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    // Resposta rápida 2: Analisar Riscos Clínicos
+    if (text.toLowerCase().includes("risco") || text.toLowerCase().includes("riscos")) {
+      const phOk = currentReading.ph >= 7.35 && currentReading.ph <= 7.45;
+      const tempOk = currentReading.temperatura_c >= 35.0 && currentReading.temperatura_c <= 38.0;
+      const oxOk = currentReading.oxigenacao_limpa >= 0.90;
+
+      let analiseRiscos = `⚠️ **Avaliação de Riscos Clínicos • Lote ${selectedLot || 'Ativo'}**:\n\n`;
+      if (oxOk && phOk && tempOk) {
+        analiseRiscos += `🟢 **Risco Clínico: BAIXO (Lote Seguro e Operacional)**\n\n1. **Transporte Gasoso (O₂)**: Saturação de ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% garante oxigenação adequada sem hipóxia celular.\n2. **Equilíbrio Ácido-Base**: pH ${currentReading.ph.toFixed(2)} previne acidose e alcalose metabólica.\n3. **Integridade Térmica**: ${currentReading.temperatura_c.toFixed(1)}°C sem risco de desnaturação proteica.\n4. **Compatibilidade Universal**: Formulação sintética 100% isenta de antígenos Rh/ABO, zerando risco de hemólise pós-transfusão.`;
+      } else {
+        analiseRiscos += `🔴 **Risco Clínico: ELEVADO / ATENÇÃO NECESSÁRIA**\n\n${!oxOk ? `• **Queda de Oxigenação**: SpO₂ em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (abaixo de 90%). Risco de hipoperfusão.\n` : ''}${!phOk ? `• **Desvio Ácido-Base**: pH ${currentReading.ph.toFixed(2)} fora da janela 7.35–7.45.\n` : ''}${!tempOk ? `• **Variação Térmica**: Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C fora do padrão seguro.\n` : ''}`;
+      }
+
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: text },
+        { role: 'assistant', content: analiseRiscos }
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    // Resposta rápida 3: Ver Previsão de Demanda
+    if (text.toLowerCase().includes("previsão de demanda") || text.toLowerCase().includes("demanda") || text.toLowerCase().includes("estoque")) {
+      const respostaDemanda = `📈 **Diagnóstico Preditivo de Demanda Hospitalar (Camada 3 - IA)**:\n\n• **Projeção Temporal**: Modelo baseado em séries temporais prediz aumento no pronto-socorro nos próximos dias.\n• **Ponto Crítico Sem Ação**: Em D+3 o estoque cairia para 43 bolsas (< 50 un mínimo de segurança).\n• **Decisão Autônoma Recomendada**: Disparar síntese do Lote preventivo SA-026 em D+1 para garantir 62 bolsas em estoque seguro (+44.2% de resiliência hospitalar).\n\n💡 Para visualizar o gráfico interativo completo com bandas de incerteza, acesse a aba **"Previsão Demanda"** no cabeçalho superior!`;
+
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: text },
+        { role: 'assistant', content: respostaDemanda }
       ]);
       setInputValue('');
       return;
@@ -1919,33 +1967,64 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 </div>
 
                 {/* Chatbot Conversacional com IA Explicável */}
-            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
+            <div className={`transition-all duration-300 ${
+              isChatFullscreen
+                ? 'fixed inset-0 z-50 p-4 sm:p-6 bg-slate-950/95 backdrop-blur-2xl flex flex-col overflow-hidden shadow-2xl border-2 border-rose-500/40'
+                : 'flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]'
+            }`}>
               
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
               
               {/* Header do Chat */}
-              <div className="z-10 bg-slate-900/70 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
-                  <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
-                    CAMADA 4: ASSISTENTE VIRTUAL FLOW
-                  </span>
+              <div className="z-10 bg-slate-900/80 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
+                    <span className="text-xs font-bold font-mono tracking-widest text-slate-200">
+                      ASSISTENTE VIRTUAL FLOW
+                    </span>
+                  </div>
+
+                  {arduinoData.isConnected ? (
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      ONLINE
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 rounded-full font-mono font-bold">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                      SERIAL ATIVO
+                    </div>
+                  )}
                 </div>
-                {arduinoData.isConnected ? (
-                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    ONLINE
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                    [AGUARDANDO LEITURA SERIAL]
-                  </div>
-                )}
+
+                {/* Botão de Tela Cheia / Recolher */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsChatFullscreen(prev => !prev)}
+                    className="px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white font-mono text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                    title={isChatFullscreen ? "Recolher Chat (Pressione Esc)" : "Expandir Chat para Tela Cheia"}
+                  >
+                    {isChatFullscreen ? (
+                      <>
+                        <Minimize2 className="w-3.5 h-3.5 text-rose-400" />
+                        <span className="hidden sm:inline text-[11px] font-bold">Recolher</span>
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
+                        <span className="hidden sm:inline text-[11px] font-bold">Tela Cheia</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Mensagens do Chat */}
-              <div className="z-10 flex-1 max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5">
+              <div className={`z-10 flex-1 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${
+                isChatFullscreen ? 'max-w-5xl w-full mx-auto' : 'max-h-[380px]'
+              }`}>
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
@@ -3114,57 +3193,55 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Botões de Ações Rápidas (Pills) */}
-              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/40">
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Qual o status atual do lote?')}
-                  className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
-                >
-                  Status atual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('O que é sangue artificial?')}
-                  className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
-                >
-                  O que é sangue artificial?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Por que o lote está em risco?')}
-                  className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
-                >
-                  Por que o lote está em risco?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
-                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
-                >
-                  Limpeza de Ruído & pH
-                </button>
-              </div>
+              {/* Painel Fixo de Ações Rápidas (Interação Direta por Botões Estilizados) */}
+              <div className={`z-10 bg-slate-950/90 border-t border-slate-800/90 p-3 sm:p-4 flex flex-col gap-2.5 ${
+                isChatFullscreen ? 'max-w-5xl w-full mx-auto' : ''
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+                    Consultas Rápidas da IA Flow
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+                    Selecione uma consulta clínica abaixo:
+                  </span>
+                </div>
 
-              {/* Caixa de Entrada de Texto */}
-              <form 
-                onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }}
-                className="z-10 bg-slate-900/80 border-t border-slate-800 px-4 py-3 flex gap-2 items-center"
-              >
-                <input 
-                  type="text" 
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Pergunte sobre os lotes, sensores ou previsões..."
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
-                />
-                <Button 
-                  type="submit"
-                  className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Botão 1: Status e Laudo do Lote */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendMessage('Qual o status atual do lote?')}
+                    disabled={isTyping}
+                    className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-[0_0_15px_rgba(0,229,163,0.25)] hover:border-emerald-400/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group text-center"
+                  >
+                    <Activity className="w-4 h-4 text-emerald-400 group-hover:animate-pulse shrink-0" />
+                    <span>📊 Status e Laudo do Lote</span>
+                  </button>
+
+                  {/* Botão 2: Analisar Riscos Clínicos */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendMessage('Analisar riscos clínicos do lote')}
+                    disabled={isTyping}
+                    className="p-3 rounded-xl border border-rose-500/30 bg-rose-950/30 hover:bg-rose-900/50 text-rose-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-[0_0_15px_rgba(255,42,66,0.25)] hover:border-rose-400/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group text-center"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-rose-400 group-hover:animate-bounce shrink-0" />
+                    <span>⚠️ Analisar Riscos Clínicos</span>
+                  </button>
+
+                  {/* Botão 3: Ver Previsão de Demanda */}
+                  <button
+                    type="button"
+                    onClick={() => handleSendMessage('Qual a previsão de demanda hospitalar e risco de estoque?')}
+                    disabled={isTyping}
+                    className="p-3 rounded-xl border border-sky-500/30 bg-sky-950/30 hover:bg-sky-900/50 text-sky-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.25)] hover:border-sky-400/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group text-center"
+                  >
+                    <TrendingUp className="w-4 h-4 text-sky-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    <span>📈 Ver Previsão de Demanda</span>
+                  </button>
+                </div>
+              </div>
 
             </div>
           </>
