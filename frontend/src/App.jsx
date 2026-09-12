@@ -17,7 +17,9 @@ import {
   Layers,
   Clock,
   Plus,
-  Zap
+  Zap,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
@@ -171,6 +173,7 @@ export default function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime] = useState(null);
+  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
   const messagesEndRef = useRef(null);
 
   const [messages, setMessages] = useState([
@@ -227,6 +230,16 @@ export default function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  // Fecha a sobreposição sem interferir no estado do dashboard.
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setIsChatFullscreen(false);
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
 
   // Estados do Modal de Criação de Novo Lote
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1859,7 +1872,16 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             </div>
 
             {/* Chatbot Conversacional com IA Explicável */}
-            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
+            <div
+              className={`flex flex-col overflow-hidden bg-slate-950 shadow-2xl border-slate-800 transition-all duration-200 ${
+                isChatFullscreen
+                  ? 'fixed inset-0 z-50 h-screen w-screen rounded-none border-0'
+                  : 'flex-1 glass-panel rounded-xl relative min-h-[500px]'
+              }`}
+              role={isChatFullscreen ? 'dialog' : undefined}
+              aria-modal={isChatFullscreen || undefined}
+              aria-label={isChatFullscreen ? 'Chat da IA Flow em tela cheia' : undefined}
+            >
               
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
               
@@ -1871,21 +1893,32 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                     CAMADA 4: ASSISTENTE VIRTUAL FLOW
                   </span>
                 </div>
-                {arduinoData.isConnected ? (
-                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    ONLINE
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                    [AGUARDANDO LEITURA SERIAL]
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {arduinoData.isConnected ? (
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      ONLINE
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                      [AGUARDANDO LEITURA SERIAL]
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsChatFullscreen((isFullscreen) => !isFullscreen)}
+                    title={isChatFullscreen ? 'Recolher Chat' : 'Expandir Chat para Tela Cheia'}
+                    aria-label={isChatFullscreen ? 'Recolher Chat' : 'Expandir Chat para Tela Cheia'}
+                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  >
+                    {isChatFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Mensagens do Chat */}
-              <div className="z-10 flex-1 max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5">
+              <div className={`z-10 flex-1 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'max-h-none px-5 py-6 sm:px-10' : 'max-h-[380px]'}`}>
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
