@@ -39,6 +39,7 @@
 }
 
 :root {
+  --accessibility-font-scale: 1;
   --radius: 0.9rem;
   --background: #0b0f19;
   --foreground: #f8fafc;
@@ -99,31 +100,42 @@
   }
 }
 
+html {
+  font-size: calc(16px * var(--accessibility-font-scale));
+}
+
 /* Preferências locais de acessibilidade: sem zoom global ou alteração de fonte. */
-.accessibility-high-contrast .glass-panel {
+.high-contrast .glass-panel {
   background: #0b0f19;
   border-color: #94a3b8;
 }
 
-.accessibility-high-contrast .text-slate-400,
-.accessibility-high-contrast .text-slate-500 {
+.high-contrast .text-slate-400,
+.high-contrast .text-slate-500 {
   color: #d1d5db !important;
 }
 
-.accessibility-high-contrast .text-slate-300,
-.accessibility-high-contrast .text-slate-200 {
+.high-contrast .text-slate-300,
+.high-contrast .text-slate-200 {
   color: #f8fafc !important;
 }
 
-.accessibility-high-contrast input,
-.accessibility-high-contrast select,
-.accessibility-high-contrast textarea {
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea {
   border-color: #cbd5e1 !important;
   color: #f8fafc;
 }
 
-.accessibility-hover-zoom .glass-panel-hover:hover {
-  transform: scale(1.05);
+.enable-hover-zoom .glass-panel-hover:hover,
+.enable-hover-zoom .accessibility-zoom-target:hover,
+.enable-hover-zoom .flow-chat-messages [class*="bg-slate-900/80"][class*="border-slate-800/60"]:hover,
+.enable-hover-zoom .flow-chat-messages .glow-neon-border:hover {
+  position: relative;
+  z-index: 10;
+  transform: scale(1.03);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
 .accessibility-reduced-motion *,

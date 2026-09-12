@@ -20,10 +20,10 @@ import {
   Zap,
   Maximize2,
   Minimize2,
-  Settings,
   X,
   Contrast,
-  MousePointer2
+  MousePointer2,
+  Accessibility
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
@@ -203,9 +203,10 @@ export default function App() {
         highContrast: localStorage.getItem('flow-accessibility-high-contrast') === 'true',
         hoverZoom: localStorage.getItem('flow-accessibility-hover-zoom') === 'true',
         reducedMotion: localStorage.getItem('flow-accessibility-reduced-motion') === 'true',
+        fontSize: localStorage.getItem('flow-accessibility-font-size') || 'normal',
       };
     } catch {
-      return { highContrast: false, hoverZoom: false, reducedMotion: false };
+      return { highContrast: false, hoverZoom: false, reducedMotion: false, fontSize: 'normal' };
     }
   });
   const messagesEndRef = useRef(null);
@@ -285,15 +286,27 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     const preferences = [
-      ['highContrast', 'accessibility-high-contrast', 'flow-accessibility-high-contrast'],
-      ['hoverZoom', 'accessibility-hover-zoom', 'flow-accessibility-hover-zoom'],
+      ['highContrast', 'high-contrast', 'flow-accessibility-high-contrast'],
+      ['hoverZoom', 'enable-hover-zoom', 'flow-accessibility-hover-zoom'],
       ['reducedMotion', 'accessibility-reduced-motion', 'flow-accessibility-reduced-motion'],
     ];
 
     preferences.forEach(([key, className, storageKey]) => {
       root.classList.toggle(className, accessibilityPreferences[key]);
-      localStorage.setItem(storageKey, String(accessibilityPreferences[key]));
+      try {
+        localStorage.setItem(storageKey, String(accessibilityPreferences[key]));
+      } catch {
+        // Preferências continuam ativas nesta sessão caso o armazenamento esteja indisponível.
+      }
     });
+
+    const fontScales = { small: '0.9', normal: '1', large: '1.12' };
+    root.style.setProperty('--accessibility-font-scale', fontScales[accessibilityPreferences.fontSize] || '1');
+    try {
+      localStorage.setItem('flow-accessibility-font-size', accessibilityPreferences.fontSize);
+    } catch {
+      // Preferências continuam ativas nesta sessão caso o armazenamento esteja indisponível.
+    }
   }, [accessibilityPreferences]);
 
   useEffect(() => {
@@ -980,7 +993,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white">
+    <div className={`min-h-screen bg-slate-950 flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white ${accessibilityPreferences.hoverZoom ? 'enable-hover-zoom' : ''}`}>
       {/* Background Decorativo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
       
@@ -1069,16 +1082,6 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsAccessibilityOpen(true)}
-            title="Preferências de Acessibilidade e Visualização"
-            aria-label="Abrir Preferências de Acessibilidade e Visualização"
-            className="rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-slate-400 transition-colors hover:border-rose-500/50 hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-
           <QuickEntryModal onInjectReading={handleInjectReading} apiBase={API_BASE} />
         </div>
       </header>
@@ -1117,6 +1120,35 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             </div>
 
             <div className="mt-4 space-y-3">
+              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-100">Tamanho do texto</p>
+                    <p className="mt-0.5 text-xs leading-5 text-slate-400">Ajuste proporcional para uma leitura confortável.</p>
+                  </div>
+                  <div className="flex shrink-0 items-center rounded-lg border border-slate-700 bg-slate-950 p-1">
+                    {[
+                      ['small', 'A-'],
+                      ['normal', 'Normal'],
+                      ['large', 'A+'],
+                    ].map(([size, label]) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setAccessibilityPreferences((current) => ({ ...current, fontSize: size }))}
+                        aria-pressed={accessibilityPreferences.fontSize === size}
+                        className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                          accessibilityPreferences.fontSize === size
+                            ? 'bg-rose-600 text-white'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
               <AccessibilityToggle
                 icon={Contrast}
                 title="Alto Contraste"
@@ -1141,6 +1173,18 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             </div>
           </section>
         </>
+      )}
+
+      {!isAccessibilityOpen && (
+        <button
+          type="button"
+          onClick={() => setIsAccessibilityOpen(true)}
+          title="Acessibilidade e leitura dinâmica"
+          aria-label="Abrir Acessibilidade e leitura dinâmica"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-rose-400/50 bg-slate-900 text-rose-300 shadow-[0_0_24px_rgba(244,63,94,0.35)] transition-all hover:scale-105 hover:bg-rose-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+        >
+          <Accessibility className="h-6 w-6" />
+        </button>
       )}
 
       {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
@@ -2073,7 +2117,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                     className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
                     <div 
-                      className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
+                      className={`accessibility-zoom-target p-3.5 rounded-2xl text-sm leading-relaxed ${
                         msg.role === 'user' 
                           ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
                           : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
