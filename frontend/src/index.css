@@ -267,13 +267,12 @@ html.font-scale-130 {
   font-size: 130%;
 }
 
-/* 2. Efeito de Lupa e Aumento no Hover (Passar o Mouse) */
+/* 2. Efeito de Lupa e Aumento no Hover (Passar o Mouse) - Restrito para Leitura */
 .accessible-card,
-.glass-panel,
-article,
 .chat-message-bubble,
 .laudo-container,
-.sensor-metric-box {
+.sensor-metric-box,
+.simulation-result-card {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.25s ease,
               border-color 0.25s ease,
@@ -282,26 +281,23 @@ article,
 }
 
 html.accessibility-hover-zoom .accessible-card:hover,
-html.accessibility-hover-zoom .glass-panel:not(.accessibility-menu-no-zoom):hover,
-html.accessibility-hover-zoom article:hover,
+html.accessibility-hover-zoom .simulation-result-card:hover,
 html.accessibility-hover-zoom .chat-message-bubble:hover,
 html.accessibility-hover-zoom .laudo-container:hover,
 html.accessibility-hover-zoom .sensor-metric-box:hover {
-  transform: scale(1.035) translateY(-3px);
+  transform: scale(1.025) translateY(-2px);
   position: relative;
-  z-index: 30 !important;
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.9),
-              0 0 25px rgba(56, 189, 248, 0.35),
-              0 0 0 1.5px rgba(56, 189, 248, 0.6) !important;
-  border-color: rgba(56, 189, 248, 0.75) !important;
+  z-index: 25 !important;
+  box-shadow: 0 16px 35px -8px rgba(0, 0, 0, 0.9),
+              0 0 20px rgba(56, 189, 248, 0.3),
+              0 0 0 1.5px rgba(56, 189, 248, 0.5) !important;
+  border-color: rgba(56, 189, 248, 0.7) !important;
 }
 
 html.accessibility-hover-zoom .accessible-card:hover p,
 html.accessibility-hover-zoom .accessible-card:hover span,
-html.accessibility-hover-zoom .glass-panel:not(.accessibility-menu-no-zoom):hover p,
-html.accessibility-hover-zoom .glass-panel:not(.accessibility-menu-no-zoom):hover span,
-html.accessibility-hover-zoom article:hover p,
-html.accessibility-hover-zoom article:hover span,
+html.accessibility-hover-zoom .simulation-result-card:hover p,
+html.accessibility-hover-zoom .simulation-result-card:hover span,
 html.accessibility-hover-zoom .laudo-container:hover p,
 html.accessibility-hover-zoom .laudo-container:hover span,
 html.accessibility-hover-zoom .chat-message-bubble:hover p,
@@ -309,10 +305,30 @@ html.accessibility-hover-zoom .chat-message-bubble:hover span {
   text-shadow: 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
-/* Evitar zoom no menu flutuante de acessibilidade */
+/* Isolamento Rigoroso de Controles e Prevenção de Flicker */
+.no-hover-zoom,
+.no-hover-zoom *,
 .accessibility-menu-no-zoom,
-.accessibility-menu-no-zoom * {
+.accessibility-menu-no-zoom *,
+.simulator-controls,
+.simulator-controls *,
+input,
+select,
+button,
+label,
+[role="slider"],
+[role="dialog"],
+.dialog-content {
   transform: none !important;
+}
+
+/* Camada de estabilização estática de fundo */
+.stabilized-backdrop {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: auto;
 }
 
 /* 3. Modo Alto Contraste */

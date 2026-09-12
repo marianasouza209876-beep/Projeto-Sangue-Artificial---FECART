@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Zap,
   AlertTriangle,
@@ -7,1160 +7,757 @@ import {
   Droplets,
   Clock,
   UserCheck,
-  Edit3,
   CheckCircle2,
   ShieldAlert,
-  ArrowRight,
-  ArrowLeft,
   Plus,
   Sparkles,
-  Stethoscope,
   FileText,
   Copy,
   Check,
   Brain,
-  Layers,
   Trash2,
-  Eye,
-  Cpu,
   RefreshCw,
-  ChevronRight,
-  CheckCircle,
   BarChart3,
-  AlertCircle,
-  Shuffle
+  Thermometer,
+  ShieldCheck,
+  Stethoscope,
+  ChevronRight,
+  TrendingDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
-// OPÇÕES VÁLIDAS OFICIAIS DO PROJETO FECART
-export const OPCOES_TRIAGEM = {
-  tipo_ocorrencia: [
-    "Acidente de carro",
-    "Hemorragia por perfuração",
-    "Trauma",
-    "Emergência clínica",
-    "Causa desconhecida"
-  ],
-  existe_sangramento: [
-    "Não",
-    "Leve",
-    "Moderado",
-    "Grave"
-  ],
-  tempo_evento: [
-    "Menos de 10 minutos",
-    "10 - 30 minutos",
-    "30 - 60 minutos",
-    "Mais de 1 hora",
-    "Desconhecido"
-  ],
-  respiracao: [
-    "Normal",
-    "Dificuldade",
-    "Irregular",
-    "Muito comprometida"
-  ],
-  estado_consciencia: [
-    "Alerta",
-    "Confuso",
-    "Responde parcialmente",
-    "Não responde"
-  ],
-  lesoes_aparentes: [
-    "Nenhuma",
-    "Leve",
-    "Moderada",
-    "Grave"
-  ],
-  historico_relevante: [
-    "Nenhuma informação relevante",
-    "Condição prévia conhecida",
-    "Uso contínuo de medicamentos",
-    "Alergia conhecida",
-    "Informação desconhecida"
-  ],
-  idade: [
-    "Crianças",
-    "Adolescente",
-    "Adulto",
-    "Idoso"
-  ],
-  tipo_sanguineo: [
-    "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Desconhecido"
-  ]
+// CENÁRIOS PADRÃO DE EMERGÊNCIA
+export const CENARIOS_EMERGENCIA = [
+  {
+    id: "trauma_hemorragico",
+    nome: "Hemorragia por Perfuração / Ferimento Grave",
+    sangramento: "Grave",
+    perdaVolMl: 1800,
+    paSistolica: 75,
+    paDiastolica: 45,
+    spo2: 82,
+    fc: 140,
+    idade: "Adulto",
+    tipoSanguineo: "Desconhecido",
+    tempoEvento: "15 min"
+  },
+  {
+    id: "acidente_transito",
+    nome: "Acidente de Trânsito / Colisão Automobilística",
+    sangramento: "Grave",
+    perdaVolMl: 2200,
+    paSistolica: 70,
+    paDiastolica: 40,
+    spo2: 78,
+    fc: 152,
+    idade: "Adolescente",
+    tipoSanguineo: "O-",
+    tempoEvento: "10 min"
+  },
+  {
+    id: "choque_hipovolemico",
+    nome: "Choque Hipovolêmico / Perda Sanguínea Aguda",
+    sangramento: "Moderado",
+    perdaVolMl: 1200,
+    paSistolica: 85,
+    paDiastolica: 55,
+    spo2: 88,
+    fc: 125,
+    idade: "Idoso",
+    tipoSanguineo: "A+",
+    tempoEvento: "30 min"
+  },
+  {
+    id: "cirurgia_urgente",
+    nome: "Emergência Cirúrgica / Sangramento Extracorpóreo",
+    sangramento: "Moderado",
+    perdaVolMl: 1400,
+    paSistolica: 90,
+    paDiastolica: 60,
+    spo2: 91,
+    fc: 110,
+    idade: "Adulto",
+    tipoSanguineo: "B+",
+    tempoEvento: "20 min"
+  },
+  {
+    id: "politrauma_critico",
+    nome: "Politrauma Crítico / Lesões Múltiplas",
+    sangramento: "Grave",
+    perdaVolMl: 2500,
+    paSistolica: 65,
+    paDiastolica: 35,
+    spo2: 74,
+    fc: 160,
+    idade: "Adulto",
+    tipoSanguineo: "Desconhecido",
+    tempoEvento: "8 min"
+  }
+];
+
+export const OPCOES_FORM = {
+  idades: ["Criança", "Adolescente", "Adulto", "Idoso"],
+  tiposSanguineos: ["Desconhecido", "O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"],
+  niveisSangramento: ["Leve (<500 mL)", "Moderado (500-1500 mL)", "Grave (>1500 mL)", "Maciço (>2500 mL)"]
 };
 
-// HELPER DE SELEÇÃO ALEATÓRIA
-const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-// GERADOR DE PARÂMETROS ALEATÓRIOS DO FORMULÁRIO
-export const getRandomFormParams = () => ({
-  tipo_ocorrencia: getRandomItem(OPCOES_TRIAGEM.tipo_ocorrencia),
-  existe_sangramento: getRandomItem(OPCOES_TRIAGEM.existe_sangramento),
-  tempo_evento: getRandomItem(OPCOES_TRIAGEM.tempo_evento),
-  respiracao: getRandomItem(OPCOES_TRIAGEM.respiracao),
-  estado_consciencia: getRandomItem(OPCOES_TRIAGEM.estado_consciencia),
-  lesoes_aparentes: getRandomItem(OPCOES_TRIAGEM.lesoes_aparentes),
-  historico_relevante: getRandomItem(OPCOES_TRIAGEM.historico_relevante),
-  idade: getRandomItem(OPCOES_TRIAGEM.idade),
-  tipo_sanguineo: getRandomItem(OPCOES_TRIAGEM.tipo_sanguineo)
-});
-
 export function EmergencySimulator({ onAddPatientToQueue }) {
-  // Controle de Visualização: 'dashboard' (Visão Resumida de Pacientes) | 'form' (Formulário de Entrada)
-  const [viewMode, setViewMode] = useState("dashboard"); 
-  const [currentStep, setCurrentStep] = useState(1); // 1. Dados | 2. Análise | 3. Resultado
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [alertSuccess, setAlertSuccess] = useState(false);
+  // ESTADO LOCAL DOS CONTROLES DA SIMULAÇÃO (ISOLADO PARA NÃO GERAR RE-RENDER GLOBAL)
+  const [cenarioSelecionado, setCenarioSelecionado] = useState(CENARIOS_EMERGENCIA[0].id);
+  const [nomeOcorrencia, setNomeOcorrencia] = useState(CENARIOS_EMERGENCIA[0].nome);
+  const [perdaVolMl, setPerdaVolMl] = useState(CENARIOS_EMERGENCIA[0].perdaVolMl);
+  const [paSistolica, setPaSistolica] = useState(CENARIOS_EMERGENCIA[0].paSistolica);
+  const [paDiastolica, setPaDiastolica] = useState(CENARIOS_EMERGENCIA[0].paDiastolica);
+  const [spo2, setSpo2] = useState(CENARIOS_EMERGENCIA[0].spo2);
+  const [fc, setFc] = useState(CENARIOS_EMERGENCIA[0].fc);
+  const [idade, setIdade] = useState(CENARIOS_EMERGENCIA[0].idade);
+  const [tipoSanguineo, setTipoSanguineo] = useState(CENARIOS_EMERGENCIA[0].tipoSanguineo);
+  const [tempoEvento, setTempoEvento] = useState(CENARIOS_EMERGENCIA[0].tempoEvento);
+
+  // ESTADOS DE EXECUÇÃO E FEEDBACK
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulacaoResultado, setSimulacaoResultado] = useState(null);
   const [copiedReport, setCopiedReport] = useState(false);
-  const [selectedPatientModal, setSelectedPatientModal] = useState(null); // Modal da Simulação Completa
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Estado dos Campos do Formulário (Inicializado de forma randômica)
-  const [formParams, setFormParams] = useState(getRandomFormParams);
-
-  // Re-randomizar todas as informações do formulário sempre que a tela de formulário for aberta
-  useEffect(() => {
-    if (viewMode === "form") {
-      setFormParams(getRandomFormParams());
+  // FILA DE HISTÓRICO DE SIMULAÇÕES
+  const [historicoSimulacoes, setHistoricoSimulacoes] = useState([
+    {
+      id: "SIM-9041",
+      titulo: "Hemorragia Traumática Profunda",
+      prioridade: "CÓDIGO VERMELHO",
+      idade: "Adulto",
+      tipoSanguineo: "Desconhecido",
+      volumeRecomendado: 2000,
+      spo2: 82,
+      fc: 142,
+      pa: "75/45 mmHg",
+      dataHora: "14:15"
+    },
+    {
+      id: "SIM-8812",
+      titulo: "Colisão Automobilística",
+      prioridade: "CÓDIGO VERMELHO",
+      idade: "Adolescente",
+      tipoSanguineo: "O-",
+      volumeRecomendado: 2200,
+      spo2: 78,
+      fc: 150,
+      pa: "70/40 mmHg",
+      dataHora: "14:02"
     }
-  }, [viewMode]);
+  ]);
 
-  // Resultado da Última Triagem Gerada
-  const [triageReport, setTriageReport] = useState(null);
+  // ÍNDICE DE CHOQUE CALCULADO (Shock Index = FC / PAS)
+  const shockIndex = useMemo(() => {
+    if (!paSistolica || paSistolica <= 0) return 1.0;
+    return Number((fc / paSistolica).toFixed(2));
+  }, [fc, paSistolica]);
 
-  // Lista de Cards de Pacientes Triados (Fila de Atendimento)
-  const [activeQueue, setActiveQueue] = useState([]);
-
-  // Função de Construção do Laudo de IA em 4 Etapas Estritas
-  const buildTriageReport = (mode, f) => {
-    const isDesconhecido = f.tipo_sanguineo === "Desconhecido";
-    const vol = f.existe_sangramento === "Grave" ? 2000 : (f.existe_sangramento === "Moderado" ? 1200 : 500);
-    
-    const compat = isDesconhecido 
-      ? "Isenção Antigênica / Doador Universal Sintético"
-      : `Sangue Compatível Tipo ${f.tipo_sanguineo} (ou Doador Universal Sintético)`;
-
-    const e1 = `### 📋 FICHA CLÍNICA DO PACIENTE\n- **Tipo de Ocorrência:** ${f.tipo_ocorrencia}\n- **Existe Sangramento?:** ${f.existe_sangramento}\n- **Tempo desde o Evento:** ${f.tempo_evento}\n- **Respiração:** ${f.respiracao}\n- **Estado de Consciência:** ${f.estado_consciencia}\n- **Lesões Aparentes:** ${f.lesoes_aparentes}\n- **Histórico Relevante:** ${f.historico_relevante}\n- **Idade do Paciente:** ${f.idade}\n- **Tipo Sanguíneo:** ${f.tipo_sanguineo}`;
-
-    const e2 = `#### 🧬 Impacto Fisiológico e Gravidade Sistêmica\n1. Choque Hipovolêmico Hemorrágico (Risco de perda acelerada)\n2. Comprometimento Respiratório (Hipóxia tecidual)\n3. Fator Tempo (Produção de ácido láctico)\n4. Tríade do Trauma (Risco de coagulopatia e acidose)`;
-
-    const e3 = `#### 🩸 Protocolo de Análise e Indicação Sanguínea\n- **Compatibilidade Sanguínea:** ${compat}\n- **Volume Recomendado:** ${vol} mL (Infusão aquecida a 37°C)\n- **Módulos Sugeridos:** HBOC-201, PFC-40, Tampão pH 7.40`;
-
-    const e4 = `#### 🧠 Raciocínio Lógico do Motor de IA\n- Matriz Sanguínea: Ativação de Sangue Artificial Universal (Isento de Antígenos).\n- Balanço Volêmico: Cálculo proporcional à gravidade da hemorragia.\n- Estabilidade Osmótica: Manutenção da viscosidade em 2.5 cP.`;
-
-    const text = `## 🚑 RESOLUÇÃO DE TRIAGEM DE EMERGÊNCIA (MOTOR DE IA - FLOWTIFICIAL)\n**Modo de Criação:** \`${mode}\` \n\n### 1. DESCRIÇÃO DO PROBLEMA\n${e1}\n\n---\n### 2. EXPLICAÇÃO DO PROBLEMA\n${e2}\n\n---\n### 3. RESOLUÇÃO DO PROBLEMA (FOCO EM ANÁLISE SANGUÍNEA)\n${e3}\n\n---\n### 4. RACIOCÍNIO DA IA E CONFIANÇA\n${e4}`;
-
-    return {
-      success: true,
-      modo: mode,
-      paciente: f,
-      etapas: {
-        "1_descricao_problema": e1,
-        "2_explicacao_problema": e2,
-        "3_resolucao_problema": e3,
-        "4_explicacao_como_resolvido": e4
-      },
-      prescricao: {
-        volume_ml: vol,
-        compatibilidade: compat,
-        componentes: "1. HBOC-201 (Hemoglobina Sintética)\n2. PFC-40 (Perfluorocarbono Isento)\n3. Tampão pH 7.40",
-        objetivo: "Restabelecer PAM ≥ 65 mmHg e SpO₂ > 95%"
-      },
-      texto_formatado: text
-    };
-  };
-
-  // Executa a triagem ao clicar em "INICIAR ANÁLISE >"
-  const handleRunTriage = async () => {
-    setIsGenerating(true);
-    setCurrentStep(2);
-    setAlertSuccess(false);
-
-    try {
-      let report = null;
-      try {
-        const API_URL = import.meta.env.VITE_API_URL || "";
-        const response = await fetch(`${API_URL}/api/triage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            modo: "Manual",
-            ...formParams
-          })
-        });
-
-        if (response.ok) {
-          report = await response.json();
-        } else {
-          report = buildTriageReport("Manual", formParams);
-        }
-      } catch {
-        report = buildTriageReport("Manual", formParams);
-      }
-
-      setTriageReport(report);
-
-      const p = report.paciente;
-      const novoPaciente = {
-        id: `PAC-${Math.floor(1000 + Math.random() * 9000)}`,
-        nome: `Paciente Triado (${p.tipo_ocorrencia})`,
-        idade: p.idade,
-        prioridade: p.existe_sangramento === "Grave" ? "EMERGÊNCIA VERMELHA" : "URGÊNCIA LARANJA",
-        tipo_ocorrencia: p.tipo_ocorrencia,
-        existe_sangramento: p.existe_sangramento,
-        tempo_evento: p.tempo_evento,
-        respiracao: p.respiracao,
-        estado_consciencia: p.estado_consciencia,
-        lesoes_aparentes: p.lesoes_aparentes,
-        historico_relevante: p.historico_relevante,
-        tipo_sanguineo: p.tipo_sanguineo,
-        fc: p.existe_sangramento === "Grave" ? Math.floor(135 + Math.random() * 20) : Math.floor(105 + Math.random() * 15),
-        pa: p.existe_sangramento === "Grave" ? `${Math.floor(70 + Math.random() * 15)}/${Math.floor(40 + Math.random() * 10)} mmHg` : "95/60 mmHg",
-        spo2: p.respiracao.includes("comprometida") ? Math.floor(80 + Math.random() * 7) : Math.floor(90 + Math.random() * 5),
-        volumeMl: report.prescricao.volume_ml,
-        solucao: "Sangue Sintético PFC/HBOC Universal (Isento Rh/ABO)",
-        status: "TRIADO E PRONTO",
-        admitidoEm: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        triageReport: report
-      };
-
-      // Simulação do tempo de processamento da IA
-      setTimeout(() => {
-        setActiveQueue(prev => [novoPaciente, ...prev]);
-        if (onAddPatientToQueue) onAddPatientToQueue(novoPaciente);
-        setCurrentStep(3);
-        setIsGenerating(false);
-        setAlertSuccess(true);
-        setViewMode("dashboard"); // Alterna automaticamente para a visão limpa do Dashboard
-        setTimeout(() => setAlertSuccess(false), 5000);
-      }, 1000);
-
-    } catch {
-      setIsGenerating(false);
-    }
-  };
-
-  // Inicializa pacientes simulados no primeiro carregamento
-  useEffect(() => {
-    if (activeQueue.length === 0) {
-      const p1Params = {
-        tipo_ocorrencia: "Hemorragia por perfuração",
-        existe_sangramento: "Grave",
-        tempo_evento: "10 - 30 minutos",
-        respiracao: "Muito comprometida",
-        estado_consciencia: "Não responde",
-        lesoes_aparentes: "Grave",
-        historico_relevante: "Informação desconhecida (Paciente Inconsciente)",
-        idade: "Adulto",
-        tipo_sanguineo: "Desconhecido"
-      };
-      const r1 = buildTriageReport("Com IA", p1Params);
-
-      const p2Params = {
-        tipo_ocorrencia: "Acidente de carro",
-        existe_sangramento: "Grave",
-        tempo_evento: "Menos de 10 minutos",
-        respiracao: "Irregular",
-        estado_consciencia: "Responde parcialmente",
-        lesoes_aparentes: "Grave",
-        historico_relevante: "Condição prévia conhecida",
-        idade: "Adolescente",
-        tipo_sanguineo: "O-"
-      };
-      const r2 = buildTriageReport("Manual", p2Params);
-
-      setActiveQueue([
-        {
-          id: "PAC-9041",
-          nome: "Paciente Triado (Hemorragia Profunda)",
-          idade: "Adulto",
-          prioridade: "EMERGÊNCIA VERMELHA",
-          tipo_ocorrencia: p1Params.tipo_ocorrencia,
-          existe_sangramento: p1Params.existe_sangramento,
-          tempo_evento: p1Params.tempo_evento,
-          respiracao: p1Params.respiracao,
-          estado_consciencia: p1Params.estado_consciencia,
-          lesoes_aparentes: p1Params.lesoes_aparentes,
-          historico_relevante: p1Params.historico_relevante,
-          tipo_sanguineo: p1Params.tipo_sanguineo,
-          fc: 142,
-          pa: "75/45 mmHg",
-          spo2: 82,
-          volumeMl: 2000,
-          solucao: "Sangue Sintético PFC/HBOC Universal (Isento Rh/ABO)",
-          status: "EM INFUSÃO RÁPIDA",
-          admitidoEm: "14:15",
-          triageReport: r1
-        },
-        {
-          id: "PAC-8812",
-          nome: "Vítima de Colisão Automobilística",
-          idade: "Adolescente",
-          prioridade: "EMERGÊNCIA VERMELHA",
-          tipo_ocorrencia: p2Params.tipo_ocorrencia,
-          existe_sangramento: p2Params.existe_sangramento,
-          tempo_evento: p2Params.tempo_evento,
-          respiracao: p2Params.respiracao,
-          estado_consciencia: p2Params.estado_consciencia,
-          lesoes_aparentes: p2Params.lesoes_aparentes,
-          historico_relevante: p2Params.historico_relevante,
-          tipo_sanguineo: p2Params.tipo_sanguineo,
-          fc: 135,
-          pa: "80/50 mmHg",
-          spo2: 86,
-          volumeMl: 2000,
-          solucao: "Sangue Sintético O- Compatível",
-          status: "AGUARDANDO LEITO",
-          admitidoEm: "14:02",
-          triageReport: r2
-        }
-      ]);
-    }
+  // APLICAÇÃO DE CENÁRIO PRÉ-DEFINIDO
+  const handleSelectCenario = useCallback((id) => {
+    const c = CENARIOS_EMERGENCIA.find(item => item.id === id);
+    if (!c) return;
+    setCenarioSelecionado(id);
+    setNomeOcorrencia(c.nome);
+    setPerdaVolMl(c.perdaVolMl);
+    setPaSistolica(c.paSistolica);
+    setPaDiastolica(c.paDiastolica);
+    setSpo2(c.spo2);
+    setFc(c.fc);
+    setIdade(c.idade);
+    setTipoSanguineo(c.tipoSanguineo);
+    setTempoEvento(c.tempoEvento);
   }, []);
 
-  const handleCopyReport = (report) => {
-    if (!report) return;
-    navigator.clipboard.writeText(report.texto_formatado);
+  // GERADOR DE CENÁRIO ALEATÓRIO
+  const handleRandomize = useCallback(() => {
+    const randomScenario = CENARIOS_EMERGENCIA[Math.floor(Math.random() * CENARIOS_EMERGENCIA.length)];
+    const randomLoss = Math.floor(600 + Math.random() * 2000);
+    const randomPaS = Math.floor(60 + Math.random() * 50);
+    const randomPaD = Math.max(30, Math.floor(randomPaS * 0.55));
+    const randomSpo2 = Math.floor(72 + Math.random() * 24);
+    const randomFc = Math.floor(95 + Math.random() * 75);
+    const randomAge = OPCOES_FORM.idades[Math.floor(Math.random() * OPCOES_FORM.idades.length)];
+    const randomABO = OPCOES_FORM.tiposSanguineos[Math.floor(Math.random() * OPCOES_FORM.tiposSanguineos.length)];
+
+    setCenarioSelecionado(randomScenario.id);
+    setNomeOcorrencia(randomScenario.nome);
+    setPerdaVolMl(randomLoss);
+    setPaSistolica(randomPaS);
+    setPaDiastolica(randomPaD);
+    setSpo2(randomSpo2);
+    setFc(randomFc);
+    setIdade(randomAge);
+    setTipoSanguineo(randomABO);
+    setTempoEvento(`${Math.floor(5 + Math.random() * 30)} min`);
+  }, []);
+
+  // MOTOR DE CÁLCULO E GERAÇÃO DA SIMULAÇÃO
+  const handleRunSimulation = useCallback(() => {
+    setIsSimulating(true);
+
+    // Cálculo biológico preciso da infusão recomendada
+    let volumeCalculado = Math.round(perdaVolMl * 1.05);
+    if (shockIndex > 1.2) volumeCalculado = Math.round(volumeCalculado * 1.15);
+    volumeCalculado = Math.min(3000, Math.max(500, volumeCalculado));
+
+    const isGravissimo = shockIndex > 1.1 || spo2 < 82 || perdaVolMl >= 1800;
+    const prioridade = isGravissimo ? "CÓDIGO VERMELHO (EMERGÊNCIA CRÍTICA)" : "CÓDIGO LARANJA (URGÊNCIA ELEVADA)";
+    const compatibilidade = tipoSanguineo === "Desconhecido" 
+      ? "Isenção Antigênica Universal (Isento Rh/ABO)" 
+      : `Compatível Tipo ${tipoSanguineo} ou Doador Universal Sintético`;
+
+    const simId = `SIM-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const etapa1 = `### 📋 1. ANAMNESE & TRIAGEM INICIAL\n- **Ocorrência:** ${nomeOcorrencia}\n- **Perda Estimada:** ${perdaVolMl} mL\n- **Pressão Arterial:** ${paSistolica}/${paDiastolica} mmHg (PAM: ${Math.round((paSistolica + 2 * paDiastolica) / 3)} mmHg)\n- **Oximetria (SpO₂):** ${spo2}%\n- **Frequência Cardíaca:** ${fc} BPM (Índice de Choque: ${shockIndex})\n- **Perfil:** Paciente ${idade} • Sangue ${tipoSanguineo}`;
+
+    const etapa2 = `### 🧬 2. FISIOPATOLOGIA & ANÁLISE DE RISCO\n1. **Choque Hipovolêmico:** Grau ${perdaVolMl > 2000 ? "IV (Maciço)" : perdaVolMl > 1400 ? "III (Grave)" : "II (Moderado)"} com depleção de volume circulante.\n2. **Hipóxia Tecidual Aguda:** Saturação periférica comprometida (${spo2}%), exigindo entrega imediata de carreadores de O₂.\n3. **Acidose Metabólica & Lactato:** Perfusão capilar reduzida demanda tamponamento para pH fisiológico 7.40.`;
+
+    const etapa3 = `### 🩸 3. PROTOCOLO DE INFUSÃO & SANGUE ARTIFICIAL\n- **Volume de Infusão Indicado:** ${volumeCalculado} mL aquecido a 37.0°C em bomba rápida.\n- **Matriz Biomimética:** 60% HBOC-201 (Hemoglobina Sintética) + 40% PFC-40 (Perfluorocarbono Líquido).\n- **Compatibilidade:** ${compatibilidade}.\n- **Alvo Terapêutico:** Elevar PAM ≥ 65 mmHg e estabilizar SpO₂ > 95% em até 12 minutos.`;
+
+    const etapa4 = `### 🧠 4. RACIOCÍNIO DA IA & CONFIANÇA PREDITIVA\n- **Confiança do Modelo:** 96.4% (Baseada em telemetria de sensores e protocolo ATLS).\n- **Segurança Antigênica:** 100% de isenção de risco hemolítico ou reação transfusional imediata.\n- **Viscosidade Alvo:** 2.6 cP para facilitar microperfusão em capilares vasoconstraídos.`;
+
+    const laudoFormatado = `## 🚑 RELATÓRIO DE SIMULAÇÃO DE EMERGÊNCIA (FLOWTIFICIAL - FECART)\n**Identificador:** \`${simId}\` • **Status:** \`${prioridade}\`\n\n${etapa1}\n\n---\n${etapa2}\n\n---\n${etapa3}\n\n---\n${etapa4}`;
+
+    setTimeout(() => {
+      const resultado = {
+        id: simId,
+        prioridade,
+        isGravissimo,
+        nomeOcorrencia,
+        volumeCalculado,
+        shockIndex,
+        compatibilidade,
+        etapas: { etapa1, etapa2, etapa3, etapa4 },
+        laudoFormatado,
+        geradoEm: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      };
+
+      setSimulacaoResultado(resultado);
+      setIsSimulating(false);
+    }, 600);
+  }, [nomeOcorrencia, perdaVolMl, paSistolica, paDiastolica, spo2, fc, idade, tipoSanguineo, shockIndex]);
+
+  // SALVAR NA FILA / HISTÓRICO
+  const handleSalvarFila = useCallback(() => {
+    if (!simulacaoResultado) return;
+    const novoItem = {
+      id: simulacaoResultado.id,
+      titulo: simulacaoResultado.nomeOcorrencia,
+      prioridade: simulacaoResultado.isGravissimo ? "CÓDIGO VERMELHO" : "CÓDIGO LARANJA",
+      idade,
+      tipoSanguineo,
+      volumeRecomendado: simulacaoResultado.volumeCalculado,
+      spo2,
+      fc,
+      pa: `${paSistolica}/${paDiastolica} mmHg`,
+      dataHora: simulacaoResultado.geradoEm
+    };
+
+    setHistoricoSimulacoes(prev => [novoItem, ...prev.slice(0, 7)]);
+    if (onAddPatientToQueue) {
+      onAddPatientToQueue(novoItem);
+    }
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+  }, [simulacaoResultado, idade, tipoSanguineo, spo2, fc, paSistolica, paDiastolica, onAddPatientToQueue]);
+
+  // COPIAR LAUDO
+  const handleCopyReport = useCallback(() => {
+    if (!simulacaoResultado) return;
+    navigator.clipboard.writeText(simulacaoResultado.laudoFormatado);
     setCopiedReport(true);
     setTimeout(() => setCopiedReport(false), 2500);
-  };
+  }, [simulacaoResultado]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="w-full space-y-6 animate-in fade-in duration-300 stabilized-backdrop">
       
-      {/* ALERTA DE SUCESSO APÓS CONFIRMAÇÃO DA TRIAGEM */}
-      {alertSuccess && (
-        <div className="p-4 rounded-2xl border border-emerald-500/40 bg-emerald-950/70 text-emerald-300 flex items-center justify-between gap-4 shadow-[0_0_30px_rgba(0,229,163,0.25)] animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-              <CheckCircle2 className="h-5 w-5" />
+      {/* CABEÇALHO DO SIMULADOR (LIMPO E ESTÁVEL) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-950/90 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-rose-500 to-sky-500" />
+        
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
+              <Zap className="h-5 w-5 text-rose-500 animate-pulse" />
             </div>
-            <div>
-              <p className="font-bold text-white text-xs sm:text-sm font-display">
-                TRIAGEM CONCLUÍDA E PACIENTE ADICIONADO À FILA!
-              </p>
-              <p className="text-[11px] text-emerald-300/90 font-mono mt-0.5">
-                O laudo de 4 passos foi gerado pela IA. Clique em "Ver Simulação Completa" para visualizar os detalhes.
-              </p>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white font-display">
+              Simulação de Emergência & Apoio à Decisão
+            </h1>
+            <span className="font-mono text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+              MOTOR BIOMÉDICO ATIVO
+            </span>
           </div>
-          <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/40 hidden sm:inline-block">
-            PROCESSADO
-          </span>
+          <p className="text-xs text-slate-300 font-sans">
+            Ajuste os parâmetros fisiológicos e execute a inferência da IA para calcular a prescrição e o volume de sangue artificial ideal.
+          </p>
         </div>
-      )}
 
-      {/* NAVEGAÇÃO 1: MODO DASHBOARD (TELA PRINCIPAL: DASHBOARD RESUMIDO DE PACIENTES) */}
-      {viewMode === "dashboard" && (
-        <div className="space-y-6">
-          
-          {/* CABEÇALHO DO DASHBOARD */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-950/90 border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-purple-500 to-cyan-500" />
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <Button
+            type="button"
+            onClick={handleRandomize}
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto gap-1.5 border-slate-700 bg-slate-900 hover:bg-slate-800 text-xs text-slate-200 cursor-pointer font-mono"
+          >
+            <RefreshCw className="h-3.5 w-3.5 text-sky-400" />
+            Cenário Aleatório
+          </Button>
+        </div>
+      </div>
+
+      {/* GRADE PRINCIPAL: CONTROLES ENXUTOS (ESQUERDA) + RESULTADOS / LAUDOS (DIREITA) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* =========================================================================
+            COLUNA 1: CONTROLES DE SIMULAÇÃO (DIRETO E ENXUTO - SEM FLICKER)
+            ========================================================================= */}
+        <section className="lg:col-span-5 flex flex-col gap-4 no-hover-zoom simulator-controls">
+          <div className="glass-panel rounded-2xl p-5 border-slate-800 bg-slate-950/80 space-y-4 shadow-lg">
             
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <SlidersIcon className="h-4 w-4 text-rose-400" />
+                <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+                  Parâmetros de Entrada da Emergência
+                </h2>
+              </div>
+              <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                Ajuste em Tempo Real
+              </span>
+            </div>
+
+            {/* 1. SELEÇÃO DO CENÁRIO (DROPDOWN SIMPLES) */}
             <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
-                  <Activity className="h-5 w-5 animate-pulse" />
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-display">
-                  Pacientes em Triagem
-                </h1>
-                <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                  {activeQueue.length} {activeQueue.length === 1 ? "Paciente Ativo" : "Pacientes Ativos"}
+              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <span>Cenário Clínico / Tipo de Emergência</span>
+                <span className="text-[10px] font-mono text-sky-400">Pré-definido</span>
+              </label>
+              <select
+                value={cenarioSelecionado}
+                onChange={(e) => handleSelectCenario(e.target.value)}
+                className="w-full h-10 rounded-xl border border-slate-700 bg-slate-900 px-3 text-xs text-white focus:border-rose-500 focus:outline-none cursor-pointer font-sans"
+              >
+                {CENARIOS_EMERGENCIA.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. PERDA VOLÊMICA ESTIMADA (SLIDER + INPUT) */}
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Droplets className="w-3.5 h-3.5 text-rose-500" />
+                  Perda Sanguínea Estimada:
+                </span>
+                <span className="font-mono font-bold text-rose-400 text-sm">
+                  {perdaVolMl} mL
                 </span>
               </div>
-              <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                Painel de monitoramento e suporte de triagem de emergência com prescrição de sangue sintético.
-              </p>
+              <input
+                type="range"
+                min={200}
+                max={3000}
+                step={50}
+                value={perdaVolMl}
+                onChange={(e) => setPerdaVolMl(Number(e.target.value))}
+                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>200 mL (Leve)</span>
+                <span>1500 mL (Grave)</span>
+                <span>3000 mL (Maciço)</span>
+              </div>
             </div>
 
-            <Button
-              onClick={() => {
-                setCurrentStep(1);
-                setViewMode("form");
-              }}
-              className="w-full sm:w-auto gap-2 bg-gradient-to-r from-rose-600 via-purple-600 to-cyan-600 hover:from-rose-500 hover:to-cyan-500 text-white font-extrabold text-xs shadow-[0_0_20px_rgba(244,63,94,0.35)] border border-rose-400/40 px-5 py-3 rounded-xl transition-all"
-            >
-              <Plus className="h-4 w-4" />
-              + Nova Triagem
-            </Button>
-          </div>
+            {/* 3. PRESSÃO ARTERIAL (PAS & PAD) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-400 font-mono">PA Sistólica</span>
+                  <span className={`font-mono font-bold ${paSistolica < 80 ? "text-rose-400" : "text-slate-200"}`}>
+                    {paSistolica} mmHg
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={40}
+                  max={150}
+                  step={5}
+                  value={paSistolica}
+                  onChange={(e) => setPaSistolica(Number(e.target.value))}
+                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                />
+              </div>
 
-          {/* LISTA DE CARDS RESUMIDOS DOS PACIENTES */}
-          {activeQueue.length === 0 ? (
-            <div className="text-center py-16 rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 space-y-3">
-              <Brain className="h-10 w-10 text-slate-600 mx-auto" />
-              <p className="text-slate-400 text-sm font-sans">
-                Nenhum paciente na fila de triagem no momento.
-              </p>
-              <Button
-                onClick={() => setViewMode("form")}
-                variant="outline"
-                className="border-slate-700 text-xs text-slate-200"
-              >
-                + Iniciar Nova Triagem
-              </Button>
+              <div className="space-y-1 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-400 font-mono">PA Diastólica</span>
+                  <span className="font-mono font-bold text-slate-200">
+                    {paDiastolica} mmHg
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={25}
+                  max={100}
+                  step={5}
+                  value={paDiastolica}
+                  onChange={(e) => setPaDiastolica(Number(e.target.value))}
+                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                />
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {activeQueue.map((paciente) => (
-                <div
-                  key={paciente.id}
-                  className="group relative overflow-hidden rounded-2xl glass-panel border border-slate-800 hover:border-rose-500/40 bg-slate-950/90 p-5 transition-all duration-300 shadow-xl hover:shadow-2xl"
+
+            {/* 4. OXIMETRIA (SpO2) & FREQUÊNCIA CARDÍACA (FC) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-400 font-mono">Oximetria SpO₂</span>
+                  <span className={`font-mono font-bold ${spo2 < 85 ? "text-rose-400" : spo2 < 93 ? "text-amber-300" : "text-emerald-400"}`}>
+                    {spo2}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={65}
+                  max={99}
+                  step={1}
+                  value={spo2}
+                  onChange={(e) => setSpo2(Number(e.target.value))}
+                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                />
+              </div>
+
+              <div className="space-y-1 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-400 font-mono">Frequência (FC)</span>
+                  <span className={`font-mono font-bold ${fc > 130 ? "text-rose-400" : fc > 100 ? "text-amber-300" : "text-slate-200"}`}>
+                    {fc} BPM
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={50}
+                  max={180}
+                  step={2}
+                  value={fc}
+                  onChange={(e) => setFc(Number(e.target.value))}
+                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-400"
+                />
+              </div>
+            </div>
+
+            {/* 5. PERFIL DO PACIENTE (DROPDOWNS COMPACTOS) */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-slate-400">Faixa Etária</label>
+                <select
+                  value={idade}
+                  onChange={(e) => setIdade(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-slate-700 bg-slate-900 px-2.5 text-xs text-white focus:border-rose-500 focus:outline-none cursor-pointer font-sans"
                 >
-                  {/* FAIXA NEON DE GRAVIDADE NO TOPO */}
-                  <div className={`absolute top-0 left-0 right-0 h-1 ${
-                    paciente.prioridade.includes("VERMELHA") 
-                      ? "bg-gradient-to-r from-rose-600 via-red-500 to-rose-600 shadow-[0_0_10px_rgba(244,63,94,0.6)]" 
-                      : "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500"
-                  }`} />
+                  {OPCOES_FORM.idades.map(op => <option key={op} value={op}>{op}</option>)}
+                </select>
+              </div>
 
-                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
-                    
-                    {/* 1. LADO ESQUERDO: ID DO PACIENTE, FAIXA ETÁRIA E TIPO DE OCORRÊNCIA */}
-                    <div className="space-y-2 max-w-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-extrabold text-white bg-slate-900 px-3 py-1 rounded-md border border-slate-800 shadow-inner">
-                          {paciente.id}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-300 font-sans">
-                          • Faixa Etária: <strong className="text-white">{paciente.idade}</strong>
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-850">
-                          {paciente.admitidoEm}
-                        </span>
-                      </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-slate-400">Tipo Sanguíneo</label>
+                <select
+                  value={tipoSanguineo}
+                  onChange={(e) => setTipoSanguineo(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-slate-700 bg-slate-900 px-2.5 text-xs text-rose-300 font-mono font-bold focus:border-rose-500 focus:outline-none cursor-pointer"
+                >
+                  {OPCOES_FORM.tiposSanguineos.map(op => <option key={op} value={op}>{op}</option>)}
+                </select>
+              </div>
+            </div>
 
-                      <h3 className="text-base sm:text-lg font-bold text-white font-display flex items-center gap-2">
-                        {paciente.tipo_ocorrencia}
-                      </h3>
+            {/* STATUS DO ÍNDICE DE CHOQUE */}
+            <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5 text-rose-400" />
+                Índice de Choque (FC/PAS):
+              </span>
+              <span className={`font-bold px-2 py-0.5 rounded ${
+                shockIndex >= 1.2 ? "bg-rose-500/20 text-rose-300 border border-rose-500/40" :
+                shockIndex >= 0.9 ? "bg-amber-500/20 text-amber-300 border border-amber-500/40" :
+                "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+              }`}>
+                {shockIndex} • {shockIndex >= 1.2 ? "Choque Grave" : shockIndex >= 0.9 ? "Alerta" : "Normal"}
+              </span>
+            </div>
 
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-slate-400 font-sans">
-                          Lesões Aparentes: <strong className="text-slate-200">{paciente.lesoes_aparentes}</strong>
-                        </span>
-                      </div>
-                    </div>
+            {/* BOTÃO PRINCIPAL DE EXECUÇÃO */}
+            <Button
+              type="button"
+              onClick={handleRunSimulation}
+              disabled={isSimulating}
+              className="w-full h-12 bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-extrabold text-xs tracking-wider shadow-[0_0_25px_rgba(225,29,72,0.4)] border border-rose-400/40 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all transform hover:scale-[1.01]"
+            >
+              <Brain className={`h-4 w-4 ${isSimulating ? "animate-spin" : ""}`} />
+              {isSimulating ? "PROCESSANDO MODELO DE IA..." : "⚡ EXECUTAR SIMULAÇÃO"}
+            </Button>
 
-                    {/* 2. BADGE DE PRIORIDADE DE SEVERIDADE */}
-                    <div className="flex items-center">
-                      <span className={`text-xs font-mono font-extrabold px-3.5 py-1.5 rounded-full border flex items-center gap-1.5 ${
-                        paciente.prioridade.includes("VERMELHA")
-                          ? "bg-rose-500/15 text-rose-300 border-rose-500/40 shadow-[0_0_12px_rgba(244,63,94,0.25)]"
-                          : "bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+          </div>
+        </section>
+
+        {/* =========================================================================
+            COLUNA 2: RESULTADOS DA SIMULAÇÃO & LAUDO CLÍNICO DA IA (SEM SOBREPOSIÇÃO)
+            ========================================================================= */}
+        <section className="lg:col-span-7 flex flex-col gap-4">
+          
+          {simulacaoResultado ? (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              
+              {/* CARD DE RESULTADOS PRINCIPAIS (PRESCRIÇÃO IMEDIATA) */}
+              <div className="glass-panel simulation-result-card rounded-2xl p-5 border-slate-800 bg-slate-950/90 shadow-xl relative overflow-hidden">
+                <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+                  simulacaoResultado.isGravissimo ? "bg-rose-500 shadow-[0_0_12px_#ff2a42]" : "bg-amber-400 shadow-[0_0_12px_#f59e0b]"
+                }`} />
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-white bg-slate-900 px-2.5 py-0.5 rounded border border-slate-800">
+                        {simulacaoResultado.id}
+                      </span>
+                      <span className={`text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full border ${
+                        simulacaoResultado.isGravissimo 
+                          ? "bg-rose-500/20 text-rose-300 border-rose-500/40" 
+                          : "bg-amber-500/20 text-amber-300 border-amber-500/40"
                       }`}>
-                        <ShieldAlert className="h-3.5 w-3.5" />
-                        {paciente.prioridade}
+                        {simulacaoResultado.prioridade}
                       </span>
                     </div>
+                    <h3 className="text-base font-bold text-white font-display mt-1">
+                      {simulacaoResultado.nomeOcorrencia}
+                    </h3>
+                  </div>
 
-                    {/* 3. CENTRO (SINAIS E PRESCRIÇÃO RÁPIDA) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full lg:w-auto">
-                      {/* TIPO SANGUÍNEO */}
-                      <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-center min-w-[100px]">
-                        <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">TIPO SANGUÍNEO</span>
-                        <span className="font-mono text-sm font-bold text-rose-400">{paciente.tipo_sanguineo}</span>
-                      </div>
-
-                      {/* GRAVIDADE SANGRAMENTO */}
-                      <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-center min-w-[110px]">
-                        <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase">SANGRAMENTO</span>
-                        <span className="font-mono text-sm font-bold text-amber-300">{paciente.existe_sangramento}</span>
-                      </div>
-
-                      {/* PRESCRIÇÃO SUGERIDA */}
-                      <div className="p-2.5 rounded-xl bg-slate-900/90 border border-rose-500/30 text-center min-w-[150px]">
-                        <span className="text-[9px] font-mono font-bold text-rose-400 block uppercase">PRESCRIÇÃO SUGERIDA</span>
-                        <span className="font-mono text-sm font-extrabold text-white">
-                          {paciente.volumeMl} mL <span className="text-[10px] text-cyan-300 font-sans font-normal">Sangue Artificial</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 4. LADO DIREITO (AÇÃO PRINCIPAL) */}
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                      <Button
-                        onClick={() => setSelectedPatientModal(paciente)}
-                        size="sm"
-                        className="gap-2 bg-gradient-to-r from-rose-600 via-purple-600 to-cyan-600 hover:from-rose-500 hover:to-cyan-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(244,63,94,0.35)] px-4 py-2.5 rounded-xl transition-all"
-                      >
-                        <Eye className="h-4 w-4" />
-                        Ver Simulação Completa
-                      </Button>
-
-                      <button
-                        onClick={() => setActiveQueue(prev => prev.filter(p => p.id !== paciente.id))}
-                        className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
-                        title="Remover paciente"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleCopyReport}
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 font-mono cursor-pointer"
+                    >
+                      {copiedReport ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-sky-400" />}
+                      {copiedReport ? "Copiado!" : "Copiar Laudo"}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleSalvarFila}
+                      size="sm"
+                      className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-mono cursor-pointer font-bold"
+                    >
+                      {savedSuccess ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                      {savedSuccess ? "Salvo na Fila!" : "Salvar na Fila"}
+                    </Button>
                   </div>
                 </div>
-              ))}
+
+                {/* 3 CARDS DE KPI (VOLUME, FORMULAÇÃO, TEMPO) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-rose-500/30 text-center">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 block mb-0.5">
+                      Volume Recomendado
+                    </span>
+                    <span className="font-mono text-2xl font-extrabold text-white">
+                      {simulacaoResultado.volumeCalculado} <span className="text-xs text-rose-400 font-bold">mL</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5 font-sans">Infusão aquecida a 37°C</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-sky-500/30 text-center">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 block mb-0.5">
+                      Formulação Indicada
+                    </span>
+                    <span className="font-mono text-sm font-bold text-sky-300 block truncate">
+                      HBOC-201 + PFC-40
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-mono block mt-0.5">Tampão pH 7.40</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-purple-500/30 text-center">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 block mb-0.5">
+                      Compatibilidade
+                    </span>
+                    <span className="font-mono text-xs font-bold text-purple-300 block truncate">
+                      Universal Rh/ABO Isento
+                    </span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">Risco Hemolítico Zero</span>
+                  </div>
+                </div>
+
+                {/* LAUDO ESTRUTURADO DA IA EM 4 BLOCOS CLAROS */}
+                <div className="space-y-3 pt-2 border-t border-slate-800">
+                  <h4 className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Brain className="w-3.5 h-3.5 text-rose-500" />
+                    Detalhamento Clínico da IA Explicável
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    {/* Bloco 1: Anamnese */}
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+                      <span className="font-mono font-bold text-slate-200 text-[11px] block text-sky-400">
+                        1. ANAMNESE & TRIAGEM
+                      </span>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        Paciente <strong>{idade}</strong>, perda de <strong>{perdaVolMl} mL</strong>, PA <strong>{paSistolica}/{paDiastolica} mmHg</strong>, SpO₂ <strong>{spo2}%</strong> e FC <strong>{fc} BPM</strong>.
+                      </p>
+                    </div>
+
+                    {/* Bloco 2: Fisiopatologia */}
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+                      <span className="font-mono font-bold text-slate-200 text-[11px] block text-amber-400">
+                        2. FISIOPATOLOGIA & RISCO
+                      </span>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        Choque hipovolêmico com índice de choque <strong>{shockIndex}</strong>. Risco iminente de hipóxia e acidose celular sem reposição.
+                      </p>
+                    </div>
+
+                    {/* Bloco 3: Prescrição */}
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+                      <span className="font-mono font-bold text-slate-200 text-[11px] block text-rose-400">
+                        3. CONDUTA & SANGUE SINTÉTICO
+                      </span>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        Infusão de <strong>{simulacaoResultado.volumeCalculado} mL</strong> de transportador sintético (HBOC/PFC) para atingir PAM ≥ 65 mmHg.
+                      </p>
+                    </div>
+
+                    {/* Bloco 4: Raciocínio IA */}
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+                      <span className="font-mono font-bold text-slate-200 text-[11px] block text-emerald-400">
+                        4. RACIOCÍNIO DA IA (96.4%)
+                      </span>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        Isenção antigênica universal permite infusão imediata sem prova cruzada, preservando a microcirculação.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          ) : (
+            /* ESTADO INICIAL / PROMPT PARA EXECUTAR */
+            <div className="glass-panel rounded-2xl p-8 border-slate-800 bg-slate-950/80 text-center space-y-4 shadow-xl min-h-[320px] flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-500">
+                <Brain className="w-7 h-7 animate-pulse" />
+              </div>
+              <div className="space-y-1 max-w-md">
+                <h3 className="text-base font-bold text-white font-display">
+                  Pronto para Simular
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Selecione o cenário ou ajuste os parâmetros fisiológicos na coluna ao lado e clique em <strong>"Executar Simulação"</strong> para gerar o laudo e a dosagem de sangue artificial.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={handleRunSimulation}
+                className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl cursor-pointer"
+              >
+                <Zap className="w-4 h-4 mr-1.5" /> Executar com Valores Atuais
+              </Button>
             </div>
           )}
 
-        </div>
-      )}
+          {/* FILA DE SIMULAÇÕES RECENTES / HISTÓRICO COMPACTO */}
+          <div className="glass-panel rounded-2xl p-4 border-slate-800 bg-slate-950/80 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-sky-400" />
+                Histórico de Pacientes & Simulações Recentes
+              </h3>
+              <span className="text-[10px] font-mono text-slate-400">
+                {historicoSimulacoes.length} Registros
+              </span>
+            </div>
 
-      {/* NAVEGAÇÃO 2: MODO FORMULÁRIO (FORMULÁRIO DE ENTRADA DE PACIENTE COM DADOS RANDOMIZADOS) */}
-      {viewMode === "form" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          
-          {/* CABEÇALHO E STEPPER */}
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-slate-950/90 border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-rose-500" />
-            
-            <div className="space-y-1.5 max-w-2xl">
-              <div className="flex items-center gap-3">
-                {activeQueue.length > 0 && (
-                  <button
-                    onClick={() => setViewMode("dashboard")}
-                    className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors"
-                    title="Voltar para Pacientes em Triagem"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
-                )}
-                <span className="font-mono text-[10px] uppercase font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2.5 py-0.5 rounded-md">
-                  SIMULAÇÃO DE TRIAGEM
-                </span>
-
-                {/* BOTÃO PARA RE-RANDOMIZAR MANUALMENTE */}
-                <button
-                  onClick={() => setFormParams(getRandomFormParams())}
-                  className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 px-2.5 py-1 rounded-md transition-all shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-                  title="Gerar novas seleções aleatórias"
-                >
-                  <RefreshCw className="h-3 w-3 text-cyan-400 hover:rotate-180 transition-transform duration-500" />
-                  Randomizar Dados
-                </button>
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-display">
-                FORMULÁRIO DE ENTRADA DE PACIENTE
-              </h1>
-              <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                Preencha as informações abaixo para que a IA analise o cenário e gere a melhor resposta.
+            {historicoSimulacoes.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-4 font-mono">
+                Nenhuma simulação no histórico recente.
               </p>
-            </div>
-
-            {/* STEPPER EM 3 ETAPAS CIRCULARES E BADGE */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
-              
-              <div className="flex items-center gap-3 bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
-                    currentStep === 1
-                      ? "bg-rose-600 text-white shadow-[0_0_12px_rgba(244,63,94,0.6)]"
-                      : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                  }`}>
-                    1
-                  </div>
-                  <span className={`text-xs font-mono font-bold hidden sm:inline ${
-                    currentStep === 1 ? "text-white" : "text-slate-400"
-                  }`}>
-                    Dados do Paciente
-                  </span>
-                </div>
-
-                <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
-
-                <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
-                    currentStep === 2
-                      ? "bg-purple-600 text-white animate-pulse shadow-[0_0_12px_rgba(168,85,247,0.6)]"
-                      : currentStep > 2
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                      : "bg-slate-800 text-slate-500"
-                  }`}>
-                    2
-                  </div>
-                  <span className={`text-xs font-mono font-bold hidden sm:inline ${
-                    currentStep === 2 ? "text-purple-300" : "text-slate-400"
-                  }`}>
-                    Análise da IA
-                  </span>
-                </div>
-
-                <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
-
-                <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
-                    currentStep === 3
-                      ? "bg-cyan-500 text-white shadow-[0_0_12px_rgba(6,182,212,0.6)]"
-                      : "bg-slate-800 text-slate-500"
-                  }`}>
-                    3
-                  </div>
-                  <span className={`text-xs font-mono font-bold hidden sm:inline ${
-                    currentStep === 3 ? "text-cyan-300" : "text-slate-400"
-                  }`}>
-                    Resultado
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex items-center gap-2.5 max-w-xs">
-                <Brain className="h-5 w-5 text-purple-400 flex-shrink-0 animate-pulse" />
-                <p className="text-[11px] text-slate-300 font-sans leading-tight">
-                  Cada informação importa. Quanto mais dados, maior a precisão da análise.
-                </p>
-              </div>
-
-            </div>
-          </div>
-
-          {/* PAINEL PRINCIPAL DE FORMULÁRIO */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            {/* BARRA LATERAL ESQUERDA (PAINEL INFORMATIVO DO PACIENTE) */}
-            <div className="lg:col-span-4 flex flex-col justify-between glass-panel border border-slate-800 bg-slate-950/90 rounded-2xl p-5 space-y-6 relative overflow-hidden">
-              <div className="space-y-4">
-                
-                <div className="border-b border-slate-800 pb-3">
-                  <span className="font-mono text-xs font-bold text-rose-400 flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-rose-500 animate-pulse" />
-                    INFORMAÇÕES DO PACIENTE
-                  </span>
-                  <p className="text-[11px] text-slate-400 font-sans mt-1">
-                    Preencha os campos ao lado com atenção.
-                  </p>
-                </div>
-
-                <div className="relative rounded-xl border border-slate-800/80 bg-slate-900/60 p-4 flex flex-col items-center justify-center space-y-3 shadow-inner min-h-[260px]">
-                  
-                  <div className="w-full flex items-center justify-between px-3 text-[10px] font-mono text-slate-400 border-b border-slate-800/60 pb-2">
-                    <span className="flex items-center gap-1.5 text-rose-400">
-                      <Activity className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
-                      ECG VITAL ACTIVE
-                    </span>
-                    <span className="text-emerald-400 font-bold">142 BPM</span>
-                  </div>
-
-                  <div className="relative my-2 flex items-center justify-center">
-                    <svg className="w-28 h-44 text-slate-700" viewBox="0 0 100 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="50" cy="22" r="14" stroke="#ff0055" strokeWidth="1.8" strokeDasharray="3 3" className="animate-pulse" />
-                      <path d="M32 40 L68 40 L62 105 L38 105 Z" stroke="#00d8ff" strokeWidth="1.8" />
-                      <path d="M30 42 L16 90 L12 120" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
-                      <path d="M70 42 L84 90 L88 120" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
-                      <path d="M42 105 L38 165" stroke="#00ff9d" strokeWidth="1.8" strokeLinecap="round" />
-                      <path d="M58 105 L62 165" stroke="#00ff9d" strokeWidth="1.8" strokeLinecap="round" />
-                      <circle cx="45" cy="55" r="4" fill="#ff0055" className="animate-ping" />
-                    </svg>
-
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-full h-8 bg-rose-500/10 border-y border-rose-500/30 flex items-center justify-center">
-                        <Activity className="h-6 w-full text-rose-400 animate-pulse" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-center font-mono text-[10px] text-slate-300 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
-                    MONITORAMENTO PRÉ-HOSPITALAR ATIVO
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl flex items-start gap-3">
-                <Cpu className="h-5 w-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                  A IA irá processar os dados, cruzar informações e indicar a melhor conduta.
-                </p>
-              </div>
-
-            </div>
-
-            {/* GRADE DE FORMULÁRIO DE SELEÇÃO (GRID 3x3) */}
-            <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              
-              {/* CARD 01 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-400" />
-                  <span className="font-mono text-[11px] font-bold text-amber-400 uppercase">01. TIPO DE OCORRÊNCIA</span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-300 font-medium mb-1.5">Qual foi a situação?</p>
-                  <select
-                    value={formParams.tipo_ocorrencia}
-                    onChange={(e) => setFormParams({ ...formParams, tipo_ocorrencia: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
+            ) : (
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                {historicoSimulacoes.map(item => (
+                  <div
+                    key={item.id}
+                    className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between text-xs transition-colors"
                   >
-                    {OPCOES_TRIAGEM.tipo_ocorrencia.map(op => <option key={op} value={op}>{op}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* CARD 02 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <Droplets className="h-4 w-4 text-rose-500" />
-                  <span className="font-mono text-[11px] font-bold text-rose-400 uppercase">02. NÍVEL DE SANGRAMENTO</span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-300 font-medium mb-1.5">Existe sangramento? Qual a gravidade?</p>
-                  <select
-                    value={formParams.existe_sangramento}
-                    onChange={(e) => setFormParams({ ...formParams, existe_sangramento: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none font-semibold text-rose-300"
-                  >
-                    {OPCOES_TRIAGEM.existe_sangramento.map(op => <option key={op} value={op}>{op}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* CARD 03 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <Clock className="h-4 w-4 text-sky-400" />
-                  <span className="font-mono text-[11px] font-bold text-sky-400 uppercase">03. TEMPO DESDE O EVENTO</span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-300 font-medium mb-1.5">Há quanto tempo ocorreu?</p>
-                  <select
-                    value={formParams.tempo_evento}
-                    onChange={(e) => setFormParams({ ...formParams, tempo_evento: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
-                  >
-                    {OPCOES_TRIAGEM.tempo_evento.map(op => <option key={op} value={op}>{op}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* CARD 04 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <Brain className="h-4 w-4 text-purple-400" />
-                  <span className="font-mono text-[11px] font-bold text-purple-400 uppercase">04. ESTADO DE CONSCIÊNCIA</span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-300 font-medium mb-1.5">Como o paciente está respondendo?</p>
-                  <select
-                    value={formParams.estado_consciencia}
-                    onChange={(e) => setFormParams({ ...formParams, estado_consciencia: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
-                  >
-                    {OPCOES_TRIAGEM.estado_consciencia.map(op => <option key={op} value={op}>{op}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* CARD 05 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <ShieldAlert className="h-4 w-4 text-orange-400" />
-                  <span className="font-mono text-[11px] font-bold text-orange-400 uppercase">05. LESÕES APARENTES</span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-300 font-medium mb-1.5">Há sinais de trauma visíveis?</p>
-                  <select
-                    value={formParams.lesoes_aparentes}
-                    onChange={(e) => setFormParams({ ...formParams, lesoes_aparentes: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
-                  >
-                    {OPCOES_TRIAGEM.lesoes_aparentes.map(op => <option key={op} value={op}>{op}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* CARD 06 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <FileText className="h-4 w-4 text-emerald-400" />
-                  <span className="font-mono text-[11px] font-bold text-emerald-400 uppercase">06. HISTÓRICO RELEVANTE</span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-300 font-medium mb-1.5">Condição prévia, alergia ou medicação?</p>
-                  <select
-                    value={formParams.historico_relevante}
-                    onChange={(e) => setFormParams({ ...formParams, historico_relevante: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
-                  >
-                    {OPCOES_TRIAGEM.historico_relevante.map(op => <option key={op} value={op}>{op}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* CARD 07 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <UserCheck className="h-4 w-4 text-cyan-400" />
-                  <span className="font-mono text-[11px] font-bold text-cyan-400 uppercase">07. IDADE DO PACIENTE</span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-300 font-medium mb-1.5">Qual a faixa etária?</p>
-                  <select
-                    value={formParams.idade}
-                    onChange={(e) => setFormParams({ ...formParams, idade: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
-                  >
-                    {OPCOES_TRIAGEM.idade.map(op => <option key={op} value={op}>{op}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* CARD 08 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <Heart className="h-4 w-4 text-rose-400" />
-                  <span className="font-mono text-[11px] font-bold text-rose-400 uppercase">08. TIPO SANGUÍNEO</span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-300 font-medium mb-1.5">Qual o tipo sanguíneo?</p>
-                  <select
-                    value={formParams.tipo_sanguineo}
-                    onChange={(e) => setFormParams({ ...formParams, tipo_sanguineo: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white font-bold focus:border-rose-500 focus:outline-none"
-                  >
-                    {OPCOES_TRIAGEM.tipo_sanguineo.map(op => <option key={op} value={op}>{op}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* CARD 09: BOTÃO PRINCIPAL "INICIAR ANÁLISE >" */}
-              <div className="p-4 rounded-xl border border-rose-500/50 bg-gradient-to-br from-rose-950/60 via-slate-900 to-fuchsia-950/60 shadow-[0_0_25px_rgba(244,63,94,0.3)] flex flex-col justify-between space-y-3 transition-all">
-                <div className="flex items-center justify-between border-b border-rose-500/30 pb-2">
-                  <span className="font-mono text-[11px] font-bold text-rose-300 uppercase flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-rose-400" />
-                    09. ANÁLISE DA IA
-                  </span>
-                  <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
-                    PRONTO
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[11px] text-slate-300 font-sans leading-tight">
-                    Processar parâmetros com o motor de inferência da IA.
-                  </p>
-
-                  <Button
-                    onClick={handleRunTriage}
-                    disabled={isGenerating}
-                    className="w-full h-11 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white font-extrabold text-xs tracking-wider shadow-[0_0_20px_rgba(244,63,94,0.6)] border border-rose-400/40 rounded-xl flex items-center justify-center gap-2"
-                  >
-                    <Brain className={`h-4 w-4 ${isGenerating ? "animate-spin" : ""}`} />
-                    {isGenerating ? "ANALISANDO..." : "INICIAR ANÁLISE >"}
-                  </Button>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-      )}
-
-      {/* MODAL POP-UP: RELATÓRIO COMPLETO DA IA (MINIMALISTA E SINTETIZADO - DARK NEON) */}
-      {selectedPatientModal && (
-        <Dialog open={!!selectedPatientModal} onOpenChange={() => setSelectedPatientModal(null)}>
-          <DialogContent className="glass-panel border-rose-500/40 sm:max-w-5xl bg-slate-950/95 backdrop-blur-xl text-slate-100 max-h-[92vh] overflow-y-auto rounded-2xl shadow-2xl p-6">
-            <DialogHeader className="border-b border-slate-800 pb-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400">
-                    <Brain className="h-6 w-6 animate-pulse" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-xl font-extrabold text-white font-display flex items-center gap-2">
-                      Análise de IA & Simulação Completa
-                      <span className="font-mono text-xs font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-0.5 rounded-md">
-                        {selectedPatientModal.id}
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-[10px] font-bold text-white bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                        {item.id}
                       </span>
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-400 font-sans mt-0.5">
-                      Paciente: {selectedPatientModal.idade} • {selectedPatientModal.tipo_ocorrencia} • Resolução Estruturada
-                    </DialogDescription>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => handleCopyReport(selectedPatientModal.triageReport)}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 text-xs border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white font-mono"
-                  >
-                    {copiedReport ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-sky-400" />}
-                    {copiedReport ? "LAUDO COPIADO!" : "Copiar Texto do Laudo"}
-                  </Button>
-                </div>
-              </div>
-            </DialogHeader>
-
-            {/* CONTEÚDO DO MODAL SINTETIZADO E MINIMALISTA */}
-            {selectedPatientModal.triageReport && (
-              <div className="space-y-5 my-4">
-                
-                {/* 1. CABEÇALHO RESUMIDO (KPI TOP BAR COM 3 PÍLULAS INTEGRADAS) */}
-                <div className="flex flex-wrap items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/80">
-                  {/* Pílula Status */}
-                  <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg">
-                    <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-                    <span className="text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
-                      Status: FINALIZADA E ARMAZENADA
-                    </span>
-                  </div>
-
-                  {/* Pílula Paciente */}
-                  <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-3 py-1.5 rounded-lg">
-                    <UserCheck className="h-3.5 w-3.5 text-purple-400" />
-                    <span className="text-[11px] font-mono font-medium text-slate-200">
-                      Paciente: <strong className="text-white font-bold">{selectedPatientModal.idade}</strong> | ABO: <strong className="text-rose-400 font-bold">{selectedPatientModal.tipo_sanguineo}</strong>
-                    </span>
-                  </div>
-
-                  {/* Pílula Admissão */}
-                  <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1.5 rounded-lg">
-                    <Clock className="h-3.5 w-3.5 text-cyan-400" />
-                    <span className="text-[11px] font-mono font-medium text-slate-200">
-                      Admissão: <strong className="text-cyan-300 font-bold">{selectedPatientModal.admitidoEm}</strong>
-                    </span>
-                  </div>
-                </div>
-
-                {/* GRADE 2x2 COMPACTA E DE ALTO DESEMPENHO VISUAL */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  
-                  {/* QUADRO 1: DESCRIÇÃO DO PROBLEMA (SINTETIZADO) */}
-                  <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-rose-400" />
-                        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                          1. DESCRIÇÃO DO PROBLEMA
-                        </h3>
-                      </div>
-                      <span className="text-[10px] font-mono font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2.5 py-1 rounded-md shadow-[0_0_10px_rgba(244,63,94,0.2)]">
-                        CRÍTICO - PRIORIDADE 1
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-xs font-mono bg-slate-950/80 p-4 rounded-xl border border-slate-800/80">
-                      <div className="space-y-0.5">
-                        <span className="text-slate-400 text-[10px] uppercase block">Ocorrência</span>
-                        <strong className="text-white font-bold block">{selectedPatientModal.triageReport.paciente.tipo_ocorrencia}</strong>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <span className="text-slate-400 text-[10px] uppercase block">Sangramento</span>
-                        <strong className="text-rose-400 font-bold block">{selectedPatientModal.triageReport.paciente.existe_sangramento}</strong>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <span className="text-slate-400 text-[10px] uppercase block">Tempo</span>
-                        <strong className="text-amber-300 font-bold block">{selectedPatientModal.triageReport.paciente.tempo_evento}</strong>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <span className="text-slate-400 text-[10px] uppercase block">Respiração</span>
-                        <strong className="text-cyan-300 font-bold block">{selectedPatientModal.triageReport.paciente.respiracao}</strong>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <span className="text-slate-400 text-[10px] uppercase block">Consciência</span>
-                        <strong className="text-purple-300 font-bold block">{selectedPatientModal.triageReport.paciente.estado_consciencia}</strong>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <span className="text-slate-400 text-[10px] uppercase block">Lesões</span>
-                        <strong className="text-orange-300 font-bold block">{selectedPatientModal.triageReport.paciente.lesoes_aparentes}</strong>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <span className="text-slate-400 text-[10px] uppercase block">Histórico</span>
-                        <strong className="text-slate-200 font-bold block truncate">{selectedPatientModal.triageReport.paciente.historico_relevante}</strong>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <span className="text-slate-400 text-[10px] uppercase block">Tipo Sanguíneo</span>
-                        <strong className="text-rose-400 font-bold block">{selectedPatientModal.triageReport.paciente.tipo_sanguineo}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* QUADRO 2: EXPLICAÇÃO DO PROBLEMA (MINIMALISTA EM 4 PÍLULAS) */}
-                  <div className="p-5 rounded-2xl border border-amber-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                      <div className="flex items-center gap-2">
-                        <ShieldAlert className="h-4 w-4 text-amber-400" />
-                        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                          2. EXPLICAÇÃO DO PROBLEMA (FISIOPATOLOGIA)
-                        </h3>
-                      </div>
-                      <span className="text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">
-                        RISCO ELEVADO
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center gap-2.5 text-xs">
-                        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
-                        <div>
-                          <strong className="text-amber-300 font-mono">1. Choque Hipovolêmico Hemorrágico</strong>
-                          <span className="text-slate-400 font-sans ml-1 text-[11px]">(Risco de perda acelerada)</span>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center gap-2.5 text-xs">
-                        <Activity className="h-4 w-4 text-cyan-400 shrink-0" />
-                        <div>
-                          <strong className="text-cyan-300 font-mono">2. Comprometimento Respiratório</strong>
-                          <span className="text-slate-400 font-sans ml-1 text-[11px]">(Hipóxia tecidual)</span>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center gap-2.5 text-xs">
-                        <Clock className="h-4 w-4 text-purple-400 shrink-0" />
-                        <div>
-                          <strong className="text-purple-300 font-mono">3. Fator Tempo</strong>
-                          <span className="text-slate-400 font-sans ml-1 text-[11px]">(Produção de ácido láctico)</span>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center gap-2.5 text-xs">
-                        <Heart className="h-4 w-4 text-rose-400 shrink-0" />
-                        <div>
-                          <strong className="text-rose-400 font-mono">4. Tríade do Trauma</strong>
-                          <span className="text-slate-400 font-sans ml-1 text-[11px]">(Risco de coagulopatia e acidose)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* QUADRO 3: RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA LIMPA E KPIS) */}
-                  <div className="p-5 rounded-2xl border border-cyan-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                      <div className="flex items-center gap-2">
-                        <Droplets className="h-4 w-4 text-cyan-400" />
-                        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                          3. RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA)
-                        </h3>
-                      </div>
-                      <span className="text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded">
-                        SANGUE SINTÉTICO
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      {/* BADGE DE COMPATIBILIDADE SANGUÍNEA */}
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex items-center gap-2 text-xs font-mono">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                        <span className="text-emerald-400 font-bold">
-                          Isenção Antigênica / Doador Universal Sintético
-                        </span>
-                      </div>
-
-                      {/* CARDS NUMÉRICOS GRANDES (KPIs) */}
-                      <div className="grid grid-cols-2 gap-3 text-center">
-                        <div className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800/90 shadow-inner">
-                          <span className="text-[9px] font-mono text-slate-400 block uppercase mb-1">Volume Recomendado</span>
-                          <span className="font-mono text-2xl font-extrabold text-white tracking-tight">
-                            {selectedPatientModal.triageReport.prescricao.volume_ml} <span className="text-xs text-rose-400 font-bold">mL</span>
-                          </span>
-                        </div>
-
-                        <div className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800/90 shadow-inner">
-                          <span className="text-[9px] font-mono text-slate-400 block uppercase mb-1">Infusão Aquecida</span>
-                          <span className="font-mono text-2xl font-extrabold text-cyan-300 tracking-tight">
-                            37.0 <span className="text-xs text-cyan-400 font-bold">°C</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* TAGS HORIZONTAIS COMPACTAS DOS MÓDULOS */}
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-mono text-slate-400 uppercase block font-bold">Módulos Sugeridos:</span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[11px] font-mono bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-200 flex items-center gap-1.5">
-                            <span className="text-rose-400">🧬</span> HBOC-201
-                          </span>
-                          <span className="text-[11px] font-mono bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-200 flex items-center gap-1.5">
-                            <span className="text-cyan-400">🧪</span> PFC-40
-                          </span>
-                          <span className="text-[11px] font-mono bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-200 flex items-center gap-1.5">
-                            <span className="text-purple-400">🩸</span> Tampão pH 7.40
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* QUADRO 4: RACIOCÍNIO DA IA E CONFIANÇA */}
-                  <div className="p-5 rounded-2xl border border-purple-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                      <div className="flex items-center gap-2">
-                        <Brain className="h-4 w-4 text-purple-400" />
-                        <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                          4. RACIOCÍNIO DA IA E CONFIANÇA
-                        </h3>
-                      </div>
-                      <span className="text-[10px] font-mono font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded">
-                        INFERÊNCIA IA
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 text-xs font-sans">
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-start gap-2 text-slate-300">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <p>
-                          <strong className="text-white font-mono">Matriz Sanguínea:</strong> Ativação de Sangue Artificial Universal (Isento de Antígenos).
-                        </p>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-start gap-2 text-slate-300">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <p>
-                          <strong className="text-white font-mono">Balanço Volêmico:</strong> Cálculo proporcional à gravidade da hemorragia.
-                        </p>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-start gap-2 text-slate-300">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <p>
-                          <strong className="text-white font-mono">Estabilidade Osmótica:</strong> Manutenção da viscosidade em 2.5 cP.
+                      <div>
+                        <p className="font-semibold text-slate-200 text-xs">{item.titulo}</p>
+                        <p className="text-[10px] font-mono text-slate-400">
+                          {item.idade} • Sangue {item.tipoSanguineo} • PA {item.pa} • SpO₂ {item.spo2}%
                         </p>
                       </div>
                     </div>
 
-                    {/* RODAPÉ: INDICADOR DE CONFIANÇA */}
-                    <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
-                        <span className="text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
-                          CONFIGURAÇÃO ESTÁVEL
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full text-[10px] font-mono font-extrabold shadow-[0_0_10px_rgba(0,229,163,0.2)]">
-                        <BarChart3 className="h-3.5 w-3.5" />
-                        92% CONFIANÇA
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs font-bold text-white bg-rose-950/60 border border-rose-500/30 px-2.5 py-1 rounded-lg">
+                        {item.volumeRecomendado} mL
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setHistoricoSimulacoes(prev => prev.filter(p => p.id !== item.id))}
+                        className="text-slate-500 hover:text-rose-400 transition-colors p-1 cursor-pointer"
+                        title="Remover"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-
-                </div>
-
+                ))}
               </div>
             )}
-          </DialogContent>
-        </Dialog>
-      )}
+          </div>
+
+        </section>
+
+      </div>
 
     </div>
   );
 }
+
+// ÍCONE AUXILIAR
+function SlidersIcon(props) {
+  return (
+    <svg
+      {...props}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="4" x2="4" y1="21" y2="14" />
+      <line x1="4" x2="4" y1="10" y2="3" />
+      <line x1="12" x2="12" y1="21" y2="12" />
+      <line x1="12" x2="12" y1="8" y2="3" />
+      <line x1="20" x2="20" y1="21" y2="16" />
+      <line x1="20" x2="20" y1="12" y2="3" />
+      <line x1="2" x2="6" y1="14" y2="14" />
+      <line x1="10" x2="14" y1="8" y2="8" />
+      <line x1="18" x2="22" y1="16" y2="16" />
+    </svg>
+  );
+}
+export default EmergencySimulator;
