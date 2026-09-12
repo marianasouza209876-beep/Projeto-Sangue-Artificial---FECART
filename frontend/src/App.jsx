@@ -2110,7 +2110,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               </div>
 
               {/* Mensagens do Chat */}
-              <div className={`flow-chat-messages z-10 flex-1 min-h-0 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : ''}`}>
+              <div className={`flow-chat-messages scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent z-10 flex-1 min-h-0 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : 'max-h-[500px]'}`}>
                 {messages.map((msg, index) => (
                   <div 
                     key={index}

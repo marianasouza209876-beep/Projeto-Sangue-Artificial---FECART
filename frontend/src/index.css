@@ -166,7 +166,7 @@ html {
 /* Barra de rolagem exclusiva do histórico do chat Flow. */
 .flow-chat-messages {
   scrollbar-width: thin;
-  scrollbar-color: #e11d48 #0f172a;
+  scrollbar-color: #334155 transparent;
 }
 
 .flow-chat-messages::-webkit-scrollbar {
@@ -174,18 +174,18 @@ html {
 }
 
 .flow-chat-messages::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: transparent;
   border-radius: 999px;
 }
 
 .flow-chat-messages::-webkit-scrollbar-thumb {
-  background: #e11d48;
-  border: 2px solid #0f172a;
+  background: #334155;
+  border: 2px solid transparent;
   border-radius: 999px;
 }
 
 .flow-chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #fb7185;
+  background: #475569;
 }
 
 /* Glassmorphism Panel style */
