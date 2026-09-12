@@ -7,6 +7,7 @@ import {
   CheckCircle, 
   AlertTriangle, 
   XCircle, 
+  ChevronRight,
   TrendingUp,
   Droplets,
   ShieldCheck,
@@ -76,6 +77,45 @@ const FINALIDADES_OPCOES = [
   "Doação de Sangue",
   "Coleta e Reserva de Sangue",
   "Tipagem Sanguínea e Testes de Compatibilidade"
+];
+
+const LOTES_DEMONSTRACAO = [
+  {
+    id: "DEMO-EMERGENCIA",
+    name: "Lote DEMO Emergência",
+    finalidade: "Atendimento Pré-Hospitalar de Emergência",
+    icon: "🚨",
+    title: "Atendimento Pré-Hospitalar / Emergência",
+    focus: "Foco em Oxigenação B1 e Hemodinâmica B2",
+    accent: "border-rose-500/40 hover:border-rose-400 hover:bg-rose-500/10"
+  },
+  {
+    id: "DEMO-CARDIO",
+    name: "Lote DEMO Cardiovascular",
+    finalidade: "Cirurgia Cardíaca e Cardiovascular",
+    icon: "🫀",
+    title: "Cirurgia Cardiovascular",
+    focus: "Foco em perfusão, fluxo e estabilidade térmica",
+    accent: "border-sky-500/40 hover:border-sky-400 hover:bg-sky-500/10"
+  },
+  {
+    id: "DEMO-ONCO",
+    name: "Lote DEMO Oncológico",
+    finalidade: "Tratamento Oncológico",
+    icon: "🧬",
+    title: "Tratamento Oncológico / Anemia Crítica",
+    focus: "Foco em compatibilidade e carga de O₂",
+    accent: "border-fuchsia-500/40 hover:border-fuchsia-400 hover:bg-fuchsia-500/10"
+  },
+  {
+    id: "DEMO-RESERVA",
+    name: "Lote DEMO Reserva",
+    finalidade: "Doação de Sangue",
+    icon: "🩸",
+    title: "Unidade de Doação e Reserva",
+    focus: "Foco em conservação e estabilidade de estoque",
+    accent: "border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/10"
+  }
 ];
 
 // Protocolos Clínicos Médicos
@@ -289,6 +329,32 @@ export default function App() {
     if (selectedLot === lotIdToDelete) {
       setSelectedLot(remainingLots[0]?.id || null);
     }
+  };
+
+  const handleQuickStartLot = (demoLot) => {
+    const createdAt = new Date().toLocaleString('pt-BR');
+    const newLot = {
+      id: demoLot.id,
+      name: demoLot.name,
+      nome: demoLot.name,
+      createdAt,
+      data_criacao: createdAt,
+      finalidade: demoLot.finalidade,
+      destino: demoLot.finalidade,
+      responsaveis: "Demonstração Flowtificial",
+      intervaloLeitura: "5s",
+      protocolo: PROTOCOLOS_CLINICOS[demoLot.finalidade] || PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"],
+      status: "ESTÁVEL"
+    };
+
+    setLots((previousLots) => {
+      const currentLots = previousLots || [];
+      return currentLots.some((lot) => lot?.id === demoLot.id)
+        ? currentLots
+        : [...currentLots, newLot];
+    });
+    setSelectedLot(demoLot.id);
+    setActiveTab('dashboard');
   };
 
   // Injeção de leitura manual / QR Code
@@ -745,17 +811,74 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
   if (!selectedLot || !activeLotObj) {
     return (
-      <main className="min-h-screen bg-slate-950 px-6 py-16 text-slate-100 flex items-center justify-center">
-        <section className="max-w-lg rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center shadow-2xl">
-          <FlaskConical className="mx-auto mb-4 h-10 w-10 text-rose-400" />
-          <h1 className="text-xl font-bold">Nenhum lote selecionado</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-400">
-            Cadastre ou selecione um lote para iniciar o monitoramento dos parâmetros clínicos.
-          </p>
-          <Button className="mt-6" onClick={() => setActiveTab('landing')}>
-            Voltar para a tela inicial
-          </Button>
+      <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100 flex items-center justify-center sm:px-6">
+        <section className="w-full max-w-5xl rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl sm:p-9">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/10 shadow-[0_0_24px_rgba(244,63,94,0.2)]">
+              <FlaskConical className="h-7 w-7 text-rose-400" />
+            </div>
+            <p className="font-mono text-[11px] font-bold tracking-[0.22em] text-rose-400">MODO DEMONSTRAÇÃO</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Selecione uma Finalidade Clínica para Demonstração
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Inicie um lote de exemplo com parâmetros pré-configurados ou cadastre um lote personalizado.
+            </p>
+            <Button
+              className="mt-6 bg-gradient-to-r from-rose-600 to-red-500 px-5 text-white shadow-[0_0_24px_rgba(244,63,94,0.35)] hover:from-rose-500 hover:to-red-400"
+              onClick={openCreateLotModal}
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              + Criar Lote Personalizado
+            </Button>
+          </div>
+
+          <div className="mt-9 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {LOTES_DEMONSTRACAO.map((demoLot) => (
+              <button
+                key={demoLot.id}
+                type="button"
+                onClick={() => handleQuickStartLot(demoLot)}
+                className={`group rounded-2xl border bg-slate-950/60 p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${demoLot.accent}`}
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-2xl transition-transform duration-200 group-hover:scale-110">
+                  {demoLot.icon}
+                </span>
+                <h2 className="mt-4 text-sm font-bold leading-5 text-slate-100">{demoLot.title}</h2>
+                <p className="mt-2 text-xs leading-5 text-slate-400">{demoLot.focus}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                  Iniciar demonstração <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </span>
+              </button>
+            ))}
+          </div>
         </section>
+
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="glass-panel border-slate-700 bg-slate-950/95 text-slate-100 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-white">
+                <Plus className="h-5 w-5 text-rose-500" />
+                Criar Lote Personalizado
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400">
+                Cadastre os dados básicos para iniciar o monitoramento.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleConfirmCreateLot} className="grid gap-4">
+              {formError && <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-400">{formError}</p>}
+              <input value={newLotCode} disabled className="h-9 rounded-lg border border-slate-800 bg-slate-900/60 px-3 text-xs font-mono text-slate-400" />
+              <input value={newLotName} onChange={(event) => setNewLotName(event.target.value)} placeholder="Nome do lote" required className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-rose-500" />
+              <select value={newLotFinalidade} onChange={(event) => setNewLotFinalidade(event.target.value)} className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-rose-500">
+                {FINALIDADES_OPCOES.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                <Button type="submit" className="bg-rose-600 hover:bg-rose-500">Criar lote</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
     );
   }
