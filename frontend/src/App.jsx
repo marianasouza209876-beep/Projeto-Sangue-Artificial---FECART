@@ -132,18 +132,8 @@ export default function App() {
   }, []);
 
   // Estados da Aplicação
-  const [selectedLot, setSelectedLot] = useState("SA-025");
-  const [lots, setLots] = useState([
-    {
-      id: "SA-025",
-      name: "Lote Teste Primário",
-      createdAt: new Date().toLocaleString('pt-BR'),
-      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
-      destino: "Simulação Fisiológica Humana",
-      intervaloLeitura: "5s",
-      protocolo: PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"]
-    }
-  ]);
+  const [selectedLot, setSelectedLot] = useState(null);
+  const [lots, setLots] = useState([]);
   const [history, setHistory] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -176,6 +166,10 @@ export default function App() {
 
   // Carrega histórico do lote selecionado
   const fetchHistory = async () => {
+    if (!selectedLot) {
+      setHistory([]);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
       if (res.ok) {
@@ -298,8 +292,8 @@ export default function App() {
   // Deletar lote
   const handleDeleteLot = (lotIdToDelete) => {
     setLots(prev => prev.filter(lot => lot.id !== lotIdToDelete));
-    if (selectedLot === lotIdToDelete && lots.length > 1) {
-      setSelectedLot(lots[0].id);
+    if (selectedLot === lotIdToDelete) {
+      setSelectedLot(null);
     }
   };
 
@@ -407,18 +401,18 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     }
   };
 
-  const activeLotObj = lots.find(l => l.id === selectedLot) || lots[0];
+  const activeLotObj = lots.find(l => l.id === selectedLot) || null;
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
 
-  const isEmergenciaActive = activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023";
-  const isTraumaActive = activeFinalidade.includes("Trauma") || activeFinalidade.includes("Hemorragia");
-  const isCirurgiaCardiacaActive = activeFinalidade.includes("Cirurgia") || activeFinalidade.includes("Cardíaca") || activeFinalidade.includes("Cardiaca") || activeFinalidade.includes("Cardiovascular");
-  const isAnemiaActive = activeFinalidade.includes("Anemias") || activeFinalidade.includes("Anemia");
-  const isOncologicoActive = activeFinalidade.includes("Oncológico") || activeFinalidade.includes("Oncologico");
-  const isPolitraumatizadosActive = activeFinalidade.includes("Politraumatizados") || activeFinalidade.includes("Politrauma");
-  const isDoacaoActive = activeFinalidade.includes("Doação") || activeFinalidade.includes("Doacao");
-  const isColetaReservaActive = activeFinalidade.includes("Coleta") || activeFinalidade.includes("Reserva");
-  const isTipagemCompatibilidadeActive = activeFinalidade.includes("Tipagem") || activeFinalidade.includes("Compatibilidade");
+  const isEmergenciaActive = Boolean(activeLotObj && (activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023"));
+  const isTraumaActive = Boolean(activeLotObj && (activeFinalidade.includes("Trauma") || activeFinalidade.includes("Hemorragia")));
+  const isCirurgiaCardiacaActive = Boolean(activeLotObj && (activeFinalidade.includes("Cirurgia") || activeFinalidade.includes("Cardíaca") || activeFinalidade.includes("Cardiaca") || activeFinalidade.includes("Cardiovascular")));
+  const isAnemiaActive = Boolean(activeLotObj && (activeFinalidade.includes("Anemias") || activeFinalidade.includes("Anemia")));
+  const isOncologicoActive = Boolean(activeLotObj && (activeFinalidade.includes("Oncológico") || activeFinalidade.includes("Oncologico")));
+  const isPolitraumatizadosActive = Boolean(activeLotObj && (activeFinalidade.includes("Politraumatizados") || activeFinalidade.includes("Politrauma")));
+  const isDoacaoActive = Boolean(activeLotObj && (activeFinalidade.includes("Doação") || activeFinalidade.includes("Doacao")));
+  const isColetaReservaActive = Boolean(activeLotObj && (activeFinalidade.includes("Coleta") || activeFinalidade.includes("Reserva")));
+  const isTipagemCompatibilidadeActive = Boolean(activeLotObj && (activeFinalidade.includes("Tipagem") || activeFinalidade.includes("Compatibilidade")));
 
   // Tratamento de exceção (try/catch) com fallback visual em caso de corrupção ou perda de sinal USB
   let currentReading;
@@ -860,56 +854,77 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
                   <Database className="w-3.5 h-3.5 text-rose-500" />
-                  LOTES DE SANGUE EM MONITORAMENTO
+                  LOTES DE SANGUE CADASTRADOS
                 </h2>
                 <button 
                   onClick={openCreateLotModal}
-                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1"
+                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1 shadow-sm cursor-pointer"
                 >
                   <Plus className="w-3 h-3" />
                   NOVO LOTE
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {lots.map(l => (
-                  <div key={l.id} className="relative group">
-                    <button
-                      onClick={() => setSelectedLot(l.id)}
-                      className={`w-full p-2.5 rounded-xl border text-center font-mono transition-all ${
-                        selectedLot === l.id
-                          ? 'bg-slate-800/90 border-rose-500 text-rose-400 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
-                          : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                      }`}
-                    >
-                      <span className="block text-xs font-bold">{l.id}</span>
-                      <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote Biológico'}</span>
-                      <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
-                    </button>
+              {lots.length === 0 ? (
+                <div className="text-center py-6 px-3 bg-slate-950/60 rounded-xl border border-dashed border-slate-800 flex flex-col items-center gap-2">
+                  <Database className="w-6 h-6 text-slate-600" />
+                  <p className="text-xs text-slate-400 font-sans">Nenhum lote cadastrado no momento.</p>
+                  <button
+                    onClick={openCreateLotModal}
+                    className="text-xs text-rose-400 hover:text-rose-300 font-mono font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> Cadastrar Primeiro Lote
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {lots.map(l => (
+                    <div key={l.id} className="relative group">
+                      <button
+                        onClick={() => setSelectedLot(l.id)}
+                        className={`w-full p-2.5 rounded-xl border text-center font-mono transition-all cursor-pointer ${
+                          selectedLot === l.id
+                            ? 'bg-slate-800/90 border-rose-500 text-rose-400 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
+                            : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="block text-xs font-bold">{l.id}</span>
+                        <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote Biológico'}</span>
+                        <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
+                      </button>
 
-                    {lots.length > 1 && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteLot(l.id);
                         }}
                         title="Excluir lote"
-                        className="absolute -top-1.5 -right-1.5 bg-rose-950 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20"
+                        className="absolute -top-1.5 -right-1.5 bg-rose-950 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20 cursor-pointer"
                       >
                         ✕
                       </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedLot && (
+                <button
+                  onClick={() => setSelectedLot(null)}
+                  className="text-[10px] text-slate-500 hover:text-slate-300 font-mono text-center pt-1 transition-colors cursor-pointer"
+                >
+                  ✕ Desmarcar lote ativo (Ver tela inicial)
+                </button>
+              )}
             </div>
 
-            {/* Grid dos Novos MetricCards do Lovable */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {isEmergenciaActive ? (
-                <>
-                  {/* CARD B1: SATURAÇÃO DE O₂ */}
-                  <MetricCard
+            {/* Grid dos Novos MetricCards do Lovable (Apenas quando há lote ativo) */}
+            {selectedLot ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {isEmergenciaActive ? (
+                  <>
+                    {/* CARD B1: SATURAÇÃO DE O₂ */}
+                    <MetricCard
                     title="B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)"
                     subtitle="Usa diretamente gas_value"
                     value={b1_val.toFixed(1)}
@@ -1655,6 +1670,76 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 </>
               )}
             </div>
+            ) : (
+              <div className="glass-panel rounded-2xl p-5 border-slate-800/80 bg-slate-900/30 flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                  <div className="flex items-center gap-2">
+                    <FlaskConical className="w-4 h-4 text-rose-500" />
+                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+                      Parâmetros Biofísicos Monitorados (B1 a B5)
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
+                    Aguardando Lote
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Os 5 parâmetros são calculados em tempo real de acordo com a finalidade terapêutica do lote e as leituras biométricas dos sensores:
+                </p>
+
+                <div className="space-y-2.5">
+                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">B1 • Oxigenação / Carga de O₂</p>
+                      <p className="text-[11px] text-slate-400">Eficiência de transporte e liberação tecidual baseada no sensor óptico MQ-2.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">B2 • Hemodinâmica & Tensão de Cisalhamento</p>
+                      <p className="text-[11px] text-slate-400">Comportamento do fluxo sob bombas e circuitos medido pelo sensor YF-S201.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">B3 • Osmolaridade & Manutenção de pH</p>
+                      <p className="text-[11px] text-slate-400">Equilíbrio ácido-base em 7.40 e resistência à lise em bancada termostática.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-purple-400 mt-1.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">B4 • Tempo de Meia-Vida Circulatória</p>
+                      <p className="text-[11px] text-slate-400">Persistência do transportador sintético antes de ser metabolizado.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">B5 • Extração Tissular & Pureza Molecular</p>
+                      <p className="text-[11px] text-slate-400">Entrega efetiva de oxigênio em microcirculação e órgãos nobres.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/60 flex justify-center">
+                  <button
+                    onClick={openCreateLotModal}
+                    className="text-xs text-rose-400 hover:text-rose-300 font-mono font-semibold flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Criar Lote para Ativar Sensores
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Status do Hardware Arduino */}
             <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between bg-slate-900/40 border-slate-800">
@@ -1672,52 +1757,168 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
           </section>
 
-          {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
+          {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT OU TELA DE BOAS-VINDAS - 7/12) */}
           <section className="lg:col-span-7 flex flex-col gap-4">
-            
-            {/* Veredito Geral Semáforo */}
-            <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
-              currentReading.status === "CRÍTICO" 
-                ? 'bg-rose-950/30 border-rose-500/40' 
-                : currentReading.status === "ALERTA"
-                ? 'bg-amber-950/30 border-amber-500/40'
-                : 'bg-emerald-950/20 border-emerald-500/40'
-            }`}>
-              <div className="flex items-center gap-3.5">
-                <div className={`p-3 rounded-xl border bg-slate-950/80 ${
-                  currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
-                  currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
+            {!selectedLot ? (
+              <div className="flex-1 glass-panel rounded-2xl p-6 sm:p-8 flex flex-col justify-between border-slate-800 bg-slate-900/40 relative overflow-hidden shadow-2xl min-h-[560px]">
+                {/* Background glowing grid effects */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(225,29,72,0.12),_transparent_60%)] pointer-events-none" />
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.02)_1px,_transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col gap-6">
+                  {/* Header do Painel */}
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
+                      <span className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">
+                        SISTEMA FECART • MONITOR CLÍNICO
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                      MODO DE ESPERA
+                    </span>
+                  </div>
+
+                  {/* Título Principal & Apresentação */}
+                  <div className="space-y-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono font-semibold">
+                      <Activity className="w-3.5 h-3.5" /> Telemetria Hemodinâmica em Tempo Real
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                      Nenhum Lote Ativo Selecionado
+                    </h2>
+                    <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
+                      Bem-vindo ao sistema de avaliação clínica e telemetria de sangue artificial. Para iniciar o monitoramento, os cálculos biofísicos dos 5 parâmetros (B1 a B5) e as análises da IA Explicável, cadastre ou selecione um lote personalizado.
+                    </p>
+                  </div>
+
+                  {/* CTA Principal de Criação de Lote */}
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <Button
+                      onClick={openCreateLotModal}
+                      size="lg"
+                      className="bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-bold px-6 py-5 rounded-xl text-sm shadow-[0_0_25px_rgba(225,29,72,0.4)] flex items-center gap-2.5 transition-all transform hover:scale-[1.02] cursor-pointer"
+                    >
+                      <Plus className="w-5 h-5 stroke-[2.5]" />
+                      + Criar/Cadastrar Novo Lote
+                    </Button>
+                    <Button
+                      onClick={() => setActiveTab('forecast')}
+                      variant="outline"
+                      size="lg"
+                      className="border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-sm px-5 py-5 rounded-xl flex items-center gap-2 cursor-pointer"
+                    >
+                      <TrendingUp className="w-4 h-4 text-sky-400" />
+                      Ver Previsão de Demanda
+                    </Button>
+                  </div>
+
+                  {/* Passo a Passo Orientativo */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-slate-800/60">
+                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 font-mono text-xs font-bold flex items-center justify-center border border-rose-500/30">1</span>
+                        <h3 className="text-xs font-bold text-white">Criar Lote Personalizado</h3>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Defina a finalidade clínica do lote (ex: Emergência, Trauma, Cirurgia Cardíaca, Anemia, etc.).
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 font-mono text-xs font-bold flex items-center justify-center border border-sky-500/30">2</span>
+                        <h3 className="text-xs font-bold text-white">Leitura dos Sensores Arduino</h3>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Conexão serial com sensores de vazão (YF-S201), temperatura (DS18B20) e gás/oxigênio (MQ-2).
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-xs font-bold flex items-center justify-center border border-emerald-500/30">3</span>
+                        <h3 className="text-xs font-bold text-white">Telemetria & IA Explicável</h3>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Receba laudos instantâneos com os 5 parâmetros B1–B5 e converse com a assistente FLOW.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Atalhos para Lotes Existentes se houver */}
+                  {lots.length > 0 && (
+                    <div className="pt-3 border-t border-slate-800/60">
+                      <p className="text-xs font-mono text-slate-400 mb-2">
+                        Ou selecione um dos lotes já cadastrados para ativar o monitoramento:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {lots.map(l => (
+                          <button
+                            key={l.id}
+                            onClick={() => setSelectedLot(l.id)}
+                            className="text-xs font-mono px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 text-slate-200 hover:border-rose-500 hover:text-rose-400 transition-colors flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span className="font-bold">{l.id}</span>
+                            <span className="text-[10px] text-slate-400">({l.destino || 'Clínico'})</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer do Painel */}
+                <div className="relative z-10 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                  <span>FECART • Inteligência Artificial & Biomateriais</span>
+                  <span>Driver Serial CH340G: Ativo</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Veredito Geral Semáforo */}
+                <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
+                  currentReading.status === "CRÍTICO" 
+                    ? 'bg-rose-950/30 border-rose-500/40' 
+                    : currentReading.status === "ALERTA"
+                    ? 'bg-amber-950/30 border-amber-500/40'
+                    : 'bg-emerald-950/20 border-emerald-500/40'
                 }`}>
-                  {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
-                   currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
-                </div>
-                <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">
-                    VEREDITO DO SISTEMA • LOTE {selectedLot}
-                  </p>
-                  <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
-                    STATUS: {currentReading.status}
-                  </h3>
-                  <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-                    {currentReading.alerta_mensagem}
-                  </p>
-                </div>
-              </div>
+                  <div className="flex items-center gap-3.5">
+                    <div className={`p-3 rounded-xl border bg-slate-950/80 ${
+                      currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
+                      currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
+                    }`}>
+                      {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
+                       currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+                    </div>
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                        VEREDITO DO SISTEMA • LOTE {selectedLot}
+                      </p>
+                      <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                        STATUS: {currentReading.status}
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                        {currentReading.alerta_mensagem}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="hidden sm:flex items-center gap-2 pr-2">
-                <Button
-                  onClick={() => setActiveTab('forecast')}
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-xs text-slate-200"
-                >
-                  <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
-                  Previsão
-                </Button>
-              </div>
-            </div>
+                  <div className="hidden sm:flex items-center gap-2 pr-2">
+                    <Button
+                      onClick={() => setActiveTab('forecast')}
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-xs text-slate-200"
+                    >
+                      <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
+                      Previsão
+                    </Button>
+                  </div>
+                </div>
 
-            {/* Chatbot Conversacional com IA Explicável */}
+                {/* Chatbot Conversacional com IA Explicável */}
             <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
               
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
@@ -2966,10 +3167,12 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               </form>
 
             </div>
+          </>
+        )}
 
-          </section>
-        </main>
-      )}
+      </section>
+    </main>
+  )}
 
       {/* ABA 2: PREVISÃO DE DEMANDA HOSPITALAR (LOVABLE RECHARTS) */}
       {activeTab === 'forecast' && (
