@@ -1879,21 +1879,28 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             </div>
 
             {/* Chatbot Conversacional com IA Explicável */}
+            {isChatFullscreen && (
+              <div
+                className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+                onClick={() => setIsChatFullscreen(false)}
+                aria-hidden="true"
+              />
+            )}
             <div
               className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${
                 isChatFullscreen
-                  ? 'fixed inset-0 z-50 h-screen w-screen bg-[#0B0F19] rounded-none border-0'
+                  ? 'fixed top-1/2 left-1/2 z-50 h-[85vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-[#0B0F19]'
                   : 'flex-1 glass-panel rounded-xl relative min-h-[500px] border border-slate-800'
               }`}
               role={isChatFullscreen ? 'dialog' : undefined}
               aria-modal={isChatFullscreen || undefined}
-              aria-label={isChatFullscreen ? 'Chat da IA Flow em tela cheia' : undefined}
+              aria-label={isChatFullscreen ? 'Chat da IA Flow expandido' : undefined}
             >
               
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
               
               {/* Header do Chat */}
-              <div className="z-10 flex-none p-4 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
+              <div className="z-10 flex-none h-14 p-4 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
                   <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
@@ -1915,8 +1922,8 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                   <button
                     type="button"
                     onClick={() => setIsChatFullscreen((isFullscreen) => !isFullscreen)}
-                    title={isChatFullscreen ? 'Recolher Chat' : 'Expandir Chat para Tela Cheia'}
-                    aria-label={isChatFullscreen ? 'Recolher Chat' : 'Expandir Chat para Tela Cheia'}
+                    title={isChatFullscreen ? 'Fechar Chat expandido' : 'Expandir Chat'}
+                    aria-label={isChatFullscreen ? 'Fechar Chat expandido' : 'Expandir Chat'}
                     className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
                   >
                     {isChatFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
