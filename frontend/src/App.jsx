@@ -2012,7 +2012,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           </section>
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
-          <section className="lg:col-span-7 flex flex-col gap-4">
+          <section className="lg:col-span-7 flex h-full flex-col gap-4">
             
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
@@ -2110,7 +2110,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               </div>
 
               {/* Mensagens do Chat */}
-              <div className={`flow-chat-messages z-10 flex-1 min-h-0 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : 'max-h-[380px]'}`}>
+              <div className={`flow-chat-messages z-10 flex-1 min-h-0 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : ''}`}>
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
