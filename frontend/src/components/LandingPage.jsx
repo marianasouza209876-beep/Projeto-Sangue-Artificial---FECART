@@ -271,11 +271,11 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
               </p>
               <div className="flex gap-4">
                 <Button
-                  onClick={() => onNavigate("tecnico")}
+                  onClick={() => onNavigate("dashboard")}
                   variant="outline"
                   className="gap-2 border-slate-700 text-slate-200 hover:bg-slate-800"
                 >
-                  Ver Console Técnico
+                  Ver Monitor Clínico
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>

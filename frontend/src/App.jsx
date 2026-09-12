@@ -3,7 +3,6 @@ import {
   Activity, 
   Database, 
   Cpu, 
-  Terminal, 
   Send, 
   HelpCircle, 
   CheckCircle, 
@@ -12,7 +11,6 @@ import {
   Play, 
   RefreshCw, 
   FileText,
-  Copy,
   ChevronRight,
   TrendingUp,
   Droplets,
@@ -120,7 +118,7 @@ const PROTOCOLOS_CLINICOS = {
 };
 
 export default function App() {
-  // Navegação: 'landing' | 'dashboard' | 'forecast' | 'tecnico'
+  // Navegação: 'landing' | 'dashboard' | 'forecast' | 'emergency'
   const [activeTab, setActiveTab] = useState('landing');
   const [clock, setClock] = useState("--:--:--");
 
@@ -146,10 +144,8 @@ export default function App() {
     }
   ]);
   const [history, setHistory] = useState([]);
-  const [audits, setAudits] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [copiedScript, setCopiedScript] = useState(false);
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime, setLastPacketTime] = useState(null);
   const messagesEndRef = useRef(null);
@@ -192,24 +188,8 @@ export default function App() {
     }
   };
 
-  // Carrega logs de auditoria
-  const fetchAudits = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/audits`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setAudits(data);
-        }
-      }
-    } catch (err) {
-      console.log("Erro ao carregar auditoria:", err);
-    }
-  };
-
   useEffect(() => {
     fetchLots();
-    fetchAudits();
   }, []);
 
   useEffect(() => {
@@ -759,43 +739,6 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     return history.map(item => item[key]);
   };
 
-  const pythonScript = `import time
-import json
-import random
-import requests
-
-API_URL = "${import.meta.env.VITE_API_URL || (window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : ''))}/api/sensor-data"
-LOTE_ID = "SA-025"
-
-print("Ponte de Dados Iniciada. Enviando para:", API_URL)
-t = 0
-while True:
-    # Leitura ou simulação de sensores físicos
-    ox = 95.0 + random.uniform(-1.0, 1.0)
-    temp = 36.5 + random.uniform(-0.3, 0.3)
-    vaz = 4.8 + random.uniform(-0.1, 0.1)
-    
-    payload = {
-        "lote_id": LOTE_ID,
-        "oxigenacao": f"{ox:.1f}%",
-        "temperatura": f"{temp:.1f}C",
-        "vazao": f"{vaz:.1f}"
-    }
-    try:
-        r = requests.post(API_URL, json=payload, timeout=2.0)
-        print(f"POST {r.status_code} | Lote {LOTE_ID} | Ox: {ox:.1f}% | Temp: {temp:.1f}°C")
-    except Exception as e:
-        print("Erro ao enviar telemetria:", e)
-    
-    time.sleep(2.0)
-    t += 2`;
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(pythonScript);
-    setCopiedScript(true);
-    setTimeout(() => setCopiedScript(false), 2000);
-  };
-
   // Se a aba for Landing Page, renderiza a tela de apresentação
   if (activeTab === 'landing') {
     return (
@@ -876,17 +819,6 @@ while True:
             <span className="hidden md:inline-block text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1 py-0.2 rounded font-mono font-bold">
               IA
             </span>
-          </button>
-          <button 
-            onClick={() => setActiveTab('tecnico')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'tecnico' 
-                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold shadow-sm' 
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Console Técnico</span>
           </button>
         </div>
 
@@ -3120,129 +3052,7 @@ while True:
         </main>
       )}
 
-      {/* ABA 3: CONSOLE TÉCNICO & AUDITORIA */}
-      {activeTab === 'tecnico' && (
-        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* COLUNA ESQUERDA: SCRIPT PYTHON E ENDPOINT */}
-          <section className="flex flex-col gap-4">
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1 border-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
-                  <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-                  SCRIPT DE SUPORTE: PONTE PYTHON (ARDUINO PARA API)
-                </h2>
-                <button 
-                  onClick={copyToClipboard}
-                  className="text-[10px] text-emerald-400 border border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-all font-mono flex items-center gap-1.5"
-                >
-                  <Copy className="w-3 h-3" />
-                  {copiedScript ? "COPIADO!" : "COPIAR SCRIPT"}
-                </button>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                Rode este script Python no computador do estande conectado ao Arduino. O script lê as leituras da porta serial e faz requisições HTTP POST para a API do site, alimentando o painel em tempo real.
-              </p>
-              
-              <div className="flex-1 bg-slate-950 border border-slate-900 rounded-xl p-3.5 overflow-auto max-h-[320px]">
-                <pre className="text-[11px] text-slate-300 font-mono select-text">{pythonScript}</pre>
-              </div>
-            </div>
 
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
-              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-rose-500" />
-                DOCUMENTAÇÃO DO ENDPOINT DE TELEMETRIA
-              </h2>
-              
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded font-mono font-bold">POST</span>
-                  <span className="text-xs font-mono text-white">/api/sensor-data</span>
-                </div>
-                <p className="text-xs text-slate-400 font-sans leading-relaxed">
-                  O Arduino ou ponte envia leituras brutas em JSON. O backend limpa erros de digitação e calcula as variáveis secundárias.
-                </p>
-                <div className="bg-slate-950 border border-slate-900 rounded-xl p-3 mt-1">
-                  <p className="text-[9px] text-slate-500 font-mono mb-1">PAYLOAD DE ENTRADA EXIGIDO:</p>
-                  <pre className="text-[10px] text-slate-400 font-mono select-text">{JSON.stringify({
-                    "lote_id": "SA-025",
-                    "oxigenacao": "95%",
-                    "temperatura": "36.8C",
-                    "vazao": "4.8"
-                  }, null, 2)}</pre>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* COLUNA DIREITA: ARQUITETURA E AUDITORIA */}
-          <section className="flex flex-col gap-4">
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
-              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
-                <Cpu className="w-3.5 h-3.5 text-sky-400" />
-                FLUXO OPERACIONAL DE 4 CAMADAS
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px] font-mono mt-1">
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                  <span className="block font-bold text-emerald-400">1. DADOS</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Coleta e armazena</span>
-                </div>
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                  <span className="block font-bold text-sky-400">2. PROCESS.</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Limpa e normaliza</span>
-                </div>
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                  <span className="block font-bold text-amber-400">3. IA EXPL.</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Inferência de risco</span>
-                </div>
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                  <span className="block font-bold text-rose-500">4. INTERM.</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Chat de conversa</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Trilha de Auditoria */}
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800 flex-1">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2 uppercase">
-                  <Database className="w-3.5 h-3.5 text-rose-500" />
-                  CAMADA 1: LOGS DE AUDITORIA E RASTREABILIDADE
-                </h2>
-                <RefreshCw className="w-3.5 h-3.5 text-slate-400 cursor-pointer hover:text-white transition-colors" onClick={fetchAudits} />
-              </div>
-
-              <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[380px]">
-                {audits.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-500">
-                    Nenhum log de auditoria pendente no banco local.
-                  </div>
-                ) : (
-                  audits.map((a, index) => (
-                    <div
-                      key={a.id || index}
-                      className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs flex flex-col gap-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-300 font-bold font-mono">[{a.action}]</span>
-                        <span className="text-slate-500 font-mono text-[10px]">
-                          {a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : "--:--"}
-                        </span>
-                      </div>
-                      <p className="text-slate-300 text-xs font-sans">{a.details}</p>
-                      <div className="flex items-center gap-1 text-[9px] text-slate-500 font-mono">
-                        <span>Operador:</span>
-                        <span className="text-slate-400 font-bold">{a.operator || "SISTEMA"}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </section>
-        </main>
-      )}
 
       {/* ABA 4: SIMULADOR DE URGÊNCIA COM IA */}
       {activeTab === 'emergency' && (
