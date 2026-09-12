@@ -19,7 +19,11 @@ import {
   Plus,
   Zap,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Settings,
+  X,
+  Contrast,
+  MousePointer2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
@@ -67,6 +71,24 @@ const Sparkline = ({ data, color = "#00e5a3" }) => {
     </svg>
   );
 };
+
+const AccessibilityToggle = ({ icon: Icon, title, description, enabled, onChange }) => (
+  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 transition-colors hover:border-slate-700">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400">
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-sm font-semibold text-slate-100">{title}</span>
+      <span className="mt-0.5 block text-xs leading-5 text-slate-400">{description}</span>
+    </span>
+    <input
+      type="checkbox"
+      checked={enabled}
+      onChange={onChange}
+      className="h-4 w-4 shrink-0 accent-rose-500"
+    />
+  </label>
+);
 
 // Lista Oficial das 9 Finalidades Clínicas
 const FINALIDADES_OPCOES = [
@@ -174,6 +196,18 @@ export default function App() {
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime] = useState(null);
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
+  const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
+  const [accessibilityPreferences, setAccessibilityPreferences] = useState(() => {
+    try {
+      return {
+        highContrast: localStorage.getItem('flow-accessibility-high-contrast') === 'true',
+        hoverZoom: localStorage.getItem('flow-accessibility-hover-zoom') === 'true',
+        reducedMotion: localStorage.getItem('flow-accessibility-reduced-motion') === 'true',
+      };
+    } catch {
+      return { highContrast: false, hoverZoom: false, reducedMotion: false };
+    }
+  });
   const messagesEndRef = useRef(null);
 
   const [messages, setMessages] = useState([
@@ -247,6 +281,36 @@ export default function App() {
       document.body.style.overflow = 'unset';
     };
   }, [isChatFullscreen]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const preferences = [
+      ['highContrast', 'accessibility-high-contrast', 'flow-accessibility-high-contrast'],
+      ['hoverZoom', 'accessibility-hover-zoom', 'flow-accessibility-hover-zoom'],
+      ['reducedMotion', 'accessibility-reduced-motion', 'flow-accessibility-reduced-motion'],
+    ];
+
+    preferences.forEach(([key, className, storageKey]) => {
+      root.classList.toggle(className, accessibilityPreferences[key]);
+      localStorage.setItem(storageKey, String(accessibilityPreferences[key]));
+    });
+  }, [accessibilityPreferences]);
+
+  useEffect(() => {
+    const closeAccessibilityModal = (event) => {
+      if (event.key === 'Escape') setIsAccessibilityOpen(false);
+    };
+
+    window.addEventListener('keydown', closeAccessibilityModal);
+    return () => window.removeEventListener('keydown', closeAccessibilityModal);
+  }, []);
+
+  const toggleAccessibilityPreference = (preference) => {
+    setAccessibilityPreferences((current) => ({
+      ...current,
+      [preference]: !current[preference],
+    }));
+  };
 
   // Estados do Modal de Criação de Novo Lote
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1005,9 +1069,79 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             </div>
           </div>
 
+          <button
+            type="button"
+            onClick={() => setIsAccessibilityOpen(true)}
+            title="Preferências de Acessibilidade e Visualização"
+            aria-label="Abrir Preferências de Acessibilidade e Visualização"
+            className="rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-slate-400 transition-colors hover:border-rose-500/50 hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+
           <QuickEntryModal onInjectReading={handleInjectReading} apiBase={API_BASE} />
         </div>
       </header>
+
+      {isAccessibilityOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+            onClick={() => setIsAccessibilityOpen(false)}
+            aria-hidden="true"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="accessibility-modal-title"
+            className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-800 bg-[#0B0F19] p-6 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <p className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-rose-400">Preferências</p>
+                <h2 id="accessibility-modal-title" className="mt-1 text-lg font-bold text-white">
+                  Acessibilidade e Visualização
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  Ajustes locais que preservam a estrutura dos formulários e painéis.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAccessibilityOpen(false)}
+                aria-label="Fechar Preferências de Acessibilidade e Visualização"
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <AccessibilityToggle
+                icon={Contrast}
+                title="Alto Contraste"
+                description="Eleva a distinção entre textos, fundos e bordas."
+                enabled={accessibilityPreferences.highContrast}
+                onChange={() => toggleAccessibilityPreference('highContrast')}
+              />
+              <AccessibilityToggle
+                icon={MousePointer2}
+                title="Zoom no Hover (Foco)"
+                description="Destaca suavemente cards interativos ao passar o cursor."
+                enabled={accessibilityPreferences.hoverZoom}
+                onChange={() => toggleAccessibilityPreference('hoverZoom')}
+              />
+              <AccessibilityToggle
+                icon={Activity}
+                title="Animações Reduzidas"
+                description="Remove movimentos e transições não essenciais."
+                enabled={accessibilityPreferences.reducedMotion}
+                onChange={() => toggleAccessibilityPreference('reducedMotion')}
+              />
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
       {activeTab === 'dashboard' && (
