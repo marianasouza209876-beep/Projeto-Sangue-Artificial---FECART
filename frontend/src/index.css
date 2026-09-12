@@ -112,6 +112,31 @@
   background: #475569;
 }
 
+/* Barra de rolagem exclusiva do histórico do chat Flow. */
+.flow-chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: #e11d48 #0f172a;
+}
+
+.flow-chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.flow-chat-messages::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 999px;
+}
+
+.flow-chat-messages::-webkit-scrollbar-thumb {
+  background: #e11d48;
+  border: 2px solid #0f172a;
+  border-radius: 999px;
+}
+
+.flow-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #fb7185;
+}
+
 /* Glassmorphism Panel style */
 .glass-panel {
   background: var(--gradient-surface);

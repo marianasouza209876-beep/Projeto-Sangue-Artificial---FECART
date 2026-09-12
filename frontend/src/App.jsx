@@ -241,6 +241,13 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleEscape);
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = isChatFullscreen ? 'hidden' : 'unset';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isChatFullscreen]);
+
   // Estados do Modal de Criação de Novo Lote
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newLotName, setNewLotName] = useState("");
@@ -1873,10 +1880,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
             {/* Chatbot Conversacional com IA Explicável */}
             <div
-              className={`flex flex-col overflow-hidden bg-slate-950 shadow-2xl border-slate-800 transition-all duration-200 ${
+              className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${
                 isChatFullscreen
-                  ? 'fixed inset-0 z-50 h-screen w-screen rounded-none border-0'
-                  : 'flex-1 glass-panel rounded-xl relative min-h-[500px]'
+                  ? 'fixed inset-0 z-50 h-screen w-screen bg-[#0B0F19] rounded-none border-0'
+                  : 'flex-1 glass-panel rounded-xl relative min-h-[500px] border border-slate-800'
               }`}
               role={isChatFullscreen ? 'dialog' : undefined}
               aria-modal={isChatFullscreen || undefined}
@@ -1886,7 +1893,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
               
               {/* Header do Chat */}
-              <div className="z-10 bg-slate-900/70 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+              <div className="z-10 flex-none p-4 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
                   <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
@@ -1918,7 +1925,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               </div>
 
               {/* Mensagens do Chat */}
-              <div className={`z-10 flex-1 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'max-h-none px-5 py-6 sm:px-10' : 'max-h-[380px]'}`}>
+              <div className={`flow-chat-messages z-10 flex-1 min-h-0 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : 'max-h-[380px]'}`}>
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
@@ -3087,57 +3094,59 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Botões de Ações Rápidas (Pills) */}
-              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/40">
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Qual o status atual do lote?')}
-                  className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
-                >
-                  Status atual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('O que é sangue artificial?')}
-                  className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
-                >
-                  O que é sangue artificial?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Por que o lote está em risco?')}
-                  className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
-                >
-                  Por que o lote está em risco?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
-                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
-                >
-                  Limpeza de Ruído & pH
-                </button>
-              </div>
+              {/* Rodapé fixo: ações rápidas e caixa de mensagem */}
+              <div className="z-10 flex-none p-4 border-t border-slate-800 bg-slate-950/95">
+                <div className="flex gap-2 overflow-x-auto pb-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSendMessage('Qual o status atual do lote?')}
+                    className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
+                  >
+                    Status atual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSendMessage('O que é sangue artificial?')}
+                    className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
+                  >
+                    O que é sangue artificial?
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSendMessage('Por que o lote está em risco?')}
+                    className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
+                  >
+                    Por que o lote está em risco?
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
+                    className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
+                  >
+                    Limpeza de Ruído & pH
+                  </button>
+                </div>
 
-              {/* Caixa de Entrada de Texto */}
-              <form 
-                onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }}
-                className="z-10 bg-slate-900/80 border-t border-slate-800 px-4 py-3 flex gap-2 items-center"
-              >
-                <input 
-                  type="text" 
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Pergunte sobre os lotes, sensores ou previsões..."
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
-                />
-                <Button 
-                  type="submit"
-                  className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+                {/* Caixa de Entrada de Texto */}
+                <form
+                  onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }}
+                  className="flex gap-2 items-center"
                 >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Pergunte sobre os lotes, sensores ou previsões..."
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
+                  />
+                  <Button
+                    type="submit"
+                    className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </form>
+              </div>
 
             </div>
 
