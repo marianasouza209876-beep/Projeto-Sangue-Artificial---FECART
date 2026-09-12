@@ -4,14 +4,9 @@ import {
   Database, 
   Cpu, 
   Send, 
-  HelpCircle, 
   CheckCircle, 
   AlertTriangle, 
   XCircle, 
-  Play, 
-  RefreshCw, 
-  FileText,
-  ChevronRight,
   TrendingUp,
   Droplets,
   ShieldCheck,
@@ -20,12 +15,8 @@ import {
   Thermometer,
   Layers,
   Clock,
-  Sparkles,
-  Info,
   Plus,
-  Zap,
-  Maximize2,
-  Minimize2
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
@@ -33,7 +24,6 @@ import { DemandChart } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
 import { QuickEntryModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
-import { AccessibilityMenu } from '@/components/AccessibilityMenu';
 import {
   Dialog,
   DialogContent,
@@ -41,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useArduinoData, getStatusBadge, calculatePercentage } from '@/hooks/useArduinoData';
+import { useArduinoData, getStatusBadge } from '@/hooks/useArduinoData';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
 
@@ -140,24 +130,13 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [packetCount, setPacketCount] = useState(1420);
-  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
+  const [lastPacketTime] = useState(null);
   const messagesEndRef = useRef(null);
-
-  // Tecla ESC para sair do modo tela cheia do chat
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isChatFullscreen) {
-        setIsChatFullscreen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isChatFullscreen]);
 
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Olá! Sou a Flow, sua assistente virtual clínica. Estou monitorando os sensores em bancada e os 5 parâmetros biofísicos. Utilize os botões de Ações Rápidas abaixo para obter laudos e análises em tempo real!',
+      content: 'Olá! Sou a Flow, sua assistente virtual. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
       explicabilidade: null
     }
   ]);
@@ -183,6 +162,7 @@ export default function App() {
       setHistory([]);
       return;
     }
+
     try {
       const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
       if (res.ok) {
@@ -218,7 +198,7 @@ export default function App() {
 
   // Função para abrir o modal de criação de lote com campos auto-preenchidos
   const openCreateLotModal = () => {
-    const existingNumbers = lots.map(l => {
+    const existingNumbers = (lots || []).map(l => {
       const match = String(l.id).match(/SA-(\d+)/i);
       return match ? parseInt(match[1], 10) : 0;
     });
@@ -258,7 +238,7 @@ export default function App() {
       return;
     }
 
-    const finalCode = newLotCode.trim() || `SA-${String(lots.length + 25).padStart(3, '0')}`;
+    const finalCode = newLotCode.trim() || `SA-${String((lots?.length || 0) + 25).padStart(3, '0')}`;
     const finalName = newLotName.trim();
     const finalCreatedAt = newLotCreatedAt || new Date().toLocaleString('pt-BR');
     const finalFinalidade = newLotFinalidade;
@@ -304,9 +284,10 @@ export default function App() {
 
   // Deletar lote
   const handleDeleteLot = (lotIdToDelete) => {
-    setLots(prev => prev.filter(lot => lot.id !== lotIdToDelete));
+    const remainingLots = (lots || []).filter(lot => lot?.id !== lotIdToDelete);
+    setLots(remainingLots);
     if (selectedLot === lotIdToDelete) {
-      setSelectedLot(null);
+      setSelectedLot(remainingLots[0]?.id || null);
     }
   };
 
@@ -359,50 +340,15 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       return;
     }
 
-    // Resposta rápida 1: Status e Laudo do Lote
-    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("status e laudo") || text.toLowerCase().includes("condições do sangue")) {
+    // Resposta fixa: Condições do sangue / Status atual
+    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
       setMessages(prev => [...prev, 
         { role: 'user', content: text },
         { 
           role: 'assistant', 
-          content: `📊 **Laudo Clínico em Tempo Real • Lote ${selectedLot || 'Ativo'}**:\n• Saturação de O₂: ${(currentReading.oxigenacao_limpa * 100).toFixed(1)}% (Faixa fisiológica ideal)\n• Potencial de pH: ${currentReading.ph.toFixed(2)} (Equilíbrio ácido-base em 7.40)\n• Temperatura: ${currentReading.temperatura_c.toFixed(1)}°C\n• Viscosidade: ${currentReading.viscosidade_cp.toFixed(1)} cP\n\nTodos os 5 parâmetros biofísicos (B1 a B5) foram calculados e estão exibidos no painel abaixo.`,
+          content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`,
           showAnalysisCard: true
         }
-      ]);
-      setInputValue('');
-      return;
-    }
-
-    // Resposta rápida 2: Analisar Riscos Clínicos
-    if (text.toLowerCase().includes("risco") || text.toLowerCase().includes("riscos")) {
-      const phOk = currentReading.ph >= 7.35 && currentReading.ph <= 7.45;
-      const tempOk = currentReading.temperatura_c >= 35.0 && currentReading.temperatura_c <= 38.0;
-      const oxOk = currentReading.oxigenacao_limpa >= 0.90;
-
-      let analiseRiscos = `⚠️ **Avaliação de Riscos Clínicos • Lote ${selectedLot || 'Ativo'}**:\n\n`;
-      if (oxOk && phOk && tempOk) {
-        analiseRiscos += `🟢 **Risco Clínico: BAIXO (Lote Seguro e Operacional)**\n\n1. **Transporte Gasoso (O₂)**: Saturação de ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% garante oxigenação adequada sem hipóxia celular.\n2. **Equilíbrio Ácido-Base**: pH ${currentReading.ph.toFixed(2)} previne acidose e alcalose metabólica.\n3. **Integridade Térmica**: ${currentReading.temperatura_c.toFixed(1)}°C sem risco de desnaturação proteica.\n4. **Compatibilidade Universal**: Formulação sintética 100% isenta de antígenos Rh/ABO, zerando risco de hemólise pós-transfusão.`;
-      } else {
-        analiseRiscos += `🔴 **Risco Clínico: ELEVADO / ATENÇÃO NECESSÁRIA**\n\n${!oxOk ? `• **Queda de Oxigenação**: SpO₂ em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (abaixo de 90%). Risco de hipoperfusão.\n` : ''}${!phOk ? `• **Desvio Ácido-Base**: pH ${currentReading.ph.toFixed(2)} fora da janela 7.35–7.45.\n` : ''}${!tempOk ? `• **Variação Térmica**: Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C fora do padrão seguro.\n` : ''}`;
-      }
-
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', content: text },
-        { role: 'assistant', content: analiseRiscos }
-      ]);
-      setInputValue('');
-      return;
-    }
-
-    // Resposta rápida 3: Ver Previsão de Demanda
-    if (text.toLowerCase().includes("previsão de demanda") || text.toLowerCase().includes("demanda") || text.toLowerCase().includes("estoque")) {
-      const respostaDemanda = `📈 **Diagnóstico Preditivo de Demanda Hospitalar (Camada 3 - IA)**:\n\n• **Projeção Temporal**: Modelo baseado em séries temporais prediz aumento no pronto-socorro nos próximos dias.\n• **Ponto Crítico Sem Ação**: Em D+3 o estoque cairia para 43 bolsas (< 50 un mínimo de segurança).\n• **Decisão Autônoma Recomendada**: Disparar síntese do Lote preventivo SA-026 em D+1 para garantir 62 bolsas em estoque seguro (+44.2% de resiliência hospitalar).\n\n💡 Para visualizar o gráfico interativo completo com bandas de incerteza, acesse a aba **"Previsão Demanda"** no cabeçalho superior!`;
-
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', content: text },
-        { role: 'assistant', content: respostaDemanda }
       ]);
       setInputValue('');
       return;
@@ -449,23 +395,25 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     }
   };
 
-  const activeLotObj = lots.find(l => l.id === selectedLot) || null;
+  const safeLots = lots || [];
+  const safeHistory = history || [];
+  const activeLotObj = safeLots.find(l => l?.id === selectedLot) || null;
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
 
-  const isEmergenciaActive = Boolean(activeLotObj && (activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023"));
-  const isTraumaActive = Boolean(activeLotObj && (activeFinalidade.includes("Trauma") || activeFinalidade.includes("Hemorragia")));
-  const isCirurgiaCardiacaActive = Boolean(activeLotObj && (activeFinalidade.includes("Cirurgia") || activeFinalidade.includes("Cardíaca") || activeFinalidade.includes("Cardiaca") || activeFinalidade.includes("Cardiovascular")));
-  const isAnemiaActive = Boolean(activeLotObj && (activeFinalidade.includes("Anemias") || activeFinalidade.includes("Anemia")));
-  const isOncologicoActive = Boolean(activeLotObj && (activeFinalidade.includes("Oncológico") || activeFinalidade.includes("Oncologico")));
-  const isPolitraumatizadosActive = Boolean(activeLotObj && (activeFinalidade.includes("Politraumatizados") || activeFinalidade.includes("Politrauma")));
-  const isDoacaoActive = Boolean(activeLotObj && (activeFinalidade.includes("Doação") || activeFinalidade.includes("Doacao")));
-  const isColetaReservaActive = Boolean(activeLotObj && (activeFinalidade.includes("Coleta") || activeFinalidade.includes("Reserva")));
-  const isTipagemCompatibilidadeActive = Boolean(activeLotObj && (activeFinalidade.includes("Tipagem") || activeFinalidade.includes("Compatibilidade")));
+  const isEmergenciaActive = activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023";
+  const isTraumaActive = activeFinalidade.includes("Trauma") || activeFinalidade.includes("Hemorragia");
+  const isCirurgiaCardiacaActive = activeFinalidade.includes("Cirurgia") || activeFinalidade.includes("Cardíaca") || activeFinalidade.includes("Cardiaca") || activeFinalidade.includes("Cardiovascular");
+  const isAnemiaActive = activeFinalidade.includes("Anemias") || activeFinalidade.includes("Anemia");
+  const isOncologicoActive = activeFinalidade.includes("Oncológico") || activeFinalidade.includes("Oncologico");
+  const isPolitraumatizadosActive = activeFinalidade.includes("Politraumatizados") || activeFinalidade.includes("Politrauma");
+  const isDoacaoActive = activeFinalidade.includes("Doação") || activeFinalidade.includes("Doacao");
+  const isColetaReservaActive = activeFinalidade.includes("Coleta") || activeFinalidade.includes("Reserva");
+  const isTipagemCompatibilidadeActive = activeFinalidade.includes("Tipagem") || activeFinalidade.includes("Compatibilidade");
 
   // Tratamento de exceção (try/catch) com fallback visual em caso de corrupção ou perda de sinal USB
   let currentReading;
   try {
-    currentReading = history.length > 0 ? history[history.length - 1] : {
+    currentReading = safeHistory.length > 0 ? safeHistory[safeHistory.length - 1] : {
       oxigenacao_limpa: isEmergenciaActive ? 0.98 : isTraumaActive ? 0.99 : isCirurgiaCardiacaActive ? 0.985 : 0.95,
       temperatura_c: isEmergenciaActive ? 22.0 : isCirurgiaCardiacaActive ? 3.0 : 36.5,
       vazao_l_min: 4.8,
@@ -534,7 +482,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   }
 
   // Hook global de dados do Arduino (B1, B2, B3, B4, B5 e conectividade serial)
-  const arduinoData = useArduinoData(currentReading, history, lastPacketTime);
+  const arduinoData = useArduinoData(currentReading || null, safeHistory, lastPacketTime);
 
   // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) para Atendimento Pré-Hospitalar de Emergência
   const rawGas = arduinoData.gas_value || (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
@@ -778,21 +726,37 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const tc_b5_status = getStatusBadge(tc_b5_pct, arduinoData.isConnected);
 
   const getSparkValues = (key) => {
-    if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
-    return history.map(item => item[key]);
+    if (safeHistory.length === 0) {
+      return [currentReading?.[key] || 0, currentReading?.[key] || 0];
+    }
+    return safeHistory.map(item => item?.[key] || 0);
   };
 
   // Se a aba for Landing Page, renderiza a tela de apresentação
   if (activeTab === 'landing') {
     return (
-      <>
-        <LandingPage
-          onNavigate={setActiveTab}
-          onInjectReading={handleInjectReading}
-          apiBase={API_BASE}
-        />
-        <AccessibilityMenu />
-      </>
+      <LandingPage
+        onNavigate={setActiveTab}
+        onInjectReading={handleInjectReading}
+        apiBase={API_BASE}
+      />
+    );
+  }
+
+  if (!selectedLot || !activeLotObj) {
+    return (
+      <main className="min-h-screen bg-slate-950 px-6 py-16 text-slate-100 flex items-center justify-center">
+        <section className="max-w-lg rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center shadow-2xl">
+          <FlaskConical className="mx-auto mb-4 h-10 w-10 text-rose-400" />
+          <h1 className="text-xl font-bold">Nenhum lote selecionado</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-400">
+            Cadastre ou selecione um lote para iniciar o monitoramento dos parâmetros clínicos.
+          </p>
+          <Button className="mt-6" onClick={() => setActiveTab('landing')}>
+            Voltar para a tela inicial
+          </Button>
+        </section>
+      </main>
     );
   }
 
@@ -902,77 +866,56 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
                   <Database className="w-3.5 h-3.5 text-rose-500" />
-                  LOTES DE SANGUE CADASTRADOS
+                  LOTES DE SANGUE EM MONITORAMENTO
                 </h2>
                 <button 
                   onClick={openCreateLotModal}
-                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   NOVO LOTE
                 </button>
               </div>
 
-              {lots.length === 0 ? (
-                <div className="text-center py-6 px-3 bg-slate-950/60 rounded-xl border border-dashed border-slate-800 flex flex-col items-center gap-2">
-                  <Database className="w-6 h-6 text-slate-600" />
-                  <p className="text-xs text-slate-400 font-sans">Nenhum lote cadastrado no momento.</p>
-                  <button
-                    onClick={openCreateLotModal}
-                    className="text-xs text-rose-400 hover:text-rose-300 font-mono font-bold flex items-center gap-1 hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" /> Cadastrar Primeiro Lote
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {lots.map(l => (
-                    <div key={l.id} className="relative group">
-                      <button
-                        onClick={() => setSelectedLot(l.id)}
-                        className={`w-full p-2.5 rounded-xl border text-center font-mono transition-all cursor-pointer ${
-                          selectedLot === l.id
-                            ? 'bg-slate-800/90 border-rose-500 text-rose-400 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
-                            : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                        }`}
-                      >
-                        <span className="block text-xs font-bold">{l.id}</span>
-                        <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote Biológico'}</span>
-                        <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
-                      </button>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {safeLots.map(l => (
+                  <div key={l.id} className="relative group">
+                    <button
+                      onClick={() => setSelectedLot(l.id)}
+                      className={`w-full p-2.5 rounded-xl border text-center font-mono transition-all ${
+                        selectedLot === l.id
+                          ? 'bg-slate-800/90 border-rose-500 text-rose-400 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
+                          : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="block text-xs font-bold">{l.id}</span>
+                      <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote Biológico'}</span>
+                      <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
+                    </button>
 
+                    {safeLots.length > 1 && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteLot(l.id);
                         }}
                         title="Excluir lote"
-                        className="absolute -top-1.5 -right-1.5 bg-rose-950 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20 cursor-pointer"
+                        className="absolute -top-1.5 -right-1.5 bg-rose-950 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-800/50 w-5 h-5 rounded-full text-[10px] flex items-center justify-center transition-all opacity-80 hover:opacity-100 z-20"
                       >
                         ✕
                       </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {selectedLot && (
-                <button
-                  onClick={() => setSelectedLot(null)}
-                  className="text-[10px] text-slate-500 hover:text-slate-300 font-mono text-center pt-1 transition-colors cursor-pointer"
-                >
-                  ✕ Desmarcar lote ativo (Ver tela inicial)
-                </button>
-              )}
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Grid dos Novos MetricCards do Lovable (Apenas quando há lote ativo) */}
-            {selectedLot ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {isEmergenciaActive ? (
-                  <>
-                    {/* CARD B1: SATURAÇÃO DE O₂ */}
-                    <MetricCard
+            {/* Grid dos Novos MetricCards do Lovable */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {isEmergenciaActive ? (
+                <>
+                  {/* CARD B1: SATURAÇÃO DE O₂ */}
+                  <MetricCard
                     title="B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)"
                     subtitle="Usa diretamente gas_value"
                     value={b1_val.toFixed(1)}
@@ -1718,76 +1661,6 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 </>
               )}
             </div>
-            ) : (
-              <div className="glass-panel rounded-2xl p-5 border-slate-800/80 bg-slate-900/30 flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2">
-                    <FlaskConical className="w-4 h-4 text-rose-500" />
-                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
-                      Parâmetros Biofísicos Monitorados (B1 a B5)
-                    </h3>
-                  </div>
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
-                    Aguardando Lote
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Os 5 parâmetros são calculados em tempo real de acordo com a finalidade terapêutica do lote e as leituras biométricas dos sensores:
-                </p>
-
-                <div className="space-y-2.5">
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">B1 • Oxigenação / Carga de O₂</p>
-                      <p className="text-[11px] text-slate-400">Eficiência de transporte e liberação tecidual baseada no sensor óptico MQ-2.</p>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">B2 • Hemodinâmica & Tensão de Cisalhamento</p>
-                      <p className="text-[11px] text-slate-400">Comportamento do fluxo sob bombas e circuitos medido pelo sensor YF-S201.</p>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">B3 • Osmolaridade & Manutenção de pH</p>
-                      <p className="text-[11px] text-slate-400">Equilíbrio ácido-base em 7.40 e resistência à lise em bancada termostática.</p>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-purple-400 mt-1.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">B4 • Tempo de Meia-Vida Circulatória</p>
-                      <p className="text-[11px] text-slate-400">Persistência do transportador sintético antes de ser metabolizado.</p>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">B5 • Extração Tissular & Pureza Molecular</p>
-                      <p className="text-[11px] text-slate-400">Entrega efetiva de oxigênio em microcirculação e órgãos nobres.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800/60 flex justify-center">
-                  <button
-                    onClick={openCreateLotModal}
-                    className="text-xs text-rose-400 hover:text-rose-300 font-mono font-semibold flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 transition-all cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Criar Lote para Ativar Sensores
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Status do Hardware Arduino */}
             <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between bg-slate-900/40 border-slate-800">
@@ -1805,233 +1678,86 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
           </section>
 
-          {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT OU TELA DE BOAS-VINDAS - 7/12) */}
+          {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
           <section className="lg:col-span-7 flex flex-col gap-4">
-            {!selectedLot ? (
-              <div className="flex-1 glass-panel rounded-2xl p-6 sm:p-8 flex flex-col justify-between border-slate-800 bg-slate-900/40 relative overflow-hidden shadow-2xl min-h-[560px]">
-                {/* Background glowing grid effects */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(225,29,72,0.12),_transparent_60%)] pointer-events-none" />
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.02)_1px,_transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col gap-6">
-                  {/* Header do Painel */}
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
-                      <span className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">
-                        SISTEMA FECART • MONITOR CLÍNICO
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                      MODO DE ESPERA
-                    </span>
-                  </div>
-
-                  {/* Título Principal & Apresentação */}
-                  <div className="space-y-3">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono font-semibold">
-                      <Activity className="w-3.5 h-3.5" /> Telemetria Hemodinâmica em Tempo Real
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
-                      Nenhum Lote Ativo Selecionado
-                    </h2>
-                    <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
-                      Bem-vindo ao sistema de avaliação clínica e telemetria de sangue artificial. Para iniciar o monitoramento, os cálculos biofísicos dos 5 parâmetros (B1 a B5) e as análises da IA Explicável, cadastre ou selecione um lote personalizado.
-                    </p>
-                  </div>
-
-                  {/* CTA Principal de Criação de Lote */}
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
-                    <Button
-                      onClick={openCreateLotModal}
-                      size="lg"
-                      className="bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-bold px-6 py-5 rounded-xl text-sm shadow-[0_0_25px_rgba(225,29,72,0.4)] flex items-center gap-2.5 transition-all transform hover:scale-[1.02] cursor-pointer"
-                    >
-                      <Plus className="w-5 h-5 stroke-[2.5]" />
-                      + Criar/Cadastrar Novo Lote
-                    </Button>
-                    <Button
-                      onClick={() => setActiveTab('forecast')}
-                      variant="outline"
-                      size="lg"
-                      className="border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-sm px-5 py-5 rounded-xl flex items-center gap-2 cursor-pointer"
-                    >
-                      <TrendingUp className="w-4 h-4 text-sky-400" />
-                      Ver Previsão de Demanda
-                    </Button>
-                  </div>
-
-                  {/* Passo a Passo Orientativo */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-slate-800/60">
-                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 font-mono text-xs font-bold flex items-center justify-center border border-rose-500/30">1</span>
-                        <h3 className="text-xs font-bold text-white">Criar Lote Personalizado</h3>
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Defina a finalidade clínica do lote (ex: Emergência, Trauma, Cirurgia Cardíaca, Anemia, etc.).
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 font-mono text-xs font-bold flex items-center justify-center border border-sky-500/30">2</span>
-                        <h3 className="text-xs font-bold text-white">Leitura dos Sensores Arduino</h3>
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Conexão serial com sensores de vazão (YF-S201), temperatura (DS18B20) e gás/oxigênio (MQ-2).
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-xs font-bold flex items-center justify-center border border-emerald-500/30">3</span>
-                        <h3 className="text-xs font-bold text-white">Telemetria & IA Explicável</h3>
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Receba laudos instantâneos com os 5 parâmetros B1–B5 e converse com a assistente FLOW.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Atalhos para Lotes Existentes se houver */}
-                  {lots.length > 0 && (
-                    <div className="pt-3 border-t border-slate-800/60">
-                      <p className="text-xs font-mono text-slate-400 mb-2">
-                        Ou selecione um dos lotes já cadastrados para ativar o monitoramento:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {lots.map(l => (
-                          <button
-                            key={l.id}
-                            onClick={() => setSelectedLot(l.id)}
-                            className="text-xs font-mono px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 text-slate-200 hover:border-rose-500 hover:text-rose-400 transition-colors flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <span className="font-bold">{l.id}</span>
-                            <span className="text-[10px] text-slate-400">({l.destino || 'Clínico'})</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            
+            {/* Veredito Geral Semáforo */}
+            <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
+              currentReading.status === "CRÍTICO" 
+                ? 'bg-rose-950/30 border-rose-500/40' 
+                : currentReading.status === "ALERTA"
+                ? 'bg-amber-950/30 border-amber-500/40'
+                : 'bg-emerald-950/20 border-emerald-500/40'
+            }`}>
+              <div className="flex items-center gap-3.5">
+                <div className={`p-3 rounded-xl border bg-slate-950/80 ${
+                  currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
+                  currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
+                }`}>
+                  {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
+                   currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
                 </div>
-
-                {/* Footer do Painel */}
-                <div className="relative z-10 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                  <span>FECART • Inteligência Artificial & Biomateriais</span>
-                  <span>Driver Serial CH340G: Ativo</span>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                    VEREDITO DO SISTEMA • LOTE {selectedLot}
+                  </p>
+                  <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                    STATUS: {currentReading.status}
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                    {currentReading.alerta_mensagem}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <>
-                {/* Veredito Geral Semáforo */}
-                <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
-                  currentReading.status === "CRÍTICO" 
-                    ? 'bg-rose-950/30 border-rose-500/40' 
-                    : currentReading.status === "ALERTA"
-                    ? 'bg-amber-950/30 border-amber-500/40'
-                    : 'bg-emerald-950/20 border-emerald-500/40'
-                }`}>
-                  <div className="flex items-center gap-3.5">
-                    <div className={`p-3 rounded-xl border bg-slate-950/80 ${
-                      currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
-                      currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
-                    }`}>
-                      {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
-                       currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
-                    </div>
-                    <div>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">
-                        VEREDITO DO SISTEMA • LOTE {selectedLot}
-                      </p>
-                      <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
-                        STATUS: {currentReading.status}
-                      </h3>
-                      <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-                        {currentReading.alerta_mensagem}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="hidden sm:flex items-center gap-2 pr-2">
-                    <Button
-                      onClick={() => setActiveTab('forecast')}
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-xs text-slate-200"
-                    >
-                      <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
-                      Previsão
-                    </Button>
-                  </div>
-                </div>
+              <div className="hidden sm:flex items-center gap-2 pr-2">
+                <Button
+                  onClick={() => setActiveTab('forecast')}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-xs text-slate-200"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
+                  Previsão
+                </Button>
+              </div>
+            </div>
 
-                {/* Chatbot Conversacional com IA Explicável */}
-            <div className={`transition-all duration-300 ${
-              isChatFullscreen
-                ? 'fixed inset-0 z-50 p-4 sm:p-6 bg-slate-950/95 backdrop-blur-2xl flex flex-col overflow-hidden shadow-2xl border-2 border-rose-500/40'
-                : 'flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]'
-            }`}>
+            {/* Chatbot Conversacional com IA Explicável */}
+            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
               
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
               
               {/* Header do Chat */}
-              <div className="z-10 bg-slate-900/80 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
-                    <span className="text-xs font-bold font-mono tracking-widest text-slate-200">
-                      ASSISTENTE VIRTUAL FLOW
-                    </span>
-                  </div>
-
-                  {arduinoData.isConnected ? (
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      ONLINE
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 rounded-full font-mono font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                      SERIAL ATIVO
-                    </div>
-                  )}
-                </div>
-
-                {/* Botão de Tela Cheia / Recolher */}
+              <div className="z-10 bg-slate-900/70 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsChatFullscreen(prev => !prev)}
-                    className="px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white font-mono text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                    title={isChatFullscreen ? "Recolher Chat (Pressione Esc)" : "Expandir Chat para Tela Cheia"}
-                  >
-                    {isChatFullscreen ? (
-                      <>
-                        <Minimize2 className="w-3.5 h-3.5 text-rose-400" />
-                        <span className="hidden sm:inline text-[11px] font-bold">Recolher</span>
-                      </>
-                    ) : (
-                      <>
-                        <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
-                        <span className="hidden sm:inline text-[11px] font-bold">Tela Cheia</span>
-                      </>
-                    )}
-                  </button>
+                  <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
+                  <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
+                    CAMADA 4: ASSISTENTE VIRTUAL FLOW
+                  </span>
                 </div>
+                {arduinoData.isConnected ? (
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    ONLINE
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                    [AGUARDANDO LEITURA SERIAL]
+                  </div>
+                )}
               </div>
 
               {/* Mensagens do Chat */}
-              <div className={`z-10 flex-1 overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5 ${
-                isChatFullscreen ? 'max-w-5xl w-full mx-auto' : 'max-h-[380px]'
-              }`}>
+              <div className="z-10 flex-1 max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5">
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
                     className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
                     <div 
-                      className={`chat-message-bubble accessible-card p-3.5 rounded-2xl text-sm leading-relaxed ${
+                      className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
                         msg.role === 'user' 
                           ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
                           : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
@@ -2046,7 +1772,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isEmergenciaActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2165,7 +1891,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Trauma e Hemorragia Grave (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isTraumaActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2284,7 +2010,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Cirurgia Cardíaca e Cardiovascular (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isCirurgiaCardiacaActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2403,7 +2129,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Tratamento de Anemias Graves (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isAnemiaActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2522,7 +2248,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Tratamento Oncológico (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isOncologicoActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2641,7 +2367,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Atendimento a Pacientes Politraumatizados (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isPolitraumatizadosActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2760,7 +2486,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Doação de Sangue (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isDoacaoActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2879,7 +2605,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Coleta e Reserva de Sangue (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isColetaReservaActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -2998,7 +2724,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
                     {/* Card Estilizado Neon para Tipagem Sanguínea e Testes de Compatibilidade (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isTipagemCompatibilidadeActive && (
-                      <div className="laudo-container accessible-card mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
+                      <div className="mt-2.5 w-full bg-slate-950/95 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xl glow-neon-border">
                         {/* Título do Laudo */}
                         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                           <h4 className="text-xs font-mono font-bold tracking-wider text-slate-100 flex items-center gap-1.5 uppercase">
@@ -3193,63 +2919,63 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Painel Fixo de Ações Rápidas (Interação Direta por Botões Estilizados) */}
-              <div className={`z-10 bg-slate-950/90 border-t border-slate-800/90 p-3 sm:p-4 flex flex-col gap-2.5 ${
-                isChatFullscreen ? 'max-w-5xl w-full mx-auto' : ''
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-                    Consultas Rápidas da IA Flow
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
-                    Selecione uma consulta clínica abaixo:
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* Botão 1: Status e Laudo do Lote */}
-                  <button
-                    type="button"
-                    onClick={() => handleSendMessage('Qual o status atual do lote?')}
-                    disabled={isTyping}
-                    className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-[0_0_15px_rgba(0,229,163,0.25)] hover:border-emerald-400/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group text-center"
-                  >
-                    <Activity className="w-4 h-4 text-emerald-400 group-hover:animate-pulse shrink-0" />
-                    <span>📊 Status e Laudo do Lote</span>
-                  </button>
-
-                  {/* Botão 2: Analisar Riscos Clínicos */}
-                  <button
-                    type="button"
-                    onClick={() => handleSendMessage('Analisar riscos clínicos do lote')}
-                    disabled={isTyping}
-                    className="p-3 rounded-xl border border-rose-500/30 bg-rose-950/30 hover:bg-rose-900/50 text-rose-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-[0_0_15px_rgba(255,42,66,0.25)] hover:border-rose-400/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group text-center"
-                  >
-                    <AlertTriangle className="w-4 h-4 text-rose-400 group-hover:animate-bounce shrink-0" />
-                    <span>⚠️ Analisar Riscos Clínicos</span>
-                  </button>
-
-                  {/* Botão 3: Ver Previsão de Demanda */}
-                  <button
-                    type="button"
-                    onClick={() => handleSendMessage('Qual a previsão de demanda hospitalar e risco de estoque?')}
-                    disabled={isTyping}
-                    className="p-3 rounded-xl border border-sky-500/30 bg-sky-950/30 hover:bg-sky-900/50 text-sky-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.25)] hover:border-sky-400/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group text-center"
-                  >
-                    <TrendingUp className="w-4 h-4 text-sky-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                    <span>📈 Ver Previsão de Demanda</span>
-                  </button>
-                </div>
+              {/* Botões de Ações Rápidas (Pills) */}
+              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/40">
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Qual o status atual do lote?')}
+                  className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
+                >
+                  Status atual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('O que é sangue artificial?')}
+                  className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
+                >
+                  O que é sangue artificial?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Por que o lote está em risco?')}
+                  className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
+                >
+                  Por que o lote está em risco?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
+                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
+                >
+                  Limpeza de Ruído & pH
+                </button>
               </div>
 
-            </div>
-          </>
-        )}
+              {/* Caixa de Entrada de Texto */}
+              <form 
+                onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }}
+                className="z-10 bg-slate-900/80 border-t border-slate-800 px-4 py-3 flex gap-2 items-center"
+              >
+                <input 
+                  type="text" 
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Pergunte sobre os lotes, sensores ou previsões..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
+                />
+                <Button 
+                  type="submit"
+                  className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </form>
 
-      </section>
-    </main>
-  )}
+            </div>
+
+          </section>
+        </main>
+      )}
 
       {/* ABA 2: PREVISÃO DE DEMANDA HOSPITALAR (LOVABLE RECHARTS) */}
       {activeTab === 'forecast' && (
@@ -3453,9 +3179,6 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Botão e Menu Flutuante de Acessibilidade */}
-      <AccessibilityMenu />
 
       {/* Footer */}
       <footer className="z-10 py-3.5 border-t border-slate-900 bg-slate-950/80 px-6">
