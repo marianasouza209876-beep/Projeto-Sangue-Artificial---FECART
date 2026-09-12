@@ -809,7 +809,9 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     );
   }
 
-  if (!selectedLot || !activeLotObj) {
+  // Apenas o Dashboard depende de um lote ativo. Previsão e Simulação de
+  // Emergência são ferramentas globais e continuam disponíveis sem lote.
+  if (activeTab === 'dashboard' && (!selectedLot || !activeLotObj)) {
     return (
       <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100 flex items-center justify-center sm:px-6">
         <section className="w-full max-w-5xl rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl sm:p-9">
@@ -824,13 +826,23 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             <p className="mt-3 text-sm leading-6 text-slate-400">
               Inicie um lote de exemplo com parâmetros pré-configurados ou cadastre um lote personalizado.
             </p>
-            <Button
-              className="mt-6 bg-gradient-to-r from-rose-600 to-red-500 px-5 text-white shadow-[0_0_24px_rgba(244,63,94,0.35)] hover:from-rose-500 hover:to-red-400"
-              onClick={openCreateLotModal}
-            >
-              <Plus className="mr-1.5 h-4 w-4" />
-              + Criar Lote Personalizado
-            </Button>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button
+                className="bg-gradient-to-r from-rose-600 to-red-500 px-5 text-white shadow-[0_0_24px_rgba(244,63,94,0.35)] hover:from-rose-500 hover:to-red-400"
+                onClick={openCreateLotModal}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                + Criar Lote Personalizado
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-sky-500/50 bg-sky-500/10 text-sky-300 shadow-[0_0_20px_rgba(56,189,248,0.15)] hover:border-sky-400 hover:bg-sky-500/20 hover:text-sky-100"
+                onClick={() => setActiveTab('emergency')}
+              >
+                📈 Executar Simulação de Emergência
+              </Button>
+            </div>
           </div>
 
           <div className="mt-9 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
