@@ -642,31 +642,30 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   </p>
                 </div>
 
-                <div className="relative rounded-xl border border-slate-800/80 bg-slate-900/60 p-4 flex flex-col items-center justify-center space-y-3 shadow-inner min-h-[260px]">
+                <div className="relative min-h-[260px] overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/60 p-4 shadow-inner flex flex-col items-center justify-center space-y-3">
                   
                   <div className="w-full flex items-center justify-between px-3 text-[10px] font-mono text-slate-400 border-b border-slate-800/60 pb-2">
                     <span className="flex items-center gap-1.5 text-rose-400">
                       <Activity className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
                       ECG VITAL ACTIVE
                     </span>
-                    <span className="text-emerald-400 font-bold">142 BPM</span>
+                    <span className="patient-bpm text-emerald-400 font-bold">142 BPM</span>
                   </div>
 
                   <div className="relative my-2 flex items-center justify-center">
                     <svg className="w-28 h-44 text-slate-700" viewBox="0 0 100 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="50" cy="22" r="14" stroke="#ff0055" strokeWidth="1.8" strokeDasharray="3 3" className="animate-pulse" />
+                      <circle cx="50" cy="22" r="14" stroke="#ff0055" strokeWidth="1.8" strokeDasharray="3 3" className="patient-head-pulse" />
                       <path d="M32 40 L68 40 L62 105 L38 105 Z" stroke="#00d8ff" strokeWidth="1.8" />
                       <path d="M30 42 L16 90 L12 120" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
                       <path d="M70 42 L84 90 L88 120" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
                       <path d="M42 105 L38 165" stroke="#00ff9d" strokeWidth="1.8" strokeLinecap="round" />
                       <path d="M58 105 L62 165" stroke="#00ff9d" strokeWidth="1.8" strokeLinecap="round" />
                       <circle cx="45" cy="55" r="4" fill="#ff0055" className="animate-ping" />
+                      <path d="M34 72 L41 72 L45 66 L49 80 L53 70 L58 72 L66 72" stroke="#00e5ff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="patient-ecg-pulse" />
                     </svg>
 
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-full h-8 bg-rose-500/10 border-y border-rose-500/30 flex items-center justify-center">
-                        <Activity className="h-6 w-full text-rose-400 animate-pulse" />
-                      </div>
+                      <div className="patient-neon-scanner" />
                     </div>
                   </div>
 
