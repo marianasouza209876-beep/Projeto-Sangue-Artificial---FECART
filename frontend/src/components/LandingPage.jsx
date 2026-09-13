@@ -63,7 +63,7 @@ export function LandingPage({ onNavigate, onStartDemo }) {
             </a>
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center">
             <button
               type="button"
               onClick={() => setIsQrModalOpen(true)}
@@ -72,13 +72,6 @@ export function LandingPage({ onNavigate, onStartDemo }) {
               <QrCode className="h-4 w-4" />
               Avaliar Projeto
             </button>
-            <Button
-              onClick={() => onNavigate("dashboard")}
-              className="gap-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.35)]"
-            >
-              Entrar no Dashboard
-              <ArrowRight className="h-4 w-4" />
-            </Button>
           </div>
 
           <button
@@ -114,18 +107,6 @@ export function LandingPage({ onNavigate, onStartDemo }) {
               >
                 Como Funciona
               </a>
-              <div className="pt-2 flex flex-col gap-2">
-                <Button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    onNavigate("dashboard");
-                  }}
-                  className="w-full gap-2 bg-rose-600 text-white"
-                >
-                  Entrar no Dashboard
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
             </nav>
           </div>
         ) : null}
