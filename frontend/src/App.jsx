@@ -3361,7 +3361,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               </div>
 
               <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-slate-400 bg-slate-900/60 border border-slate-800 px-3.5 py-1.5 rounded-xl">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 <span>Modelo Autônomo Ativo • Lead Time 18h</span>
               </div>
             </div>
@@ -3374,7 +3374,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 id="forecast-lot"
                 value={selectedLot || ""}
                 onChange={(event) => setSelectedLot(event.target.value)}
-                className="min-w-44 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs font-bold text-slate-100 outline-none transition-colors focus:border-rose-500"
+                className="min-w-44 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs font-bold text-slate-100 outline-none focus:border-rose-500"
               >
                 {safeLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.id}{lot.name ? ` • ${lot.name}` : ""}</option>)}
               </select>

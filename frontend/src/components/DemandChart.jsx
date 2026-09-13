@@ -34,7 +34,7 @@ export function getForecastScenario(lotId, lot) {
 
 function LayerToggle({ checked, onChange, label, marker, className = "" }) {
   return (
-    <button type="button" aria-pressed={checked} onClick={onChange} className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${checked ? "border-slate-700 bg-slate-900 text-slate-200" : "border-slate-800 bg-slate-950/60 text-slate-500"} ${className}`}>
+    <button type="button" aria-pressed={checked} onClick={onChange} className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left ${checked ? "border-slate-700 bg-slate-900 text-slate-200" : "border-slate-800 bg-slate-950/60 text-slate-500"} ${className}`}>
       <span className={`h-3 w-3 rounded border ${checked ? "border-emerald-400 bg-emerald-400/20" : "border-slate-600"}`}>{checked && <span className="block text-center text-[9px] leading-[10px] text-emerald-300">✓</span>}</span>
       {marker}<span>{label}</span>
     </button>
@@ -69,7 +69,7 @@ export function DemandChart({ lotId, lot }) {
             <CartesianGrid stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
             <XAxis dataKey="dia" tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.1)" }} tick={{ fill: "#94a3b8", fontSize: 11, fontFamily: "monospace" }} />
             <YAxis tickLine={false} axisLine={false} width={48} tick={{ fill: "#94a3b8", fontSize: 11, fontFamily: "monospace" }} domain={[20, 110]} unit=" u" />
-            <Tooltip wrapperStyle={{ zIndex: 30, pointerEvents: "none" }} content={({ active, payload, label }) => {
+            <Tooltip isAnimationActive={false} wrapperStyle={{ zIndex: 30, pointerEvents: "none" }} content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const point = payload[0].payload;
               const decisionSafe = point.estoqueComIA >= scenario.minimo;
@@ -83,11 +83,11 @@ export function DemandChart({ lotId, lot }) {
             <ReferenceArea y1={20} y2={scenario.minimo} fill="rgba(239, 68, 68, 0.10)" stroke="none" />
             <ReferenceLine x="Hoje" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="3 3" label={{ value: "HOJE", fill: "#cbd5e1", fontSize: 10, position: "insideTopLeft", fontFamily: "monospace" }} />
             {layers.minimo && <ReferenceLine y={scenario.minimo} stroke="#f59e0b" strokeWidth={1.8} strokeDasharray="5 4" label={{ value: `${scenario.minimo} un mínimo`, fill: "#fbbf24", fontSize: 10, position: "insideBottomRight", fontFamily: "monospace" }} />}
-            {layers.incerteza && <Area type="monotone" dataKey="faixaIncerteza" stroke="rgba(255, 42, 66, 0.4)" strokeDasharray="3 3" fill="url(#incertezaFill)" connectNulls name="Incerteza IA" />}
-            {layers.historico && <Area type="monotone" dataKey="consumoHistorico" stroke="#38bdf8" strokeWidth={2.5} fill="url(#histFill)" dot={{ r: 3, fill: "#38bdf8" }} connectNulls name="Consumo histórico" />}
-            {layers.semAcao && <Line type="monotone" dataKey="estoqueSemAcao" stroke="#f43f5e" strokeWidth={2.2} strokeDasharray="4 4" dot={{ r: 2.5, fill: "#f43f5e" }} name="Estoque sem ação" />}
+            {layers.incerteza && <Area isAnimationActive={false} type="monotone" dataKey="faixaIncerteza" stroke="rgba(255, 42, 66, 0.4)" strokeDasharray="3 3" fill="url(#incertezaFill)" connectNulls name="Incerteza IA" />}
+            {layers.historico && <Area isAnimationActive={false} type="monotone" dataKey="consumoHistorico" stroke="#38bdf8" strokeWidth={2.5} fill="url(#histFill)" dot={{ r: 3, fill: "#38bdf8" }} connectNulls name="Consumo histórico" />}
+            {layers.semAcao && <Line isAnimationActive={false} type="monotone" dataKey="estoqueSemAcao" stroke="#f43f5e" strokeWidth={2.2} strokeDasharray="4 4" dot={{ r: 2.5, fill: "#f43f5e" }} name="Estoque sem ação" />}
             {layers.comIa && <>
-              <Line type="monotone" dataKey="estoqueComIA" stroke="#00ff9d" strokeWidth={2.8} dot={{ r: 3, fill: "#00ff9d" }} name="Estoque com IA" />
+              <Line isAnimationActive={false} type="monotone" dataKey="estoqueComIA" stroke="#00ff9d" strokeWidth={2.8} dot={{ r: 3, fill: "#00ff9d" }} name="Estoque com IA" />
               <ReferenceDot
                 x="D+1"
                 y={decisionPoint.estoqueComIA}
@@ -95,7 +95,7 @@ export function DemandChart({ lotId, lot }) {
                 fill="#00ff9d"
                 stroke="#ffffff"
                 strokeWidth={2}
-                shape={({ cx, cy }) => <g><circle cx={cx} cy={cy} r={11} fill="#00ff9d" opacity={0.22} className="animate-ping" /><circle cx={cx} cy={cy} r={6} fill="#00ff9d" stroke="#ffffff" strokeWidth={2} /></g>}
+                shape={({ cx, cy }) => <circle cx={cx} cy={cy} r={6} fill="#00ff9d" stroke="#ffffff" strokeWidth={2} />}
                 label={{ value: "SÍNTESE +25un", fill: "#86efac", fontSize: 10, position: "top", fontFamily: "monospace", fontWeight: "bold" }}
               />
             </>}
