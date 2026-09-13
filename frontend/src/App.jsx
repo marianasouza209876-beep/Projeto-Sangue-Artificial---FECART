@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
-import { DemandChart } from '@/components/DemandChart';
+import { DemandChart, getForecastScenario } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
 import { QuickEntryModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
@@ -561,6 +561,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const safeLots = lots || [];
   const safeHistory = history || [];
   const activeLotObj = safeLots.find(l => l?.id === selectedLot) || null;
+  const forecastScenario = getForecastScenario(selectedLot, activeLotObj);
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
 
   const isEmergenciaActive = activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023";
@@ -3365,7 +3366,21 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               </div>
             </div>
 
-            <DemandChart />
+            <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/50 px-3.5 py-2.5">
+              <label htmlFor="forecast-lot" className="font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Selecionar lote:
+              </label>
+              <select
+                id="forecast-lot"
+                value={selectedLot || ""}
+                onChange={(event) => setSelectedLot(event.target.value)}
+                className="min-w-44 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs font-bold text-slate-100 outline-none transition-colors focus:border-rose-500"
+              >
+                {safeLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.id}{lot.name ? ` • ${lot.name}` : ""}</option>)}
+              </select>
+            </div>
+
+            <DemandChart lotId={selectedLot} lot={activeLotObj} />
 
             <div className="mt-5 rounded-xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-slate-900/50 to-emerald-950/30 px-5 py-4 text-xs text-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -3374,16 +3389,16 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 </div>
                 <div>
                   <p className="font-bold text-white text-xs">
-                    DIAGNÓSTICO PREDITIVO: Risco iminente de ruptura em D+3 (43 un &lt; 50 un mínimo).
+                    DIAGNÓSTICO PREDITIVO: risco de ruptura em {forecastScenario.riscoDia} ({forecastScenario.critical.estoqueSemAcao} un &lt; {forecastScenario.minimo} un mínimo).
                   </p>
                   <p className="text-slate-400 text-[11px] font-mono mt-0.5">
-                    Decisão IA recomendada: Disparar síntese do Lote SA-026 em D+1 para garantir 62 un em estoque seguro.
+                    Decisão IA recomendada para {selectedLot}: {forecastScenario.recomendacao}, garantindo {forecastScenario.protectedStock} un em estoque seguro.
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  IMPACTO: +44.2% RESILIÊNCIA
+                  IMPACTO: {forecastScenario.impacto.toUpperCase()}
                 </span>
               </div>
             </div>
