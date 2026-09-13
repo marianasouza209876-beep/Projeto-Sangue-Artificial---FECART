@@ -514,7 +514,7 @@ export default function App() {
   const handleSendMessage = async (text) => {
     if (!text || !text.trim() || !selectedLot) return;
     const lotId = selectedLot;
-    const isQuickAction = QUICK_CHAT_ACTIONS.includes(text);
+    const isStatusShortcut = text === QUICK_CHAT_ACTIONS[0];
 
     // Resposta fixa: O que é sangue artificial
     if (text.toLowerCase().includes("sangue artificial")) {
@@ -531,14 +531,14 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
       appendMessagesToLot(lotId, [
         { role: 'user', content: text },
-        { role: 'assistant', content: respostaPronta, showAnalysisCard: isQuickAction }
+        { role: 'assistant', content: respostaPronta }
       ]);
       setInputValue('');
       return;
     }
 
-    // Resposta fixa: Condições do sangue / Status atual
-    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
+    // O laudo clínico é exclusivo do atalho de status do lote.
+    if (isStatusShortcut) {
       appendMessagesToLot(lotId, [
         { role: 'user', content: text },
         { 
@@ -570,7 +570,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             role: 'assistant', 
             content: data.resposta, 
             explicabilidade: data.explicabilidade,
-            showAnalysisCard: isQuickAction || text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")
+            showAnalysisCard: false
           }]);
           setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
           
