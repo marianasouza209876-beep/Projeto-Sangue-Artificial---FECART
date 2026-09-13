@@ -42,6 +42,12 @@ import { useArduinoData, getStatusBadge } from '@/hooks/useArduinoData';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
 
+const createWelcomeMessage = (lotId) => ({
+  role: 'assistant',
+  content: `Olá! Sou a Flow, sua assistente virtual para o lote ${lotId}. Posso explicar o estado deste lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!`,
+  explicabilidade: null,
+});
+
 // Sparkline SVG Component
 const Sparkline = ({ data, color = "#00e5a3" }) => {
   if (!data || data.length < 2) return null;
@@ -192,7 +198,7 @@ export default function App() {
   const [lots, setLots] = useState([]);
   const [history, setHistory] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [typingLotId, setTypingLotId] = useState(null);
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime] = useState(null);
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
@@ -211,13 +217,21 @@ export default function App() {
   });
   const messagesEndRef = useRef(null);
 
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Olá! Sou a Flow, sua assistente virtual. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
-      explicabilidade: null
-    }
-  ]);
+  const [chatHistoryByLot, setChatHistoryByLot] = useState({});
+  const messages = selectedLot ? chatHistoryByLot[selectedLot] || [] : [];
+  const isTyping = typingLotId === selectedLot;
+
+  const appendMessagesToLot = (lotId, newMessages) => {
+    if (!lotId) return;
+
+    setChatHistoryByLot((previousHistory) => ({
+      ...previousHistory,
+      [lotId]: [
+        ...(previousHistory[lotId] || [createWelcomeMessage(lotId)]),
+        ...newMessages,
+      ],
+    }));
+  };
 
   // Carrega lotes cadastrados
   const fetchLots = async () => {
@@ -260,6 +274,16 @@ export default function App() {
 
   useEffect(() => {
     fetchHistory();
+  }, [selectedLot]);
+
+  useEffect(() => {
+    if (!selectedLot) return;
+
+    setChatHistoryByLot((previousHistory) => (
+      previousHistory[selectedLot]
+        ? previousHistory
+        : { ...previousHistory, [selectedLot]: [createWelcomeMessage(selectedLot)] }
+    ));
   }, [selectedLot]);
 
   useEffect(() => {
@@ -479,7 +503,8 @@ export default function App() {
 
   // Envio de pergunta e integração com chat
   const handleSendMessage = async (text) => {
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim() || !selectedLot) return;
+    const lotId = selectedLot;
 
     // Resposta fixa: O que é sangue artificial
     if (text.toLowerCase().includes("o que é sangue artificial")) {
@@ -494,8 +519,7 @@ Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Per
 
 Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
 
-      setMessages(prev => [
-        ...prev, 
+      appendMessagesToLot(lotId, [
         { role: 'user', content: text },
         { role: 'assistant', content: respostaPronta }
       ]);
@@ -505,7 +529,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
     // Resposta fixa: Condições do sangue / Status atual
     if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
-      setMessages(prev => [...prev, 
+      appendMessagesToLot(lotId, [
         { role: 'user', content: text },
         { 
           role: 'assistant', 
@@ -518,9 +542,9 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     }
 
     const userMsg = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMsg]);
+    appendMessagesToLot(lotId, [userMsg]);
     setInputValue('');
-    setIsTyping(true);
+    setTypingLotId(lotId);
 
     try {
       const res = await fetch(`${API_BASE}/api/chat`, {
@@ -532,13 +556,13 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       if (res.ok) {
         const data = await res.json();
         setTimeout(() => {
-          setMessages(prev => [...prev, { 
+          appendMessagesToLot(lotId, [{
             role: 'assistant', 
             content: data.resposta, 
             explicabilidade: data.explicabilidade,
             showAnalysisCard: text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")
           }]);
-          setIsTyping(false);
+          setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
           
           const match = text.toUpperCase().match(/SA-\d{3}/);
           if (match) {
@@ -546,12 +570,12 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           }
         }, 800);
       } else {
-        setIsTyping(false);
+        setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
       }
     } catch (err) {
       console.log("Erro no chat:", err);
-      setIsTyping(false);
-      setMessages(prev => [...prev, { 
+      setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
+      appendMessagesToLot(lotId, [{
         role: 'assistant', 
         content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar a assistente Flow. Verifique se o backend está ativo.'
       }]);
