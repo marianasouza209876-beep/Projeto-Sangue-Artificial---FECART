@@ -509,7 +509,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
         { role: 'user', content: text },
         { 
           role: 'assistant', 
-          content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`,
+          content: '',
           showAnalysisCard: true
         }
       ]);
@@ -2117,19 +2117,23 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                     key={index}
                     className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    <div 
-                      className={`accessibility-zoom-target p-3.5 rounded-2xl text-sm leading-relaxed ${
-                        msg.role === 'user' 
-                          ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
-                          : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
-                      }`}
-                    >
-                      <div className="whitespace-pre-line font-sans">{msg.content}</div>
-                    </div>
-                    
-                    <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
-                      {msg.role === 'user' ? 'Visitante' : 'Flow'}
-                    </span>
+                    {msg.content && (
+                      <>
+                        <div
+                          className={`accessibility-zoom-target p-3.5 rounded-2xl text-sm leading-relaxed ${
+                            msg.role === 'user'
+                              ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60'
+                              : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
+                          }`}
+                        >
+                          <div className="whitespace-pre-line font-sans">{msg.content}</div>
+                        </div>
+
+                        <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
+                          {msg.role === 'user' ? 'Visitante' : 'Flow'}
+                        </span>
+                      </>
+                    )}
 
                     {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isEmergenciaActive && (
