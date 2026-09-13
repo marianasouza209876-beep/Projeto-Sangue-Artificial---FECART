@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { 
-  Activity, 
-  Database, 
-  Cpu, 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle, 
+import {
+  Activity,
+  Database,
+  Cpu,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
   ChevronRight,
   TrendingUp,
   Droplets,
@@ -60,6 +60,7 @@ const createChatResponseCard = (action, lot, telemetry) => {
   };
   const vazao = parseTelemetryValue(telemetry?.vazao_l_min ?? telemetry?.vazao, 4.8);
   const temperatura = parseTelemetryValue(telemetry?.temperatura_c ?? telemetry?.temperatura, 36.5);
+  const oxigenacao = parseTelemetryValue(telemetry?.oxigenacao_pct ?? telemetry?.oxigenacao, 96);
   const estabilidade = telemetry?.status || lot?.status || 'ESTÁVEL';
   const finalidade = lot?.finalidade || lot?.destino || 'finalidade clínica não informada';
   const lotId = lot?.id || 'lote ativo';
@@ -70,16 +71,11 @@ const createChatResponseCard = (action, lot, telemetry) => {
     temperaturaForaDaFaixa && `A temperatura de ${temperatura.toFixed(1)}°C está fora da faixa segura de 35,0 a 37,5°C.`,
   ].filter(Boolean);
   const economia = estabilidade === 'CRÍTICO' ? 42500 : estabilidade === 'ALERTA' ? 28500 : 18000;
-  const estabilidadeVisual = estabilidade === 'ESTÁVEL'
-    ? { progress: 100, color: 'bg-emerald-400' }
-    : estabilidade === 'ALERTA'
-      ? { progress: 65, color: 'bg-purple-400' }
-      : { progress: 35, color: 'bg-purple-400' };
   const metrics = [
-    { label: 'LOTE', value: lotId, progress: 100, color: 'bg-purple-400', icon: Droplets, iconColor: 'text-purple-300', iconBackground: 'bg-purple-500/15 border-purple-400/40' },
-    { label: 'VAZÃO', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400', icon: Waves, iconColor: 'text-cyan-300', iconBackground: 'bg-cyan-500/15 border-cyan-400/40' },
-    { label: 'TEMPERATURA', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-rose-400', icon: Thermometer, iconColor: 'text-rose-300', iconBackground: 'bg-rose-500/15 border-rose-400/40' },
-    { label: 'ESTABILIDADE', value: estabilidade, ...estabilidadeVisual, color: 'bg-emerald-400', icon: ShieldCheck, iconColor: 'text-emerald-300', iconBackground: 'bg-emerald-500/15 border-emerald-400/40' },
+    { label: 'OXIGENAÇÃO', value: `${oxigenacao.toFixed(0)}%`, progress: Math.min(100, oxigenacao), color: 'bg-emerald-400', icon: Droplets, iconColor: 'text-emerald-300', iconBackground: 'bg-emerald-500/15 border-emerald-400/40', badgeClass: 'border-emerald-400/30 bg-emerald-500/5 text-emerald-200' },
+    { label: 'VAZÃO', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400', icon: Waves, iconColor: 'text-cyan-300', iconBackground: 'bg-cyan-500/15 border-cyan-400/40', badgeClass: 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200' },
+    { label: 'TEMPERATURA', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-amber-400', icon: Thermometer, iconColor: 'text-amber-300', iconBackground: 'bg-amber-500/15 border-amber-400/40', badgeClass: 'border-amber-400/30 bg-amber-500/5 text-amber-200' },
+    { label: 'ESTABILIDADE', value: estabilidade, progress: estabilidade === 'ESTÁVEL' ? 100 : estabilidade === 'ALERTA' ? 65 : 35, color: 'bg-purple-400', icon: ShieldCheck, iconColor: 'text-purple-300', iconBackground: 'bg-purple-500/15 border-purple-400/40', badgeClass: 'border-purple-400/30 bg-purple-500/5 text-purple-200' },
   ];
 
   if (action === QUICK_CHAT_ACTIONS[0]) {
@@ -168,11 +164,11 @@ const Sparkline = ({ data, color = "#00e5a3" }) => {
   if (!data || data.length < 2) return null;
   const width = 100;
   const height = 26;
-  
+
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min === 0 ? 1 : max - min;
-  
+
   const points = data.map((val, index) => {
     const x = (index / (data.length - 1)) * width;
     const y = height - ((val - min) / range) * height;
@@ -491,7 +487,7 @@ export default function App() {
     const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 24) : 25;
     const nextNum = maxNum + 1;
     const autoCode = `SA-${String(nextNum).padStart(3, '0')}`;
-    
+
     // Data e Hora do sistema em formato DD/MM/AAAA, HH:mm:ss
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
@@ -553,7 +549,7 @@ export default function App() {
       await fetch(`${API_BASE}/api/lots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           id: finalCode,
           nome: finalName,
           data_criacao: new Date().toISOString(),
@@ -655,18 +651,18 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pergunta: text })
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setTimeout(() => {
           appendMessagesToLot(lotId, [{
-            role: 'assistant', 
-            content: data.resposta, 
+            role: 'assistant',
+            content: data.resposta,
             explicabilidade: data.explicabilidade,
             showAnalysisCard: false
           }]);
           setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
-          
+
           const match = text.toUpperCase().match(/SA-\d{3}/);
           if (match) {
             setSelectedLot(match[0]);
@@ -679,7 +675,7 @@ export default function App() {
       console.log("Erro no chat:", err);
       setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
       appendMessagesToLot(lotId, [{
-        role: 'assistant', 
+        role: 'assistant',
         content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar a assistente Flow. Verifique se o backend está ativo.'
       }]);
     }
@@ -1127,7 +1123,7 @@ export default function App() {
     <div className={`min-h-screen bg-slate-950 flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white ${accessibilityPreferences.hoverZoom ? 'enable-hover-zoom' : ''}`}>
       {/* Background Decorativo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
-      
+
       {/* HEADER PRINCIPAL */}
       <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
         {/* Logo & Marca */}
@@ -1150,40 +1146,40 @@ export default function App() {
 
         {/* Navegação entre Abas */}
         <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 shadow-inner">
-          <button 
+          <button
             onClick={() => setActiveTab('landing')}
             className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5"
           >
             <Layers className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Apresentação</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('dashboard')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'dashboard' 
-                ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm' 
+              activeTab === 'dashboard'
+                ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Activity className="w-3.5 h-3.5 text-rose-500" />
             <span>Monitor Clínico</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('forecast')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'forecast' 
-                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm' 
+              activeTab === 'forecast'
+                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
             <span className="hidden sm:inline">Previsão Demanda</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('emergency')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'emergency' 
-                ? 'bg-gradient-to-r from-red-600/30 to-fuchsia-600/30 border border-rose-500/60 text-rose-300 font-semibold shadow-[0_0_15px_rgba(255,42,66,0.35)]' 
+              activeTab === 'emergency'
+                ? 'bg-gradient-to-r from-red-600/30 to-fuchsia-600/30 border border-rose-500/60 text-rose-300 font-semibold shadow-[0_0_15px_rgba(255,42,66,0.35)]'
                 : 'text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/30'
             }`}
           >
@@ -1321,10 +1317,10 @@ export default function App() {
       {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
       {activeTab === 'dashboard' && (
         <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 items-stretch lg:grid-cols-12 gap-6">
-          
+
           {/* COLUNA ESQUERDA (MÉTRICAS & LOTES - 5/12) */}
           <section className="lg:col-span-5 flex h-full flex-col gap-4">
-            
+
             {/* Seletor de Lotes */}
             <div className="glass-panel rounded-xl p-4 flex flex-col gap-3 border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -1332,7 +1328,7 @@ export default function App() {
                   <Database className="w-3.5 h-3.5 text-rose-500" />
                   LOTES DE SANGUE EM MONITORAMENTO
                 </h2>
-                <button 
+                <button
                   onClick={openCreateLotModal}
                   className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1"
                 >
@@ -2144,11 +2140,11 @@ export default function App() {
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
           <section className="lg:col-span-7 flex h-full flex-col gap-4">
-            
+
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
-              currentReading.status === "CRÍTICO" 
-                ? 'bg-rose-950/30 border-rose-500/40' 
+              currentReading.status === "CRÍTICO"
+                ? 'bg-rose-950/30 border-rose-500/40'
                 : currentReading.status === "ALERTA"
                 ? 'bg-amber-950/30 border-amber-500/40'
                 : 'bg-emerald-950/20 border-emerald-500/40'
@@ -2205,9 +2201,9 @@ export default function App() {
               aria-modal={isChatFullscreen || undefined}
               aria-label={isChatFullscreen ? 'Chat da IA Flow expandido' : undefined}
             >
-              
+
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
-              
+
               {/* Header do Chat */}
               <div className="z-10 flex-none h-12 px-4 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2252,7 +2248,7 @@ export default function App() {
                 className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'flex-1 px-5 pb-6 pt-4 sm:px-10' : 'h-[600px] flex-none'}`}
               >
                 {messages.map((msg, index) => (
-                  <div 
+                  <div
                     key={index}
                     onClick={() => {
                       if (msg.role === 'assistant' && msg.showAnalysisCard) {
@@ -2261,10 +2257,10 @@ export default function App() {
                           title: `Laudo Clínico do Lote ${selectedLot}`,
                           summary: currentReading?.alerta_mensagem || 'Leitura de telemetria ativa para o lote selecionado.',
                           metrics: [
-                            { label: 'Lote', value: selectedLot, progress: 100, color: 'bg-purple-400' },
-                            { label: 'Vazão', value: `${rawFlow.toFixed(1)} L/min`, progress: Math.min(100, (rawFlow / 6.5) * 100), color: 'bg-cyan-400' },
-                            { label: 'Temperatura', value: `${rawTemp.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((rawTemp - 30) / 10) * 100)), color: 'bg-amber-400' },
-                            { label: 'Estabilidade', value: currentReading?.status || 'ESTÁVEL', progress: currentReading?.status === 'CRÍTICO' ? 35 : currentReading?.status === 'ALERTA' ? 65 : 100, color: currentReading?.status === 'ESTÁVEL' ? 'bg-emerald-400' : 'bg-purple-400' },
+                            { label: 'Oxigenação', value: `${b1_val.toFixed(0)}%`, progress: Math.min(100, b1_pct), color: 'bg-emerald-400', badgeClass: 'border-emerald-400/30 bg-emerald-500/5 text-emerald-200' },
+                            { label: 'Vazão', value: `${rawFlow.toFixed(1)} L/min`, progress: Math.min(100, (rawFlow / 6.5) * 100), color: 'bg-cyan-400', badgeClass: 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200' },
+                            { label: 'Temperatura', value: `${rawTemp.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((rawTemp - 30) / 10) * 100)), color: 'bg-amber-400', badgeClass: 'border-amber-400/30 bg-amber-500/5 text-amber-200' },
+                            { label: 'Estabilidade', value: currentReading?.status || 'ESTÁVEL', progress: currentReading?.status === 'CRÍTICO' ? 35 : currentReading?.status === 'ALERTA' ? 65 : 100, color: 'bg-purple-400', badgeClass: 'border-purple-400/30 bg-purple-500/5 text-purple-200' },
                           ],
                         });
                       }
@@ -2348,7 +2344,7 @@ export default function App() {
                                 <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${metric.iconBackground} ${metric.iconColor}`}>
                                   <MetricIcon className="h-3.5 w-3.5" />
                                 </span>
-                                <span className="inline-flex items-center gap-1 rounded border border-cyan-400/30 bg-cyan-500/5 px-1 py-0.5 font-mono text-[7px] text-cyan-200"><Wifi className="h-2.5 w-2.5" />TELEMETRIA ATIVA</span>
+                                <span className={`inline-flex items-center gap-1 rounded border px-1 py-0.5 font-mono text-[7px] ${metric.badgeClass}`}><Wifi className="h-2.5 w-2.5" />TELEMETRIA ATIVA</span>
                               </div>
                               <dt className="mt-1.5 font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
                               <dd className="mt-0.5 text-[11px] font-semibold text-slate-100">{metric.value}</dd>
@@ -2391,8 +2387,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${b1_pct}%` }}
                               />
                             </div>
@@ -2410,8 +2406,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${b2_pct}%` }}
                               />
                             </div>
@@ -2429,8 +2425,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${b3_pct}%` }}
                               />
                             </div>
@@ -2448,8 +2444,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${b4_pct}%` }}
                               />
                             </div>
@@ -2467,8 +2463,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500"
                                 style={{ width: `${b5_pct}%` }}
                               />
                             </div>
@@ -2510,8 +2506,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ff4d4d] shadow-[0_0_8px_#ff4d4d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${t_b1_pct}%` }}
                               />
                             </div>
@@ -2529,8 +2525,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${t_b2_pct}%` }}
                               />
                             </div>
@@ -2548,8 +2544,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${t_b3_pct}%` }}
                               />
                             </div>
@@ -2567,8 +2563,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${t_b4_pct}%` }}
                               />
                             </div>
@@ -2586,8 +2582,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
                                 style={{ width: `${t_b5_pct}%` }}
                               />
                             </div>
@@ -2629,8 +2625,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${c_b1_pct}%` }}
                               />
                             </div>
@@ -2648,8 +2644,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${c_b2_pct}%` }}
                               />
                             </div>
@@ -2667,8 +2663,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${c_b3_pct}%` }}
                               />
                             </div>
@@ -2686,8 +2682,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${c_b4_pct}%` }}
                               />
                             </div>
@@ -2705,8 +2701,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500"
                                 style={{ width: `${c_b5_pct}%` }}
                               />
                             </div>
@@ -2748,8 +2744,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${a_b1_pct}%` }}
                               />
                             </div>
@@ -2767,8 +2763,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${a_b2_pct}%` }}
                               />
                             </div>
@@ -2786,8 +2782,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${a_b3_pct}%` }}
                               />
                             </div>
@@ -2805,8 +2801,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${a_b4_pct}%` }}
                               />
                             </div>
@@ -2824,8 +2820,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
                                 style={{ width: `${a_b5_pct}%` }}
                               />
                             </div>
@@ -2867,8 +2863,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${o_b1_pct}%` }}
                               />
                             </div>
@@ -2886,8 +2882,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${o_b2_pct}%` }}
                               />
                             </div>
@@ -2905,8 +2901,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${o_b3_pct}%` }}
                               />
                             </div>
@@ -2924,8 +2920,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${o_b4_pct}%` }}
                               />
                             </div>
@@ -2943,8 +2939,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
                                 style={{ width: `${o_b5_pct}%` }}
                               />
                             </div>
@@ -2986,8 +2982,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ff9f1c] shadow-[0_0_8px_#ff9f1c] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${p_b1_pct}%` }}
                               />
                             </div>
@@ -3005,8 +3001,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${p_b2_pct}%` }}
                               />
                             </div>
@@ -3024,8 +3020,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${p_b3_pct}%` }}
                               />
                             </div>
@@ -3043,8 +3039,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${p_b4_pct}%` }}
                               />
                             </div>
@@ -3062,8 +3058,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
                                 style={{ width: `${p_b5_pct}%` }}
                               />
                             </div>
@@ -3105,8 +3101,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${d_b1_pct}%` }}
                               />
                             </div>
@@ -3124,8 +3120,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${d_b2_pct}%` }}
                               />
                             </div>
@@ -3143,8 +3139,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${d_b3_pct}%` }}
                               />
                             </div>
@@ -3162,8 +3158,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${d_b4_pct}%` }}
                               />
                             </div>
@@ -3181,8 +3177,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
                                 style={{ width: `${d_b5_pct}%` }}
                               />
                             </div>
@@ -3224,8 +3220,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${cr_b1_pct}%` }}
                               />
                             </div>
@@ -3243,8 +3239,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${cr_b2_pct}%` }}
                               />
                             </div>
@@ -3262,8 +3258,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${cr_b3_pct}%` }}
                               />
                             </div>
@@ -3281,8 +3277,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${cr_b4_pct}%` }}
                               />
                             </div>
@@ -3300,8 +3296,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
                                 style={{ width: `${cr_b5_pct}%` }}
                               />
                             </div>
@@ -3343,8 +3339,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${tc_b1_pct}%` }}
                               />
                             </div>
@@ -3362,8 +3358,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${tc_b2_pct}%` }}
                               />
                             </div>
@@ -3381,8 +3377,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${tc_b3_pct}%` }}
                               />
                             </div>
@@ -3400,8 +3396,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${tc_b4_pct}%` }}
                               />
                             </div>
@@ -3419,8 +3415,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
                                 style={{ width: `${tc_b5_pct}%` }}
                               />
                             </div>
@@ -3446,7 +3442,7 @@ export default function App() {
                             RISCO: {msg.explicabilidade.risco_degradacao_pct}%
                           </span>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                           <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-850">
                             <div className="flex justify-between text-[10px] font-mono mb-1">
@@ -3454,8 +3450,8 @@ export default function App() {
                               <span className="text-white font-bold">{(msg.explicabilidade.valores_sensores.oxigenacao*100).toFixed(0)}%</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.oxigenacao < 0.90 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
+                              <div
+                                className="h-full rounded-full bg-emerald-400"
                                 style={{ width: `${msg.explicabilidade.valores_sensores.oxigenacao * 100}%` }}
                               />
                             </div>
@@ -3467,8 +3463,8 @@ export default function App() {
                               <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.temperatura.toFixed(1)}°C</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.temperatura > 38.0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
+                              <div
+                                className="h-full rounded-full bg-amber-400"
                                 style={{ width: `${Math.min(100, (msg.explicabilidade.valores_sensores.temperatura / 45) * 100)}%` }}
                               />
                             </div>
@@ -3497,7 +3493,7 @@ export default function App() {
                         <Activity className="w-3.5 h-3.5 text-rose-500 animate-heartbeat" />
                         <span>Analisando dados mais recentes do Arduino...</span>
                       </div>
-                      
+
                       <svg width="240" height="24" className="stroke-rose-500" fill="none">
                         <path
                           className="ecg-path"
@@ -3508,25 +3504,18 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                
+
               </div>
 
               {/* Rodapé fixo: ações rápidas */}
               <div className="z-10 flex-none mt-auto border-t border-slate-800 p-4 bg-[#0B0F19]">
                 <div className="flex gap-2 overflow-x-auto px-3 pb-3">
-                  {QUICK_CHAT_ACTIONS.map((action, index) => (
+                  {QUICK_CHAT_ACTIONS.map((action) => (
                     <button
                       key={action}
                       type="button"
                       onClick={() => handleSendMessage(action)}
-                      className={`whitespace-nowrap text-[11px] border px-3 py-1 rounded-full transition-colors font-medium ${[
-                        'text-emerald-400 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10',
-                        'text-rose-400 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10',
-                        'text-sky-400 border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10',
-                        'text-violet-400 border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/10',
-                        'text-amber-400 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10',
-                        'text-slate-300 border-slate-700 bg-slate-800/40 hover:bg-slate-800',
-                      ][index]}`}
+                      className="whitespace-nowrap rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1 text-[11px] font-medium text-slate-300 transition-colors hover:border-cyan-400 hover:text-cyan-400"
                     >
                       {action}
                     </button>
@@ -3543,7 +3532,7 @@ export default function App() {
       {/* ABA 2: PREVISÃO DE DEMANDA HOSPITALAR (LOVABLE RECHARTS) */}
       {activeTab === 'forecast' && (
         <main className="flex-1 max-w-[1480px] w-full mx-auto p-4 sm:p-6 z-10 space-y-6">
-          
+
           <div className="glass-panel rounded-2xl p-6 border-slate-800">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -3702,7 +3691,7 @@ export default function App() {
                   <div key={metric.label} className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <dt className="font-mono text-[10px] uppercase tracking-widest text-slate-400">{metric.label}</dt>
-                      <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-emerald-300">TELEMETRIA ATIVA</span>
+                      <span className={`rounded border px-1.5 py-0.5 font-mono text-[8px] font-bold ${metric.badgeClass || 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200'}`}>TELEMETRIA ATIVA</span>
                     </div>
                     <dd className="mt-2 text-lg font-semibold text-white">{metric.value}</dd>
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
