@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Area, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AlertTriangle, CheckCircle2, Clock, Info, Layers, Sparkles, TrendingDown } from "lucide-react";
 
 const profiles = {
@@ -45,6 +45,8 @@ export function DemandChart({ lotId, lot }) {
   const scenario = useMemo(() => getForecastScenario(lotId, lot), [lotId, lot]);
   const [layers, setLayers] = useState({ historico: true, comIa: true, minimo: true, incerteza: false, semAcao: false });
   const toggle = (key) => setLayers((current) => ({ ...current, [key]: !current[key] }));
+  const decisionPoint = scenario.data.find((point) => point.dia === "D+1");
+  const hasPredictiveRupture = scenario.critical.estoqueSemAcao < scenario.minimo;
 
   return (
     <div className="flex w-full flex-col gap-5">
@@ -78,12 +80,25 @@ export function DemandChart({ lotId, lot }) {
               </div>;
             }} />
             <ReferenceArea x1="Hoje" x2="D+1" y1={20} y2={110} fill="rgba(56, 189, 248, 0.06)" stroke="rgba(56, 189, 248, 0.2)" strokeDasharray="4 4" />
+            <ReferenceArea y1={20} y2={scenario.minimo} fill="rgba(239, 68, 68, 0.10)" stroke="none" />
             <ReferenceLine x="Hoje" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="3 3" label={{ value: "HOJE", fill: "#cbd5e1", fontSize: 10, position: "insideTopLeft", fontFamily: "monospace" }} />
             {layers.minimo && <ReferenceLine y={scenario.minimo} stroke="#f59e0b" strokeWidth={1.8} strokeDasharray="5 4" label={{ value: `${scenario.minimo} un mínimo`, fill: "#fbbf24", fontSize: 10, position: "insideBottomRight", fontFamily: "monospace" }} />}
             {layers.incerteza && <Area type="monotone" dataKey="faixaIncerteza" stroke="rgba(255, 42, 66, 0.4)" strokeDasharray="3 3" fill="url(#incertezaFill)" connectNulls name="Incerteza IA" />}
             {layers.historico && <Area type="monotone" dataKey="consumoHistorico" stroke="#38bdf8" strokeWidth={2.5} fill="url(#histFill)" dot={{ r: 3, fill: "#38bdf8" }} connectNulls name="Consumo histórico" />}
             {layers.semAcao && <Line type="monotone" dataKey="estoqueSemAcao" stroke="#f43f5e" strokeWidth={2.2} strokeDasharray="4 4" dot={{ r: 2.5, fill: "#f43f5e" }} name="Estoque sem ação" />}
-            {layers.comIa && <Line type="monotone" dataKey="estoqueComIA" stroke="#00ff9d" strokeWidth={2.8} dot={{ r: 3, fill: "#00ff9d" }} name="Estoque com IA" />}
+            {layers.comIa && <>
+              <Line type="monotone" dataKey="estoqueComIA" stroke="#00ff9d" strokeWidth={2.8} dot={{ r: 3, fill: "#00ff9d" }} name="Estoque com IA" />
+              <ReferenceDot
+                x="D+1"
+                y={decisionPoint.estoqueComIA}
+                r={6}
+                fill="#00ff9d"
+                stroke="#ffffff"
+                strokeWidth={2}
+                shape={({ cx, cy }) => <g><circle cx={cx} cy={cy} r={11} fill="#00ff9d" opacity={0.22} className="animate-ping" /><circle cx={cx} cy={cy} r={6} fill="#00ff9d" stroke="#ffffff" strokeWidth={2} /></g>}
+                label={{ value: "SÍNTESE +25un", fill: "#86efac", fontSize: 10, position: "top", fontFamily: "monospace", fontWeight: "bold" }}
+              />
+            </>}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -91,16 +106,17 @@ export function DemandChart({ lotId, lot }) {
       <div className="grid grid-cols-1 gap-2.5 border-t border-slate-800 pt-2 md:grid-cols-6">
         <StoryCard title="1. HISTÓRICO" tone="sky" icon={<Info className="h-3 w-3" />}>Consumo de <strong>{scenario.historico[0]} a {scenario.hoje.consumoHistorico} un</strong> até hoje.</StoryCard>
         <StoryCard title="2. PREVISÃO IA" tone="rose" icon={<Sparkles className="h-3 w-3" />}>Demanda estimada em <strong>{scenario.previsao[3]} un</strong> no pico.</StoryCard>
-        <StoryCard title="3. RISCO" tone="amber" icon={<TrendingDown className="h-3 w-3" />}>Sem ação: <strong>{scenario.critical.estoqueSemAcao} un</strong> em {scenario.riscoDia}.</StoryCard>
+        <StoryCard title="3. RISCO" tone="amber" alert={hasPredictiveRupture ? "amber" : undefined} icon={<TrendingDown className="h-3 w-3" />}>Sem ação: <strong>{scenario.critical.estoqueSemAcao} un</strong> em {scenario.riscoDia}.</StoryCard>
         <StoryCard title="4. JANELA IDEAL" tone="purple" icon={<Clock className="h-3 w-3" />}>Ação entre <strong>{scenario.janela}</strong>; lead time de {scenario.leadTime}.</StoryCard>
-        <StoryCard title="5. RECOMENDAÇÃO" tone="rose" icon={<AlertTriangle className="h-3 w-3" />}>{scenario.recomendacao} para <strong>{lotId}</strong>.</StoryCard>
+        <StoryCard title="5. RECOMENDAÇÃO" tone="rose" alert={hasPredictiveRupture ? "red" : undefined} icon={<AlertTriangle className="h-3 w-3" />}>{scenario.recomendacao} para <strong>{lotId}</strong>.</StoryCard>
         <StoryCard title="6. IMPACTO" tone="emerald" icon={<CheckCircle2 className="h-3 w-3" />}>Estoque protegido em <strong>{scenario.protectedStock} un</strong>. {scenario.impacto}.</StoryCard>
       </div>
     </div>
   );
 }
 
-function StoryCard({ title, tone, icon, children }) {
+function StoryCard({ title, tone, icon, children, alert }) {
   const colors = { sky: "text-sky-400", rose: "text-rose-400", amber: "text-amber-400", purple: "text-purple-300", emerald: "text-emerald-300" };
-  return <div className="flex min-h-28 flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/50 p-3"><div className={`flex items-center justify-between font-mono text-[10px] font-bold ${colors[tone]}`}><span>{title}</span>{icon}</div><p className="text-xs leading-snug text-slate-300">{children}</p></div>;
+  const alertBorder = alert === "red" ? "border-red-500/40" : alert === "amber" ? "border-amber-500/40" : "border-slate-800";
+  return <div className={`flex min-h-28 flex-col justify-between rounded-xl border bg-slate-900/50 p-3 ${alertBorder}`}><div className={`flex items-center justify-between font-mono text-[10px] font-bold ${colors[tone]}`}><span>{title}</span>{icon}</div><p className="text-xs leading-snug text-slate-300">{children}</p></div>;
 }
