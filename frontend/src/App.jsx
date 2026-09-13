@@ -62,7 +62,6 @@ const createChatResponseCard = (action, lot, telemetry) => {
   const temperatura = parseTelemetryValue(telemetry?.temperatura_c ?? telemetry?.temperatura, 36.5);
   const oxigenacao = parseTelemetryValue(telemetry?.oxigenacao_pct ?? telemetry?.oxigenacao, 96);
   const estabilidade = telemetry?.status || lot?.status || 'ESTÁVEL';
-  const finalidade = lot?.finalidade || lot?.destino || 'finalidade clínica não informada';
   const lotId = lot?.id || 'lote ativo';
   const vazaoForaDaFaixa = vazao < 4 || vazao > 6.5;
   const temperaturaForaDaFaixa = temperatura < 35 || temperatura > 37.5;
@@ -82,7 +81,7 @@ const createChatResponseCard = (action, lot, telemetry) => {
     return {
       eyebrow: 'Telemetria do Arduino',
       title: `Status do lote ${lotId}`,
-      summary: telemetry?.alerta_mensagem || `As leituras de vazão e temperatura do lote ${lotId} estão sendo acompanhadas continuamente para ${finalidade}.`,
+      summary: telemetry?.alerta_mensagem || `Lote ${lotId} em ${estabilidade.toLowerCase()}, com leituras acompanhadas em tempo real.`,
       metrics,
       icon: Activity,
     };
@@ -92,24 +91,24 @@ const createChatResponseCard = (action, lot, telemetry) => {
     return {
       eyebrow: 'Fundamentos do composto',
       title: 'O que é o Sangue Artificial (HBOC)?',
-      summary: 'Conceitos essenciais sobre o composto biotecnológico monitorado pela Flow.',
+      summary: 'Carreador sintético de oxigênio monitorado pela Flow.',
       conceptual: true,
       conceptualBlocks: [
         {
           title: 'Composto Biotecnológico (HBOC)',
-          text: 'Solução sintética baseada em carreadores de hemoglobina projetada para transporte temporário de oxigênio, eliminando a necessidade de tipagem sanguínea (A, B, AB, O / Rh).',
+          text: 'Carreador sintético para suporte temporário de oxigênio.',
           icon: Droplets,
           accent: 'border-cyan-500/30 bg-cyan-500/5 text-cyan-300',
         },
         {
           title: 'Indicação e Suporte Emergencial',
-          text: 'Desenvolvido para uso imediato em traumas graves, cirurgias complexas, missões remotas e períodos críticos de escassez em bancos de sangue.',
+          text: 'Indicado para suporte em emergências e escassez crítica.',
           icon: Activity,
           accent: 'border-violet-500/30 bg-violet-500/5 text-violet-300',
         },
         {
           title: 'Estabilidade e Monitoramento',
-          text: 'Possui vida útil estendida e zero risco de contaminação viral/bacteriana. O sistema FLOWTIFICIAL supervisiona continuamente a integridade físico-química de cada lote.',
+          text: 'A Flow acompanha a integridade de cada lote continuamente.',
           icon: ShieldCheck,
           accent: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
         },
@@ -123,8 +122,8 @@ const createChatResponseCard = (action, lot, telemetry) => {
       eyebrow: 'Diagnóstico do Arduino',
       title: 'Por que o lote está em risco?',
       summary: leiturasForaDaFaixa.length
-        ? `${leiturasForaDaFaixa.join(' ')} Para a finalidade de ${finalidade}, essa condição pode acelerar a degradação do lote ${lotId}.`
-        : `A leitura atual do lote ${lotId} está dentro das faixas operacionais para ${finalidade}. O monitoramento contínuo mantém a estabilidade sob observação.`,
+        ? `${leiturasForaDaFaixa[0]} Pode elevar o risco do lote ${lotId}.`
+        : `Lote ${lotId} dentro da faixa operacional e sem risco imediato.`,
       metrics,
       icon: AlertTriangle,
     };
@@ -134,7 +133,7 @@ const createChatResponseCard = (action, lot, telemetry) => {
     return {
       eyebrow: 'Ação recomendada pela IA',
       title: 'Correção e impacto no estoque',
-      summary: `Ajustar o circuito para estabilizar a temperatura em 36,5°C e manter a vazão entre 4,0 e 6,5 L/min. Para o lote ${lotId}, a IA recomenda reabastecimento preventivo antes do limite crítico, preservando a cobertura para ${finalidade}.`,
+      summary: `Manter 36,5°C e vazão entre 4,0 e 6,5 L/min. Reabasteça antes do limite crítico.`,
       metrics,
       icon: Zap,
     };
@@ -144,7 +143,7 @@ const createChatResponseCard = (action, lot, telemetry) => {
     return {
       eyebrow: 'Impacto financeiro',
       title: 'Economia e redução de perdas',
-      summary: `O monitoramento contínuo do lote ${lotId} previne o descarte prematuro das bolsas ativas. Com o estado ${estabilidade.toLowerCase()}, a economia estimada ao evitar perdas é de R$ ${economia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+      summary: `Monitorar evita descarte precoce. Economia estimada: R$ ${economia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
       metrics,
       icon: TrendingUp,
     };
@@ -153,7 +152,7 @@ const createChatResponseCard = (action, lot, telemetry) => {
   return {
     eyebrow: 'Modelo preditivo explicável',
     title: 'Como a curva é calculada?',
-    summary: `O modelo cruza as leituras do Arduino — vazão de ${vazao.toFixed(1)} L/min e temperatura de ${temperatura.toFixed(1)}°C — com o histórico de consumo clínico de ${finalidade}. As leituras são atualizadas continuamente para projetar a curva do lote ${lotId}.`,
+    summary: `A IA cruza vazão, temperatura e histórico clínico. A curva do lote ${lotId} é atualizada em tempo real.`,
     metrics,
     icon: Activity,
   };
@@ -2258,7 +2257,7 @@ export default function App() {
                               });
                             }
                           }}
-                          className={`accessibility-zoom-target p-3.5 rounded-2xl text-sm leading-relaxed ${
+                          className={`accessibility-zoom-target p-3 rounded-2xl text-sm leading-relaxed ${
                             msg.role === 'user'
                               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-tr-none shadow-md'
                               : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border cursor-zoom-in relative pr-11'
@@ -2277,7 +2276,7 @@ export default function App() {
                     {msg.role === 'assistant' && msg.responseCard && (
                       <article
                         onClick={() => setZoomedChatCard(msg.responseCard)}
-                        className={`mt-2.5 w-full cursor-zoom-in rounded-xl border p-4 shadow-2xl transition-transform duration-200 hover:scale-[1.01] ${msg.responseCard.conceptual ? 'border-cyan-500/30 bg-[#0F172A]' : 'border-sky-500/30 bg-slate-950/95'}`}
+                        className={`mt-2.5 w-full cursor-zoom-in rounded-xl border p-3 shadow-2xl transition-transform duration-200 hover:scale-[1.01] ${msg.responseCard.conceptual ? 'border-cyan-500/30 bg-[#0F172A]' : 'border-sky-500/30 bg-slate-950/95'}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-2.5">
@@ -2295,38 +2294,38 @@ export default function App() {
                         </div>
                         <h4 className="mt-2 text-sm font-bold text-white">{msg.responseCard.title}</h4>
                         {msg.responseCard.conceptual ? (
-                          <div className="mt-3 space-y-2.5">
+                          <div className="mt-2 space-y-2">
                             {msg.responseCard.conceptualBlocks.map((block) => {
                               const BlockIcon = block.icon;
                               return (
-                                <section key={block.title} className={`flex gap-3 rounded-xl border p-3 ${block.accent}`}>
+                                <section key={block.title} className={`flex gap-3 rounded-xl border p-2 ${block.accent}`}>
                                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-current/30 bg-slate-950/30">
                                     <BlockIcon className="h-4 w-4" />
                                   </span>
                                   <div>
-                                    <h5 className="text-[11px] font-bold text-slate-100">{block.title}</h5>
-                                    <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{block.text}</p>
+                                    <h5 className="text-sm font-bold text-slate-100">{block.title}</h5>
+                                    <p className="mt-0.5 text-sm leading-snug text-slate-300">{block.text}</p>
                                   </div>
                                 </section>
                               );
                             })}
                           </div>
                         ) : <>
-                        <p className="mt-2 text-xs leading-relaxed text-slate-300">{msg.responseCard.summary}</p>
-                        <dl className="mt-3 grid grid-cols-2 gap-2">
+                        <p className="mt-2 text-sm leading-snug text-slate-300">{msg.responseCard.summary}</p>
+                        <dl className="mt-2 grid grid-cols-2 gap-2">
                           {msg.responseCard.metrics.map((metric) => {
                             const MetricIcon = metric.icon;
                             return (
-                            <div key={metric.label} className="rounded-lg border border-slate-700/80 bg-slate-900/70 px-2.5 py-2">
+                            <div key={metric.label} className="rounded-lg border border-slate-700/80 bg-slate-900/70 px-2 py-2">
                               <div className="flex items-center justify-between gap-1.5">
                                 <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${metric.iconBackground} ${metric.iconColor}`}>
                                   <MetricIcon className="h-3.5 w-3.5" />
                                 </span>
                                 <span className={`inline-flex items-center gap-1 rounded border px-1 py-0.5 font-mono text-[7px] ${metric.badgeClass}`}><Wifi className="h-2.5 w-2.5" />TELEMETRIA ATIVA</span>
                               </div>
-                              <dt className="mt-1.5 font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
-                              <dd className="mt-0.5 text-[11px] font-semibold text-slate-100">{metric.value}</dd>
-                              <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-800">
+                              <dt className="mt-1 font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
+                              <dd className="mt-0.5 text-sm font-semibold text-slate-100">{metric.value}</dd>
+                              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-800">
                                 <div className={`h-full rounded-full ${metric.color}`} style={{ width: `${metric.progress}%` }} />
                               </div>
                             </div>
