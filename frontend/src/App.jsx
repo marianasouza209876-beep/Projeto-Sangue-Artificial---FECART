@@ -1037,7 +1037,7 @@ export default function App() {
   // Emergência são ferramentas globais e continuam disponíveis sem lote.
   if (activeTab === 'dashboard' && (!selectedLot || !activeLotObj)) {
     return (
-      <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100 flex items-center justify-center sm:px-6">
+      <main className="min-h-screen bg-[#0B0F19] px-4 py-10 text-slate-100 flex items-center justify-center sm:px-6">
         <section className="w-full max-w-5xl rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl sm:p-9">
           <div className="mx-auto max-w-2xl text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/10 shadow-[0_0_24px_rgba(244,63,94,0.2)]">
@@ -1052,7 +1052,7 @@ export default function App() {
             </p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button
-                className="bg-gradient-to-r from-rose-600 to-red-500 px-5 text-white shadow-[0_0_24px_rgba(244,63,94,0.35)] hover:from-rose-500 hover:to-red-400"
+                className="ds-primary-action px-5"
                 onClick={openCreateLotModal}
               >
                 <Plus className="mr-1.5 h-4 w-4" />
@@ -1061,7 +1061,7 @@ export default function App() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-sky-500/50 bg-sky-500/10 text-sky-300 shadow-[0_0_20px_rgba(56,189,248,0.15)] hover:border-sky-400 hover:bg-sky-500/20 hover:text-sky-100"
+                className="ds-secondary-action"
                 onClick={() => setActiveTab('emergency')}
               >
                 📈 Executar Simulação de Emergência
@@ -1104,13 +1104,13 @@ export default function App() {
             <form onSubmit={handleConfirmCreateLot} className="grid gap-4">
               {formError && <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-400">{formError}</p>}
               <input value={newLotCode} disabled className="h-9 rounded-lg border border-slate-800 bg-slate-900/60 px-3 text-xs font-mono text-slate-400" />
-              <input value={newLotName} onChange={(event) => setNewLotName(event.target.value)} placeholder="Nome do lote" required className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-rose-500" />
-              <select value={newLotFinalidade} onChange={(event) => setNewLotFinalidade(event.target.value)} className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-rose-500">
+              <input value={newLotName} onChange={(event) => setNewLotName(event.target.value)} placeholder="Nome do lote" required className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              <select value={newLotFinalidade} onChange={(event) => setNewLotFinalidade(event.target.value)} className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-cyan-400">
                 {FINALIDADES_OPCOES.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                <Button type="submit" className="bg-rose-600 hover:bg-rose-500">Criar lote</Button>
+                <Button type="submit" className="ds-primary-action">Criar lote</Button>
               </div>
             </form>
           </DialogContent>
@@ -1120,7 +1120,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-slate-950 flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white ${accessibilityPreferences.hoverZoom ? 'enable-hover-zoom' : ''}`}>
+    <div className={`min-h-screen bg-[#0B0F19] flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white ${accessibilityPreferences.hoverZoom ? 'enable-hover-zoom' : ''}`}>
       {/* Background Decorativo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
 
@@ -1330,7 +1330,7 @@ export default function App() {
                 </h2>
                 <button
                   onClick={openCreateLotModal}
-                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1"
+                  className="ds-primary-action text-[10px] px-2.5 py-1 font-mono font-bold flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   NOVO LOTE
@@ -2144,15 +2144,15 @@ export default function App() {
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
               currentReading.status === "CRÍTICO"
-                ? 'bg-rose-950/30 border-rose-500/40'
+                ? 'bg-rose-950/30 ds-status-critical'
                 : currentReading.status === "ALERTA"
-                ? 'bg-amber-950/30 border-amber-500/40'
-                : 'bg-emerald-950/20 border-emerald-500/40'
+                ? 'bg-amber-950/30 ds-status-warning'
+                : 'bg-emerald-950/20 ds-status-ok'
             }`}>
               <div className="flex items-center gap-3.5">
                 <div className={`p-3 rounded-xl border bg-slate-950/80 ${
-                  currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
-                  currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
+                  currentReading.status === "CRÍTICO" ? 'ds-status-critical glow-crimson' :
+                  currentReading.status === "ALERTA" ? 'ds-status-warning' : 'ds-status-ok glow-neon'
                 }`}>
                   {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
                    currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
@@ -3804,7 +3804,7 @@ export default function App() {
               </Button>
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-medium text-xs gap-1.5 shadow-lg shadow-rose-500/20"
+                className="ds-primary-action text-xs gap-1.5 font-medium"
               >
                 <Plus className="h-4 w-4" />
                 Confirmar e Cadastrar Lote

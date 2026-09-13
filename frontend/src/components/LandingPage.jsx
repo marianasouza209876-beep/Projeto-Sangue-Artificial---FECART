@@ -21,14 +21,14 @@ export function LandingPage({ onNavigate, onStartDemo }) {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen overflow-x-hidden text-slate-100 selection:bg-rose-500 selection:text-white">
+    <div className="min-h-screen overflow-x-hidden bg-[#0B0F19] text-slate-100 selection:bg-rose-500 selection:text-white">
       {/* Navbar */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/80 bg-slate-950/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate("landing")}>
             <span
               className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-[0_0_15px_rgba(255,42,66,0.4)]"
-              style={{ background: "linear-gradient(135deg, #ff2a42, #b91c1c)" }}
+              style={{ background: "var(--gradient-blood)" }}
             >
               <Droplets className="h-5 w-5" />
             </span>
@@ -180,7 +180,7 @@ export function LandingPage({ onNavigate, onStartDemo }) {
                 <Button
                   size="lg"
                   onClick={onStartDemo}
-                  className="h-12 w-full gap-2 border border-fuchsia-400/30 bg-gradient-to-r from-rose-600 via-fuchsia-600 to-violet-600 px-6 text-sm font-bold text-white shadow-[0_0_25px_rgba(217,70,239,0.35)] hover:from-rose-500 hover:via-fuchsia-500 hover:to-violet-500 sm:w-auto"
+                  className="ds-primary-action h-12 w-full gap-2 px-6 text-sm font-bold sm:w-auto"
                 >
                   Acessar Plataforma de Demonstração
                   <ArrowRight className="h-4 w-4" />
@@ -283,7 +283,7 @@ export function LandingPage({ onNavigate, onStartDemo }) {
                 <Button
                   onClick={() => onNavigate("dashboard")}
                   variant="outline"
-                  className="gap-2 border-slate-700 text-slate-200 hover:bg-slate-800"
+                  className="ds-secondary-action gap-2"
                 >
                   Ver Monitor Clínico
                   <ArrowRight className="h-4 w-4" />
@@ -337,7 +337,7 @@ export function LandingPage({ onNavigate, onStartDemo }) {
           <div className="flex items-center gap-3">
             <span
               className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
-              style={{ background: "linear-gradient(135deg, #ff2a42, #b91c1c)" }}
+              style={{ background: "var(--gradient-blood)" }}
             >
               <Droplets className="h-4 w-4" />
             </span>

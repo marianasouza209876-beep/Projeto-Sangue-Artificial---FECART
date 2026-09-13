@@ -64,7 +64,7 @@ export function QuickEntryModal({ onInjectReading, apiBase }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.35)] border border-rose-500/30">
+        <Button className="ds-primary-action gap-2">
           <QrCode className="h-4 w-4" />
           Simular Entrada via QR Code
         </Button>
@@ -127,7 +127,7 @@ export function QuickEntryModal({ onInjectReading, apiBase }) {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 gap-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-medium"
+              className="ds-primary-action mt-2 w-full gap-2 font-medium"
             >
               {loading ? (
                 "Processando..."

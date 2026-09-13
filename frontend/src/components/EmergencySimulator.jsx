@@ -388,7 +388,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 setCurrentStep(1);
                 setViewMode("form");
               }}
-              className="w-full sm:w-auto gap-2 bg-gradient-to-r from-rose-600 via-purple-600 to-cyan-600 hover:from-rose-500 hover:to-cyan-500 text-white font-extrabold text-xs shadow-[0_0_20px_rgba(244,63,94,0.35)] border border-rose-400/40 px-5 py-3 rounded-xl transition-all"
+              className="ds-primary-action w-full gap-2 px-5 py-3 text-xs font-extrabold sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               + Nova Triagem
@@ -405,7 +405,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               <Button
                 onClick={() => setViewMode("form")}
                 variant="outline"
-                className="border-slate-700 text-xs text-slate-200"
+                className="ds-primary-action text-xs"
               >
                 + Iniciar Nova Triagem
               </Button>
@@ -491,7 +491,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                       <Button
                         onClick={() => setSelectedPatientModal(paciente)}
                         size="sm"
-                        className="gap-2 bg-gradient-to-r from-rose-600 via-purple-600 to-cyan-600 hover:from-rose-500 hover:to-cyan-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(244,63,94,0.35)] px-4 py-2.5 rounded-xl transition-all"
+                        className="ds-primary-action gap-2 px-4 py-2.5 text-xs font-bold"
                       >
                         <Eye className="h-4 w-4" />
                         Ver Simulação Completa
@@ -851,7 +851,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <Button
                     onClick={handleRunTriage}
                     disabled={isGenerating}
-                    className="w-full h-11 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white font-extrabold text-xs tracking-wider shadow-[0_0_20px_rgba(244,63,94,0.6)] border border-rose-400/40 rounded-xl flex items-center justify-center gap-2"
+                    className="ds-primary-action flex h-11 w-full items-center justify-center gap-2 text-xs font-extrabold tracking-wider"
                   >
                     <Brain className={`h-4 w-4 ${isGenerating ? "animate-spin" : ""}`} />
                     {isGenerating ? "ANALISANDO..." : "INICIAR ANÁLISE >"}
