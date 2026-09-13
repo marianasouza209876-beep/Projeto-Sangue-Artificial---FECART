@@ -905,8 +905,6 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
           setSelectedLot(null);
           setActiveTab('dashboard');
         }}
-        onInjectReading={handleInjectReading}
-        apiBase={API_BASE}
       />
     );
   }

@@ -15,10 +15,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { QuickEntryModal } from "./QuickEntryModal";
 
-export function LandingPage({ onNavigate, onStartDemo, onInjectReading, apiBase }) {
+export function LandingPage({ onNavigate, onStartDemo }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen overflow-x-hidden text-slate-100 selection:bg-rose-500 selection:text-white">
@@ -64,7 +64,14 @@ export function LandingPage({ onNavigate, onStartDemo, onInjectReading, apiBase 
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <QuickEntryModal onInjectReading={onInjectReading} apiBase={apiBase} />
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(true)}
+              className="flex items-center gap-2 border border-emerald-500/40 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-lg px-3 py-1.5 text-xs font-mono"
+            >
+              <QrCode className="h-4 w-4" />
+              Avaliar Projeto
+            </button>
             <Button
               onClick={() => onNavigate("dashboard")}
               className="gap-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.35)]"
@@ -123,6 +130,48 @@ export function LandingPage({ onNavigate, onStartDemo, onInjectReading, apiBase 
           </div>
         ) : null}
       </header>
+
+      {isQrModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setIsQrModalOpen(false)}
+          role="presentation"
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qr-modal-title"
+            className="relative w-full max-w-md rounded-2xl border border-slate-700 bg-[#0F172A] p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(false)}
+              aria-label="Fechar QR Code de avaliação"
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="text-center">
+              <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-400">
+                <QrCode className="h-6 w-6" />
+              </span>
+              <h2 id="qr-modal-title" className="mt-4 text-xl font-bold text-white">QR Code do Grupo</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Mostre este código para os visitantes acessarem o projeto e registrarem a avaliação.
+              </p>
+              <img
+                src="/qr-code-fecart.png"
+                alt="QR Code para avaliação do projeto na FECART"
+                className="w-48 h-48 mx-auto object-contain bg-white p-3 rounded-xl"
+              />
+              <p className="mt-4 break-all font-mono text-[10px] text-slate-500">
+                https://www.fecart.com.br/visitor/d1703db8-2c2c-495d-b94f-45dc2236dbe3
+              </p>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Main Content */}
       <main>
