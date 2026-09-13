@@ -3,7 +3,6 @@ import {
   Activity, 
   Database, 
   Cpu, 
-  Send, 
   CheckCircle, 
   AlertTriangle, 
   XCircle, 
@@ -42,12 +41,6 @@ import {
 import { useArduinoData, getStatusBadge } from '@/hooks/useArduinoData';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
-
-const createWelcomeMessage = (lotId) => ({
-  role: 'assistant',
-  content: `Olá! Sou a Flow, sua assistente virtual para o lote ${lotId}. Posso explicar o estado deste lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!`,
-  explicabilidade: null,
-});
 
 const QUICK_CHAT_ACTIONS = [
   'Qual o status atual do lote?',
@@ -319,7 +312,6 @@ export default function App() {
   const [selectedLot, setSelectedLot] = useState(null);
   const [lots, setLots] = useState([]);
   const [history, setHistory] = useState([]);
-  const [inputValue, setInputValue] = useState('');
   const [typingLotId, setTypingLotId] = useState(null);
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime] = useState(null);
@@ -350,7 +342,7 @@ export default function App() {
     setChatHistoryByLot((previousHistory) => ({
       ...previousHistory,
       [lotId]: [
-        ...(previousHistory[lotId] || [createWelcomeMessage(lotId)]),
+        ...(previousHistory[lotId] || []),
         ...newMessages,
       ],
     }));
@@ -405,7 +397,7 @@ export default function App() {
     setChatHistoryByLot((previousHistory) => (
       previousHistory[selectedLot]
         ? previousHistory
-        : { ...previousHistory, [selectedLot]: [createWelcomeMessage(selectedLot)] }
+        : { ...previousHistory, [selectedLot]: [] }
     ));
   }, [selectedLot]);
 
@@ -2248,10 +2240,16 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="z-10 flex-none border-b border-slate-800 bg-slate-950/80 px-4 py-2.5">
+                <p className="text-center font-mono text-[10px] tracking-wide text-slate-400">
+                  Selecione uma ação rápida abaixo para iniciar a análise
+                </p>
+              </div>
+
               {/* Mensagens do Chat */}
               <div
                 ref={chatMessagesRef}
-                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto p-4 pr-2 scroll-smooth flex flex-col gap-3.5 ${isChatFullscreen ? 'flex-1 px-5 py-6 sm:px-10' : 'h-[600px] flex-none'}`}
+                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto p-4 pr-2 scroll-smooth flex flex-col space-y-4 ${isChatFullscreen ? 'flex-1 px-5 py-6 sm:px-10' : 'h-[600px] flex-none'}`}
               >
                 {messages.map((msg, index) => (
                   <div 
@@ -2288,7 +2286,7 @@ export default function App() {
                           }}
                           className={`accessibility-zoom-target p-3.5 rounded-2xl text-sm leading-relaxed ${
                             msg.role === 'user'
-                              ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60'
+                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-tr-none shadow-md'
                               : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border cursor-zoom-in relative pr-11'
                           }`}
                         >
@@ -3513,9 +3511,9 @@ export default function App() {
                 
               </div>
 
-              {/* Rodapé fixo: ações rápidas e caixa de mensagem */}
+              {/* Rodapé fixo: ações rápidas */}
               <div className="z-10 flex-none mt-auto border-t border-slate-800 p-4 bg-[#0B0F19]">
-                <div className="flex gap-2 overflow-x-auto pb-3">
+                <div className="flex gap-2 overflow-x-auto">
                   {QUICK_CHAT_ACTIONS.map((action, index) => (
                     <button
                       key={action}
@@ -3534,28 +3532,6 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-
-                {/* Caixa de Entrada de Texto */}
-                <form
-                  onSubmit={(event) => event.preventDefault()}
-                  className="flex gap-2 items-center"
-                >
-                  <input
-                    type="text"
-                    value={inputValue}
-                    disabled
-                    placeholder="Selecione uma das opções acima para consultar a IA Flow..."
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-500 placeholder-slate-500 transition-all font-sans cursor-not-allowed"
-                  />
-                  <Button
-                    type="submit"
-                    disabled
-                    aria-label="Envio manual desativado"
-                    className="bg-slate-800 text-slate-500 p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 cursor-not-allowed"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </form>
               </div>
 
             </div>
