@@ -57,6 +57,69 @@ const QUICK_CHAT_ACTIONS = [
   'Como o modelo preditivo calcula essa curva?',
 ];
 
+const STRATEGIC_CHAT_ACTIONS = QUICK_CHAT_ACTIONS.slice(2);
+
+const createStrategicChatCard = (action, lot, telemetry) => {
+  const parseTelemetryValue = (value, fallback) => {
+    const parsed = Number.parseFloat(String(value).replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const vazao = parseTelemetryValue(telemetry?.vazao_l_min ?? telemetry?.vazao, 4.8);
+  const temperatura = parseTelemetryValue(telemetry?.temperatura_c ?? telemetry?.temperatura, 36.5);
+  const estabilidade = telemetry?.status || lot?.status || 'ESTÁVEL';
+  const finalidade = lot?.finalidade || lot?.destino || 'finalidade clínica não informada';
+  const lotId = lot?.id || 'lote ativo';
+  const vazaoForaDaFaixa = vazao < 4 || vazao > 6.5;
+  const temperaturaForaDaFaixa = temperatura < 35 || temperatura > 37.5;
+  const leiturasForaDaFaixa = [
+    vazaoForaDaFaixa && `A vazão de ${vazao.toFixed(1)} L/min está fora da faixa ideal de 4,0 a 6,5 L/min.`,
+    temperaturaForaDaFaixa && `A temperatura de ${temperatura.toFixed(1)}°C está fora da faixa segura de 35,0 a 37,5°C.`,
+  ].filter(Boolean);
+  const economia = estabilidade === 'CRÍTICO' ? 42500 : estabilidade === 'ALERTA' ? 28500 : 18000;
+  const metrics = [
+    { label: 'Lote', value: lotId },
+    { label: 'Vazão', value: `${vazao.toFixed(1)} L/min` },
+    { label: 'Temperatura', value: `${temperatura.toFixed(1)}°C` },
+    { label: 'Estabilidade', value: estabilidade },
+  ];
+
+  if (action === STRATEGIC_CHAT_ACTIONS[0]) {
+    return {
+      eyebrow: 'Diagnóstico do Arduino',
+      title: 'Por que o lote está em risco?',
+      summary: leiturasForaDaFaixa.length
+        ? `${leiturasForaDaFaixa.join(' ')} Para a finalidade de ${finalidade}, essa condição pode acelerar a degradação do lote ${lotId}.`
+        : `A leitura atual do lote ${lotId} está dentro das faixas operacionais para ${finalidade}. O monitoramento contínuo mantém a estabilidade sob observação.`,
+      metrics,
+    };
+  }
+
+  if (action === STRATEGIC_CHAT_ACTIONS[1]) {
+    return {
+      eyebrow: 'Ação recomendada pela IA',
+      title: 'Correção e impacto no estoque',
+      summary: `Ajustar o circuito para estabilizar a temperatura em 36,5°C e manter a vazão entre 4,0 e 6,5 L/min. Para o lote ${lotId}, a IA recomenda reabastecimento preventivo antes do limite crítico, preservando a cobertura para ${finalidade}.`,
+      metrics,
+    };
+  }
+
+  if (action === STRATEGIC_CHAT_ACTIONS[2]) {
+    return {
+      eyebrow: 'Impacto financeiro',
+      title: 'Economia e redução de perdas',
+      summary: `O monitoramento contínuo do lote ${lotId} previne o descarte prematuro das bolsas ativas. Com o estado ${estabilidade.toLowerCase()}, a economia estimada ao evitar perdas é de R$ ${economia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+      metrics,
+    };
+  }
+
+  return {
+    eyebrow: 'Modelo preditivo explicável',
+    title: 'Como a curva é calculada?',
+    summary: `O modelo cruza as leituras do Arduino — vazão de ${vazao.toFixed(1)} L/min e temperatura de ${temperatura.toFixed(1)}°C — com o histórico de consumo clínico de ${finalidade}. As leituras são atualizadas continuamente para projetar a curva do lote ${lotId}.`,
+    metrics,
+  };
+};
+
 // Sparkline SVG Component
 const Sparkline = ({ data, color = "#00e5a3" }) => {
   if (!data || data.length < 2) return null;
@@ -551,6 +614,19 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
       return;
     }
 
+    if (STRATEGIC_CHAT_ACTIONS.includes(text)) {
+      appendMessagesToLot(lotId, [
+        { role: 'user', content: text },
+        {
+          role: 'assistant',
+          content: '',
+          strategicCard: createStrategicChatCard(text, activeLotObj, activeLotTelemetry),
+        },
+      ]);
+      setInputValue('');
+      return;
+    }
+
     const userMsg = { role: 'user', content: text };
     appendMessagesToLot(lotId, [userMsg]);
     setInputValue('');
@@ -681,6 +757,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
   // Hook global de dados do Arduino (B1, B2, B3, B4, B5 e conectividade serial)
   const arduinoData = useArduinoData(currentReading || null, safeHistory, lastPacketTime);
+  const activeLotTelemetry = activeLotObj?.telemetry || currentReading;
 
   // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) para Atendimento Pré-Hospitalar de Emergência
   const rawGas = arduinoData.gas_value || (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
@@ -2169,6 +2246,24 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                           {msg.role === 'user' ? 'Visitante' : 'Flow'}
                         </span>
                       </>
+                    )}
+
+                    {msg.role === 'assistant' && msg.strategicCard && (
+                      <article className="mt-2.5 w-full rounded-xl border border-sky-500/30 bg-slate-950/95 p-4 shadow-2xl">
+                        <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-sky-400">
+                          {msg.strategicCard.eyebrow}
+                        </p>
+                        <h4 className="mt-1 text-sm font-bold text-white">{msg.strategicCard.title}</h4>
+                        <p className="mt-2 text-xs leading-relaxed text-slate-300">{msg.strategicCard.summary}</p>
+                        <dl className="mt-3 grid grid-cols-2 gap-2">
+                          {msg.strategicCard.metrics.map((metric) => (
+                            <div key={metric.label} className="rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-2">
+                              <dt className="font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
+                              <dd className="mt-0.5 text-[11px] font-semibold text-slate-200">{metric.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </article>
                     )}
 
                     {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência (apenas no Status atual) */}
