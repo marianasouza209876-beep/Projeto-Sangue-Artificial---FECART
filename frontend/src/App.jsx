@@ -338,7 +338,7 @@ export default function App() {
       return { highContrast: false, hoverZoom: false, reducedMotion: false, fontSize: 'normal' };
     }
   });
-  const messagesEndRef = useRef(null);
+  const chatMessagesRef = useRef(null);
 
   const [chatHistoryByLot, setChatHistoryByLot] = useState({});
   const messages = selectedLot ? chatHistoryByLot[selectedLot] || [] : [];
@@ -409,8 +409,15 @@ export default function App() {
     ));
   }, [selectedLot]);
 
+  const scrollToBottom = () => {
+    const chatContainer = chatMessagesRef.current;
+    if (chatContainer) {
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    }
+  };
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [messages, isTyping]);
 
   // Fecha a sobreposição sem interferir no estado do dashboard.
@@ -2242,7 +2249,10 @@ export default function App() {
               </div>
 
               {/* Mensagens do Chat */}
-              <div className={`flow-chat-messages scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent z-10 flex-1 min-h-0 overflow-y-auto p-4 pr-2 scroll-smooth flex flex-col gap-3.5 ${isChatFullscreen ? 'px-5 py-6 sm:px-10' : ''}`}>
+              <div
+                ref={chatMessagesRef}
+                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto p-4 pr-2 scroll-smooth flex flex-col gap-3.5 ${isChatFullscreen ? 'flex-1 px-5 py-6 sm:px-10' : 'h-[600px] flex-none'}`}
+              >
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
@@ -3501,7 +3511,6 @@ export default function App() {
                   </div>
                 )}
                 
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Rodapé fixo: ações rápidas e caixa de mensagem */}
