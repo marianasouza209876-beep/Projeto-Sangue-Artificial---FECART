@@ -29,7 +29,7 @@ import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
 import { DemandChart, getForecastScenario } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
-import { QuickEntryModal } from '@/components/QuickEntryModal';
+import { ProjectEvaluationModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
 import {
   Dialog,
@@ -597,29 +597,6 @@ export default function App() {
     });
     setSelectedLot(demoLot.id);
     setActiveTab('dashboard');
-  };
-
-  // Injeção de leitura manual / QR Code
-  const handleInjectReading = (reading) => {
-    const oxVal = parseFloat(String(reading.oxigenacao).replace("%", "").replace(",", ".")) / 100;
-    const tempVal = parseFloat(String(reading.temperatura).replace("C", "").replace(",", "."));
-    const vazaoVal = parseFloat(String(reading.vazao).replace(",", "."));
-
-    const newEntry = {
-      oxigenacao_limpa: isNaN(oxVal) ? 0.95 : oxVal,
-      temperatura_c: isNaN(tempVal) ? 36.8 : tempVal,
-      vazao_l_min: isNaN(vazaoVal) ? 4.8 : vazaoVal,
-      ph: 7.40,
-      viscosidade_cp: 3.8,
-      hematocrito_pct: 40.0,
-      status: (oxVal < 0.90 || tempVal > 38.0) ? "CRÍTICO" : "ESTÁVEL",
-      alerta_mensagem: (oxVal < 0.90 || tempVal > 38.0)
-        ? "ALERTA: Parâmetros fora da faixa fisiológica ideal."
-        : "Sistema operando dentro dos parâmetros de normalidade."
-    };
-
-    setHistory(prev => [...prev, newEntry]);
-    setPacketCount(p => p + 1);
   };
 
   // Envio de pergunta e integração com chat
@@ -1209,7 +1186,7 @@ export default function App() {
             </div>
           </div>
 
-          <QuickEntryModal onInjectReading={handleInjectReading} apiBase={API_BASE} />
+          <ProjectEvaluationModal />
         </div>
       </header>
 
