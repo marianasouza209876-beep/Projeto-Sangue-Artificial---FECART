@@ -134,6 +134,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
 
   // Resultado da Última Triagem Gerada
   const [triageReport, setTriageReport] = useState(null);
+  const [interactionModal, setInteractionModal] = useState(null);
 
   // Lista de Cards de Pacientes Triados (Fila de Atendimento)
   const [activeQueue, setActiveQueue] = useState([]);
@@ -415,7 +416,8 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               {activeQueue.map((paciente) => (
                 <div
                   key={paciente.id}
-                  className="group relative overflow-hidden rounded-2xl glass-panel border border-slate-800 hover:border-rose-500/40 bg-slate-950/90 p-5 transition-all duration-300 shadow-xl hover:shadow-2xl"
+                  onClick={() => setSelectedPatientModal(paciente)}
+                  className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/90 p-5 shadow-xl transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.25)]"
                 >
                   {/* FAIXA NEON DE GRAVIDADE NO TOPO */}
                   <div className={`absolute top-0 left-0 right-0 h-1 ${
@@ -489,7 +491,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                     {/* 4. LADO DIREITO (AÇÃO PRINCIPAL) */}
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                       <Button
-                        onClick={() => setSelectedPatientModal(paciente)}
+                        onClick={(event) => { event.stopPropagation(); setSelectedPatientModal(paciente); }}
                         size="sm"
                         className="ds-primary-action gap-2 px-4 py-2.5 text-xs font-bold"
                       >
@@ -498,7 +500,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                       </Button>
 
                       <button
-                        onClick={() => setActiveQueue(prev => prev.filter(p => p.id !== paciente.id))}
+                        onClick={(event) => { event.stopPropagation(); setActiveQueue(prev => prev.filter(p => p.id !== paciente.id)); }}
                         className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
                         title="Remover paciente"
                       >
@@ -688,7 +690,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
             <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               
               {/* CARD 01 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Tipo de ocorrência", description: "Este dado define o contexto do trauma e ajuda o motor de IA a priorizar protocolos e estimar o risco inicial.", value: formParams.tipo_ocorrencia })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <AlertTriangle className="h-4 w-4 text-amber-400" />
                   <span className="font-mono text-[11px] font-bold text-amber-400 uppercase">01. TIPO DE OCORRÊNCIA</span>
@@ -697,7 +699,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <p className="text-xs text-slate-300 font-medium mb-1.5">Qual foi a situação?</p>
                   <select
                     value={formParams.tipo_ocorrencia}
-                    onChange={(e) => setFormParams({ ...formParams, tipo_ocorrencia: e.target.value })}
+                    onClick={(event) => event.stopPropagation()} onChange={(e) => setFormParams({ ...formParams, tipo_ocorrencia: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
                   >
                     {OPCOES_TRIAGEM.tipo_ocorrencia.map(op => <option key={op} value={op}>{op}</option>)}
@@ -706,7 +708,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
 
               {/* CARD 02 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Nível de sangramento", description: "A gravidade do sangramento impacta a estimativa de volume, a urgência clínica e a recomendação de reposição sintética.", value: formParams.existe_sangramento })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.25)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <Droplets className="h-4 w-4 text-rose-500" />
                   <span className="font-mono text-[11px] font-bold text-rose-400 uppercase">02. NÍVEL DE SANGRAMENTO</span>
@@ -715,7 +717,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <p className="text-xs text-slate-300 font-medium mb-1.5">Existe sangramento? Qual a gravidade?</p>
                   <select
                     value={formParams.existe_sangramento}
-                    onChange={(e) => setFormParams({ ...formParams, existe_sangramento: e.target.value })}
+                    onClick={(event) => event.stopPropagation()} onChange={(e) => setFormParams({ ...formParams, existe_sangramento: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none font-semibold text-rose-300"
                   >
                     {OPCOES_TRIAGEM.existe_sangramento.map(op => <option key={op} value={op}>{op}</option>)}
@@ -724,7 +726,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
 
               {/* CARD 03 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Tempo desde o evento", description: "A janela temporal influencia a probabilidade de choque, acidose e a necessidade de intervenção rápida.", value: formParams.tempo_evento })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <Clock className="h-4 w-4 text-sky-400" />
                   <span className="font-mono text-[11px] font-bold text-sky-400 uppercase">03. TEMPO DESDE O EVENTO</span>
@@ -733,7 +735,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <p className="text-xs text-slate-300 font-medium mb-1.5">Há quanto tempo ocorreu?</p>
                   <select
                     value={formParams.tempo_evento}
-                    onChange={(e) => setFormParams({ ...formParams, tempo_evento: e.target.value })}
+                    onClick={(event) => event.stopPropagation()} onChange={(e) => setFormParams({ ...formParams, tempo_evento: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
                   >
                     {OPCOES_TRIAGEM.tempo_evento.map(op => <option key={op} value={op}>{op}</option>)}
@@ -742,7 +744,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
 
               {/* CARD 04 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Estado de consciência", description: "O estado neurológico contribui para a classificação de prioridade e para a avaliação de comprometimento sistêmico.", value: formParams.estado_consciencia })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <Brain className="h-4 w-4 text-purple-400" />
                   <span className="font-mono text-[11px] font-bold text-purple-400 uppercase">04. ESTADO DE CONSCIÊNCIA</span>
@@ -751,7 +753,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <p className="text-xs text-slate-300 font-medium mb-1.5">Como o paciente está respondendo?</p>
                   <select
                     value={formParams.estado_consciencia}
-                    onChange={(e) => setFormParams({ ...formParams, estado_consciencia: e.target.value })}
+                    onClick={(event) => event.stopPropagation()} onChange={(e) => setFormParams({ ...formParams, estado_consciencia: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
                   >
                     {OPCOES_TRIAGEM.estado_consciencia.map(op => <option key={op} value={op}>{op}</option>)}
@@ -760,7 +762,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
 
               {/* CARD 05 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Lesões aparentes", description: "Sinais de trauma visíveis ajudam a IA a relacionar perda sanguínea, risco de perfusão e prioridade de suporte.", value: formParams.lesoes_aparentes })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.25)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <ShieldAlert className="h-4 w-4 text-orange-400" />
                   <span className="font-mono text-[11px] font-bold text-orange-400 uppercase">05. LESÕES APARENTES</span>
@@ -769,7 +771,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <p className="text-xs text-slate-300 font-medium mb-1.5">Há sinais de trauma visíveis?</p>
                   <select
                     value={formParams.lesoes_aparentes}
-                    onChange={(e) => setFormParams({ ...formParams, lesoes_aparentes: e.target.value })}
+                    onClick={(event) => event.stopPropagation()} onChange={(e) => setFormParams({ ...formParams, lesoes_aparentes: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
                   >
                     {OPCOES_TRIAGEM.lesoes_aparentes.map(op => <option key={op} value={op}>{op}</option>)}
@@ -778,7 +780,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
 
               {/* CARD 06 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Histórico relevante", description: "Condições prévias, alergias e medicações são considerados para contextualizar o protocolo e a segurança da conduta.", value: formParams.historico_relevante })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <FileText className="h-4 w-4 text-emerald-400" />
                   <span className="font-mono text-[11px] font-bold text-emerald-400 uppercase">06. HISTÓRICO RELEVANTE</span>
@@ -787,7 +789,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <p className="text-xs text-slate-300 font-medium mb-1.5">Condição prévia, alergia ou medicação?</p>
                   <select
                     value={formParams.historico_relevante}
-                    onChange={(e) => setFormParams({ ...formParams, historico_relevante: e.target.value })}
+                    onClick={(event) => event.stopPropagation()} onChange={(e) => setFormParams({ ...formParams, historico_relevante: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
                   >
                     {OPCOES_TRIAGEM.historico_relevante.map(op => <option key={op} value={op}>{op}</option>)}
@@ -796,7 +798,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
 
               {/* CARD 07 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Idade do paciente", description: "A faixa etária ajusta a leitura de vulnerabilidade fisiológica e a estratégia de suporte indicada.", value: formParams.idade })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <UserCheck className="h-4 w-4 text-cyan-400" />
                   <span className="font-mono text-[11px] font-bold text-cyan-400 uppercase">07. IDADE DO PACIENTE</span>
@@ -805,7 +807,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <p className="text-xs text-slate-300 font-medium mb-1.5">Qual a faixa etária?</p>
                   <select
                     value={formParams.idade}
-                    onChange={(e) => setFormParams({ ...formParams, idade: e.target.value })}
+                    onClick={(event) => event.stopPropagation()} onChange={(e) => setFormParams({ ...formParams, idade: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white focus:border-rose-500 focus:outline-none"
                   >
                     {OPCOES_TRIAGEM.idade.map(op => <option key={op} value={op}>{op}</option>)}
@@ -814,7 +816,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
 
               {/* CARD 08 */}
-              <div className="p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Tipo sanguíneo", description: "O tipo informado é exibido para rastreabilidade; a estratégia sintética considera suporte universal isento de antígenos quando indicado.", value: formParams.tipo_sanguineo })} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.25)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <Heart className="h-4 w-4 text-rose-400" />
                   <span className="font-mono text-[11px] font-bold text-rose-400 uppercase">08. TIPO SANGUÍNEO</span>
@@ -823,7 +825,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   <p className="text-xs text-slate-300 font-medium mb-1.5">Qual o tipo sanguíneo?</p>
                   <select
                     value={formParams.tipo_sanguineo}
-                    onChange={(e) => setFormParams({ ...formParams, tipo_sanguineo: e.target.value })}
+                    onClick={(event) => event.stopPropagation()} onChange={(e) => setFormParams({ ...formParams, tipo_sanguineo: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white font-bold focus:border-rose-500 focus:outline-none"
                   >
                     {OPCOES_TRIAGEM.tipo_sanguineo.map(op => <option key={op} value={op}>{op}</option>)}
@@ -832,7 +834,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
               </div>
 
               {/* CARD 09: BOTÃO PRINCIPAL "INICIAR ANÁLISE >" */}
-              <div className="p-4 rounded-xl border border-rose-500/50 bg-gradient-to-br from-rose-950/60 via-slate-900 to-fuchsia-950/60 shadow-[0_0_25px_rgba(244,63,94,0.3)] flex flex-col justify-between space-y-3 transition-all">
+              <div onClick={() => setInteractionModal({ title: "Análise da IA", description: "O motor cruza os oito parâmetros clínicos selecionados para gerar prioridade, prescrição de suporte e justificativa explicável.", value: "Pronto para processar a triagem" })} className="cursor-pointer rounded-xl border border-rose-500/50 bg-gradient-to-br from-rose-950/60 via-slate-900 to-fuchsia-950/60 p-4 shadow-[0_0_25px_rgba(244,63,94,0.3)] transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.4)] flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between border-b border-rose-500/30 pb-2">
                   <span className="font-mono text-[11px] font-bold text-rose-300 uppercase flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-rose-400" />
@@ -849,7 +851,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   </p>
 
                   <Button
-                    onClick={handleRunTriage}
+                    onClick={(event) => { event.stopPropagation(); handleRunTriage(); }}
                     disabled={isGenerating}
                     className="ds-primary-action flex h-11 w-full items-center justify-center gap-2 text-xs font-extrabold tracking-wider"
                   >
@@ -865,6 +867,19 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
 
         </div>
       )}
+
+      <Dialog open={Boolean(interactionModal)} onOpenChange={() => setInteractionModal(null)}>
+        <DialogContent className="border-cyan-400/40 bg-slate-950/95 text-slate-100 backdrop-blur-md sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{interactionModal?.title}</DialogTitle>
+            <DialogDescription className="pt-2 leading-6 text-slate-300">{interactionModal?.description}</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-4">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-cyan-300">Dado atual</p>
+            <p className="mt-1 text-lg font-bold text-white">{interactionModal?.value}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* MODAL POP-UP: RELATÓRIO COMPLETO DA IA (MINIMALISTA E SINTETIZADO - DARK NEON) */}
       {selectedPatientModal && (
@@ -938,7 +953,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   
                   {/* QUADRO 1: DESCRIÇÃO DO PROBLEMA (SINTETIZADO) */}
-                  <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
+                  <div onClick={() => setInteractionModal({ title: "Descrição do problema", description: "Consolidação dos sinais, ocorrência e histórico para que a equipe valide os fatores que sustentam a prioridade clínica.", value: `Prioridade: ${selectedPatientModal.prioridade}` })} className="cursor-pointer rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.25)] flex flex-col justify-between space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-rose-400" />
@@ -995,7 +1010,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   </div>
 
                   {/* QUADRO 2: EXPLICAÇÃO DO PROBLEMA (MINIMALISTA EM 4 PÍLULAS) */}
-                  <div className="p-5 rounded-2xl border border-amber-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
+                  <div onClick={() => setInteractionModal({ title: "Explicação fisiopatológica", description: "A IA organiza os riscos de choque, hipóxia, tempo de evento e tríade do trauma que elevam a complexidade da conduta.", value: "Risco elevado" })} className="cursor-pointer rounded-2xl border border-amber-500/30 bg-slate-900/60 p-5 shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] flex flex-col justify-between space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                       <div className="flex items-center gap-2">
                         <ShieldAlert className="h-4 w-4 text-amber-400" />
@@ -1044,7 +1059,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   </div>
 
                   {/* QUADRO 3: RESOLUÇÃO DO PROBLEMA (ANÁLISE SANGUÍNEA LIMPA E KPIS) */}
-                  <div className="p-5 rounded-2xl border border-cyan-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
+                  <div onClick={() => setInteractionModal({ title: "Resolução proposta", description: "A recomendação combina compatibilidade, volume e módulos de sangue sintético para apoiar uma resposta rápida e rastreável.", value: `${selectedPatientModal.triageReport.prescricao.volume_ml} mL recomendados` })} className="cursor-pointer rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-5 shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] flex flex-col justify-between space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                       <div className="flex items-center gap-2">
                         <Droplets className="h-4 w-4 text-cyan-400" />
@@ -1102,7 +1117,7 @@ export function EmergencySimulator({ onAddPatientToQueue }) {
                   </div>
 
                   {/* QUADRO 4: RACIOCÍNIO DA IA E CONFIANÇA */}
-                  <div className="p-5 rounded-2xl border border-purple-500/30 bg-slate-900/60 space-y-4 shadow-lg flex flex-col justify-between">
+                  <div onClick={() => setInteractionModal({ title: "Raciocínio da IA", description: "A inferência explica como a matriz sanguínea, o balanço volêmico e a estabilidade osmótica fundamentam a recomendação.", value: "92% de confiança" })} className="cursor-pointer rounded-2xl border border-purple-500/30 bg-slate-900/60 p-5 shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] flex flex-col justify-between space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                       <div className="flex items-center gap-2">
                         <Brain className="h-4 w-4 text-purple-400" />

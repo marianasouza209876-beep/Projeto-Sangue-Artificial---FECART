@@ -313,6 +313,7 @@ export default function App() {
   const [lastPacketTime] = useState(null);
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
   const [zoomedChatCard, setZoomedChatCard] = useState(null);
+  const [forecastDetailModal, setForecastDetailModal] = useState(null);
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   const [accessibilityPreferences, setAccessibilityPreferences] = useState(() => {
     try {
@@ -3548,7 +3549,7 @@ export default function App() {
 
             <DemandChart lotId={selectedLot} lot={activeLotObj} />
 
-            <div className="mt-5 rounded-xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-slate-900/50 to-emerald-950/30 px-5 py-4 text-xs text-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <button type="button" onClick={() => setForecastDetailModal({ title: "Diagnóstico preditivo", metric: `Ruptura estimada em ${forecastScenario.riscoDia}`, detail: `Sem intervenção, o estoque chega a ${forecastScenario.critical.estoqueSemAcao} unidades, abaixo do mínimo de ${forecastScenario.minimo}. A IA recomenda ${forecastScenario.recomendacao} para preservar ${forecastScenario.protectedStock} unidades seguras.` })} className="mt-5 flex cursor-pointer flex-col items-start justify-between gap-4 rounded-xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-slate-900/50 to-emerald-950/30 px-5 py-4 text-left text-xs text-slate-200 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] sm:flex-row sm:items-center">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400 shrink-0">
                   <AlertTriangle className="h-5 w-5" />
@@ -3567,11 +3568,11 @@ export default function App() {
                   IMPACTO: {forecastScenario.impacto.toUpperCase()}
                 </span>
               </div>
-            </div>
+            </button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="glass-panel rounded-xl p-5 border-slate-800">
+            <button type="button" onClick={() => setForecastDetailModal({ title: "Capacidade de produção", metric: "120 unidades por dia", detail: "A capacidade considera o turno de esterilização e síntese de PFCs. Ela limita o volume que pode ser programado pela recomendação preditiva." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)]">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Capacidade de Produção
               </p>
@@ -3579,9 +3580,9 @@ export default function App() {
                 120 <span className="text-xs text-slate-400 font-sans">unid/dia</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Turno de esterilização e síntese de PFCs</p>
-            </div>
+            </button>
 
-            <div className="glass-panel rounded-xl p-5 border-slate-800">
+            <button type="button" onClick={() => setForecastDetailModal({ title: "Lead time de reposição", metric: "18 horas", detail: "Tempo médio entre a decisão, a validação biológica e a entrega. A janela ideal é calculada para respeitar esse intervalo." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)]">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Lead Time de Reposição
               </p>
@@ -3589,9 +3590,9 @@ export default function App() {
                 18 <span className="text-xs text-slate-400 font-sans">horas</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Tempo médio de validação biológica e entrega</p>
-            </div>
+            </button>
 
-            <div className="glass-panel rounded-xl p-5 border-slate-800">
+            <button type="button" onClick={() => setForecastDetailModal({ title: "Acurácia do modelo", metric: "94,8%", detail: "Score R² baseado nas séries temporais do sistema. Ele indica a aderência da projeção aos padrões de demanda observados." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.25)]">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Acurácia do Modelo
               </p>
@@ -3599,7 +3600,7 @@ export default function App() {
                 94.8<span className="text-xs text-slate-400 font-sans">%</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Score R² com base em séries temporais</p>
-            </div>
+            </button>
           </div>
 
         </main>
@@ -3612,6 +3613,18 @@ export default function App() {
         <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10">
           <EmergencySimulator />
         </main>
+      )}
+
+      {forecastDetailModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md" role="presentation" onClick={() => setForecastDetailModal(null)}>
+          <section role="dialog" aria-modal="true" aria-labelledby="forecast-detail-title" className="relative w-full max-w-xl rounded-2xl border border-cyan-400/40 bg-slate-950 p-6 shadow-[0_0_45px_rgba(0,229,255,0.2)] sm:p-7" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setForecastDetailModal(null)} aria-label="Fechar detalhes da previsão" className="absolute right-4 top-4 rounded-lg border border-slate-700 p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"><X className="h-5 w-5" /></button>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-400">Previsão de demanda</p>
+            <h2 id="forecast-detail-title" className="mt-2 pr-10 text-2xl font-bold text-white">{forecastDetailModal.title}</h2>
+            <div className="mt-5 rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-4"><p className="font-mono text-[10px] uppercase tracking-wider text-cyan-300">Métrica</p><p className="mt-1 text-lg font-bold text-white">{forecastDetailModal.metric}</p></div>
+            <p className="mt-5 text-sm leading-6 text-slate-300">{forecastDetailModal.detail}</p>
+          </section>
+        </div>
       )}
 
       {zoomedChatCard && (
