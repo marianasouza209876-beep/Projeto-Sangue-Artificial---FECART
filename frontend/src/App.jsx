@@ -103,8 +103,28 @@ const createChatResponseCard = (action, lot, telemetry) => {
     return {
       eyebrow: 'Fundamentos do composto',
       title: 'O que é o Sangue Artificial (HBOC)?',
-      summary: `HBOCs são transportadores sintéticos de oxigênio baseados em hemoglobina. No lote ${lotId}, a Flow cruza a telemetria atual com a finalidade de ${finalidade} para acompanhar estabilidade e segurança operacional.`,
-      metrics,
+      summary: 'Conceitos essenciais sobre o composto biotecnológico monitorado pela Flow.',
+      conceptual: true,
+      conceptualBlocks: [
+        {
+          title: 'Composto Biotecnológico (HBOC)',
+          text: 'Solução sintética baseada em carreadores de hemoglobina projetada para transporte temporário de oxigênio, eliminando a necessidade de tipagem sanguínea (A, B, AB, O / Rh).',
+          icon: Droplets,
+          accent: 'border-cyan-500/30 bg-cyan-500/5 text-cyan-300',
+        },
+        {
+          title: 'Indicação e Suporte Emergencial',
+          text: 'Desenvolvido para uso imediato em traumas graves, cirurgias complexas, missões remotas e períodos críticos de escassez em bancos de sangue.',
+          icon: Activity,
+          accent: 'border-violet-500/30 bg-violet-500/5 text-violet-300',
+        },
+        {
+          title: 'Estabilidade e Monitoramento',
+          text: 'Possui vida útil estendida e zero risco de contaminação viral/bacteriana. O sistema FLOWTIFICIAL supervisiona continuamente a integridade físico-química de cada lote.',
+          icon: ShieldCheck,
+          accent: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
+        },
+      ],
       icon: Droplets,
     };
   }
@@ -2275,7 +2295,7 @@ export default function App() {
                     {msg.role === 'assistant' && msg.responseCard && (
                       <article
                         onClick={() => setZoomedChatCard(msg.responseCard)}
-                        className="mt-2.5 w-full cursor-zoom-in rounded-xl border border-sky-500/30 bg-slate-950/95 p-4 shadow-2xl transition-transform duration-200 hover:scale-[1.01]"
+                        className={`mt-2.5 w-full cursor-zoom-in rounded-xl border p-4 shadow-2xl transition-transform duration-200 hover:scale-[1.01] ${msg.responseCard.conceptual ? 'border-cyan-500/30 bg-[#0F172A]' : 'border-sky-500/30 bg-slate-950/95'}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-2.5">
@@ -2287,11 +2307,29 @@ export default function App() {
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="rounded border border-cyan-400/40 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-cyan-200">SINAL SERIAL</span>
+                            <span className="rounded border border-cyan-400/40 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-cyan-200">{msg.responseCard.conceptual ? 'CONCEITO CIENTÍFICO' : 'SINAL SERIAL'}</span>
                             <Maximize2 className="h-4 w-4 text-sky-400" />
                           </div>
                         </div>
                         <h4 className="mt-2 text-sm font-bold text-white">{msg.responseCard.title}</h4>
+                        {msg.responseCard.conceptual ? (
+                          <div className="mt-3 space-y-2.5">
+                            {msg.responseCard.conceptualBlocks.map((block) => {
+                              const BlockIcon = block.icon;
+                              return (
+                                <section key={block.title} className={`flex gap-3 rounded-xl border p-3 ${block.accent}`}>
+                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-current/30 bg-slate-950/30">
+                                    <BlockIcon className="h-4 w-4" />
+                                  </span>
+                                  <div>
+                                    <h5 className="text-[11px] font-bold text-slate-100">{block.title}</h5>
+                                    <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{block.text}</p>
+                                  </div>
+                                </section>
+                              );
+                            })}
+                          </div>
+                        ) : <>
                         <p className="mt-2 text-xs leading-relaxed text-slate-300">{msg.responseCard.summary}</p>
                         <dl className="mt-3 grid grid-cols-2 gap-2">
                           {msg.responseCard.metrics.map((metric) => {
@@ -2313,6 +2351,7 @@ export default function App() {
                             );
                           })}
                         </dl>
+                        </>}
                       </article>
                     )}
 
@@ -3654,6 +3693,24 @@ export default function App() {
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
               {zoomedChatCard.summary}
             </p>
+            {zoomedChatCard.conceptualBlocks?.length > 0 && (
+              <div className="mt-6 space-y-3">
+                {zoomedChatCard.conceptualBlocks.map((block) => {
+                  const BlockIcon = block.icon;
+                  return (
+                    <section key={block.title} className={`flex gap-4 rounded-xl border p-4 ${block.accent}`}>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current/30 bg-slate-950/30">
+                        <BlockIcon className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <h3 className="font-semibold text-white">{block.title}</h3>
+                        <p className="mt-1.5 text-sm leading-6 text-slate-300">{block.text}</p>
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            )}
             {zoomedChatCard.metrics?.length > 0 && (
               <dl className="mt-6 grid gap-3 sm:grid-cols-2">
                 {zoomedChatCard.metrics.map((metric) => (
