@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { 
   Activity, 
   Database, 
@@ -404,11 +404,11 @@ export default function App() {
   const scrollToBottom = () => {
     const chatContainer = chatMessagesRef.current;
     if (chatContainer) {
-      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+      chatContainer.scrollTop = chatContainer.scrollHeight;
     }
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
 
@@ -2241,15 +2241,15 @@ export default function App() {
               </div>
 
               <div className="z-10 flex-none border-b border-slate-800 bg-slate-950/80 px-4 py-2.5">
-                <p className="text-center font-mono text-[10px] tracking-wide text-slate-400">
-                  Selecione uma ação rápida abaixo para iniciar a análise
+                <p className="mx-auto w-fit rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1 text-center text-xs text-slate-400">
+                  Selecione uma opção rápida abaixo para iniciar a análise
                 </p>
               </div>
 
               {/* Mensagens do Chat */}
               <div
                 ref={chatMessagesRef}
-                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto p-4 pr-2 scroll-smooth flex flex-col space-y-4 ${isChatFullscreen ? 'flex-1 px-5 py-6 sm:px-10' : 'h-[600px] flex-none'}`}
+                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'flex-1 px-5 pb-6 pt-4 sm:px-10' : 'h-[600px] flex-none'}`}
               >
                 {messages.map((msg, index) => (
                   <div 
@@ -3513,7 +3513,7 @@ export default function App() {
 
               {/* Rodapé fixo: ações rápidas */}
               <div className="z-10 flex-none mt-auto border-t border-slate-800 p-4 bg-[#0B0F19]">
-                <div className="flex gap-2 overflow-x-auto">
+                <div className="flex gap-2 overflow-x-auto px-3 pb-3">
                   {QUICK_CHAT_ACTIONS.map((action, index) => (
                     <button
                       key={action}
