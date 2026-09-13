@@ -23,7 +23,8 @@ import {
   X,
   Contrast,
   MousePointer2,
-  Accessibility
+  Accessibility,
+  Wifi
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
@@ -59,7 +60,7 @@ const QUICK_CHAT_ACTIONS = [
 
 const STRATEGIC_CHAT_ACTIONS = QUICK_CHAT_ACTIONS.slice(2);
 
-const createStrategicChatCard = (action, lot, telemetry) => {
+const createChatResponseCard = (action, lot, telemetry) => {
   const parseTelemetryValue = (value, fallback) => {
     const parsed = Number.parseFloat(String(value).replace(',', '.'));
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -82,11 +83,31 @@ const createStrategicChatCard = (action, lot, telemetry) => {
       ? { progress: 65, color: 'bg-purple-400' }
       : { progress: 35, color: 'bg-purple-400' };
   const metrics = [
-    { label: 'Lote', value: lotId, progress: 100, color: 'bg-purple-400' },
-    { label: 'Vazão', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400' },
-    { label: 'Temperatura', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-amber-400' },
-    { label: 'Estabilidade', value: estabilidade, ...estabilidadeVisual },
+    { label: 'LOTE', value: lotId, progress: 100, color: 'bg-purple-400', icon: Droplets, iconColor: 'text-purple-300', iconBackground: 'bg-purple-500/15 border-purple-400/40' },
+    { label: 'VAZÃO', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400', icon: Waves, iconColor: 'text-cyan-300', iconBackground: 'bg-cyan-500/15 border-cyan-400/40' },
+    { label: 'TEMPERATURA', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-rose-400', icon: Thermometer, iconColor: 'text-rose-300', iconBackground: 'bg-rose-500/15 border-rose-400/40' },
+    { label: 'ESTABILIDADE', value: estabilidade, ...estabilidadeVisual, color: 'bg-emerald-400', icon: ShieldCheck, iconColor: 'text-emerald-300', iconBackground: 'bg-emerald-500/15 border-emerald-400/40' },
   ];
+
+  if (action === QUICK_CHAT_ACTIONS[0]) {
+    return {
+      eyebrow: 'Telemetria do Arduino',
+      title: `Status do lote ${lotId}`,
+      summary: telemetry?.alerta_mensagem || `As leituras de vazão e temperatura do lote ${lotId} estão sendo acompanhadas continuamente para ${finalidade}.`,
+      metrics,
+      icon: Activity,
+    };
+  }
+
+  if (action === QUICK_CHAT_ACTIONS[1]) {
+    return {
+      eyebrow: 'Fundamentos do composto',
+      title: 'O que é o Sangue Artificial (HBOC)?',
+      summary: `HBOCs são transportadores sintéticos de oxigênio baseados em hemoglobina. No lote ${lotId}, a Flow cruza a telemetria atual com a finalidade de ${finalidade} para acompanhar estabilidade e segurança operacional.`,
+      metrics,
+      icon: Droplets,
+    };
+  }
 
   if (action === STRATEGIC_CHAT_ACTIONS[0]) {
     return {
@@ -96,6 +117,7 @@ const createStrategicChatCard = (action, lot, telemetry) => {
         ? `${leiturasForaDaFaixa.join(' ')} Para a finalidade de ${finalidade}, essa condição pode acelerar a degradação do lote ${lotId}.`
         : `A leitura atual do lote ${lotId} está dentro das faixas operacionais para ${finalidade}. O monitoramento contínuo mantém a estabilidade sob observação.`,
       metrics,
+      icon: AlertTriangle,
     };
   }
 
@@ -105,6 +127,7 @@ const createStrategicChatCard = (action, lot, telemetry) => {
       title: 'Correção e impacto no estoque',
       summary: `Ajustar o circuito para estabilizar a temperatura em 36,5°C e manter a vazão entre 4,0 e 6,5 L/min. Para o lote ${lotId}, a IA recomenda reabastecimento preventivo antes do limite crítico, preservando a cobertura para ${finalidade}.`,
       metrics,
+      icon: Zap,
     };
   }
 
@@ -114,6 +137,7 @@ const createStrategicChatCard = (action, lot, telemetry) => {
       title: 'Economia e redução de perdas',
       summary: `O monitoramento contínuo do lote ${lotId} previne o descarte prematuro das bolsas ativas. Com o estado ${estabilidade.toLowerCase()}, a economia estimada ao evitar perdas é de R$ ${economia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
       metrics,
+      icon: TrendingUp,
     };
   }
 
@@ -122,6 +146,7 @@ const createStrategicChatCard = (action, lot, telemetry) => {
     title: 'Como a curva é calculada?',
     summary: `O modelo cruza as leituras do Arduino — vazão de ${vazao.toFixed(1)} L/min e temperatura de ${temperatura.toFixed(1)}°C — com o histórico de consumo clínico de ${finalidade}. As leituras são atualizadas continuamente para projetar a curva do lote ${lotId}.`,
     metrics,
+    icon: Activity,
   };
 };
 
@@ -586,50 +611,14 @@ export default function App() {
   const handleSendMessage = async (text) => {
     if (!text || !text.trim() || !selectedLot) return;
     const lotId = selectedLot;
-    const isStatusShortcut = text === QUICK_CHAT_ACTIONS[0];
 
-    // Resposta fixa: O que é sangue artificial
-    if (text.toLowerCase().includes("sangue artificial")) {
-      const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
-
-Diferente do sangue doado tradicional, o sangue artificial:
-• Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata.
-• Dura muito mais tempo: Pode ser armazenado por meses sem estragar.
-• É livre de contaminações: Não transmite vírus ou bactérias.
-
-Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Perfluorocarbonos (PFCs), que são líquidos sintéticos capazes de carregar gases.
-
-Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
-
-      appendMessagesToLot(lotId, [
-        { role: 'user', content: text },
-        { role: 'assistant', content: respostaPronta }
-      ]);
-      setInputValue('');
-      return;
-    }
-
-    // O laudo clínico é exclusivo do atalho de status do lote.
-    if (isStatusShortcut) {
-      appendMessagesToLot(lotId, [
-        { role: 'user', content: text },
-        { 
-          role: 'assistant', 
-          content: '',
-          showAnalysisCard: true
-        }
-      ]);
-      setInputValue('');
-      return;
-    }
-
-    if (STRATEGIC_CHAT_ACTIONS.includes(text)) {
+    if (QUICK_CHAT_ACTIONS.includes(text)) {
       appendMessagesToLot(lotId, [
         { role: 'user', content: text },
         {
           role: 'assistant',
           content: '',
-          strategicCard: createStrategicChatCard(text, activeLotObj, activeLotTelemetry),
+          responseCard: createChatResponseCard(text, activeLotObj, activeLotTelemetry),
         },
       ]);
       setInputValue('');
@@ -2283,35 +2272,46 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                       </>
                     )}
 
-                    {msg.role === 'assistant' && msg.strategicCard && (
+                    {msg.role === 'assistant' && msg.responseCard && (
                       <article
-                        onClick={() => setZoomedChatCard(msg.strategicCard)}
+                        onClick={() => setZoomedChatCard(msg.responseCard)}
                         className="mt-2.5 w-full cursor-zoom-in rounded-xl border border-sky-500/30 bg-slate-950/95 p-4 shadow-2xl transition-transform duration-200 hover:scale-[1.01]"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-sky-400">
-                            {msg.strategicCard.eyebrow}
-                          </p>
+                          <div className="flex items-start gap-2.5">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/30 to-purple-500/20 text-cyan-200">
+                              <msg.responseCard.icon className="h-4.5 w-4.5" />
+                            </span>
+                            <p className="pt-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cyan-300">
+                              {msg.responseCard.eyebrow}
+                            </p>
+                          </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-emerald-300">SINAL SERIAL</span>
+                            <span className="rounded border border-cyan-400/40 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-cyan-200">SINAL SERIAL</span>
                             <Maximize2 className="h-4 w-4 text-sky-400" />
                           </div>
                         </div>
-                        <h4 className="mt-1 text-sm font-bold text-white">{msg.strategicCard.title}</h4>
-                        <p className="mt-2 text-xs leading-relaxed text-slate-300">{msg.strategicCard.summary}</p>
+                        <h4 className="mt-2 text-sm font-bold text-white">{msg.responseCard.title}</h4>
+                        <p className="mt-2 text-xs leading-relaxed text-slate-300">{msg.responseCard.summary}</p>
                         <dl className="mt-3 grid grid-cols-2 gap-2">
-                          {msg.strategicCard.metrics.map((metric) => (
-                            <div key={metric.label} className="rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-2">
-                              <div className="flex items-center justify-between gap-1">
-                                <dt className="font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
-                                <span className="rounded border border-slate-700 px-1 py-0.5 font-mono text-[7px] text-slate-400">TELEMETRIA ATIVA</span>
+                          {msg.responseCard.metrics.map((metric) => {
+                            const MetricIcon = metric.icon;
+                            return (
+                            <div key={metric.label} className="rounded-lg border border-slate-700/80 bg-slate-900/70 px-2.5 py-2">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${metric.iconBackground} ${metric.iconColor}`}>
+                                  <MetricIcon className="h-3.5 w-3.5" />
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded border border-cyan-400/30 bg-cyan-500/5 px-1 py-0.5 font-mono text-[7px] text-cyan-200"><Wifi className="h-2.5 w-2.5" />TELEMETRIA ATIVA</span>
                               </div>
-                              <dd className="mt-0.5 text-[11px] font-semibold text-slate-200">{metric.value}</dd>
+                              <dt className="mt-1.5 font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
+                              <dd className="mt-0.5 text-[11px] font-semibold text-slate-100">{metric.value}</dd>
                               <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-800">
                                 <div className={`h-full rounded-full ${metric.color}`} style={{ width: `${metric.progress}%` }} />
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </dl>
                       </article>
                     )}
