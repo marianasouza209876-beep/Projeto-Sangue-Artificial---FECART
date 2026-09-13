@@ -48,6 +48,15 @@ const createWelcomeMessage = (lotId) => ({
   explicabilidade: null,
 });
 
+const QUICK_CHAT_ACTIONS = [
+  'Qual o status atual do lote?',
+  'O que é o Sangue Artificial (HBOC)?',
+  'Por que o lote está em risco?',
+  'Qual a recomendação da IA e o impacto no estoque?',
+  'Qual a economia financeira e redução de perdas?',
+  'Como o modelo preditivo calcula essa curva?',
+];
+
 // Sparkline SVG Component
 const Sparkline = ({ data, color = "#00e5a3" }) => {
   if (!data || data.length < 2) return null;
@@ -505,9 +514,10 @@ export default function App() {
   const handleSendMessage = async (text) => {
     if (!text || !text.trim() || !selectedLot) return;
     const lotId = selectedLot;
+    const isQuickAction = QUICK_CHAT_ACTIONS.includes(text);
 
     // Resposta fixa: O que é sangue artificial
-    if (text.toLowerCase().includes("o que é sangue artificial")) {
+    if (text.toLowerCase().includes("sangue artificial")) {
       const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
 
 Diferente do sangue doado tradicional, o sangue artificial:
@@ -521,7 +531,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
       appendMessagesToLot(lotId, [
         { role: 'user', content: text },
-        { role: 'assistant', content: respostaPronta }
+        { role: 'assistant', content: respostaPronta, showAnalysisCard: isQuickAction }
       ]);
       setInputValue('');
       return;
@@ -560,7 +570,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
             role: 'assistant', 
             content: data.resposta, 
             explicabilidade: data.explicabilidade,
-            showAnalysisCard: text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")
+            showAnalysisCard: isQuickAction || text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")
           }]);
           setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
           
@@ -3313,51 +3323,42 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
               {/* Rodapé fixo: ações rápidas e caixa de mensagem */}
               <div className="z-10 flex-none mt-auto border-t border-slate-800 p-4 bg-[#0B0F19]">
                 <div className="flex gap-2 overflow-x-auto pb-3">
-                  <button
-                    type="button"
-                    onClick={() => handleSendMessage('Qual o status atual do lote?')}
-                    className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
-                  >
-                    Status atual
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSendMessage('O que é sangue artificial?')}
-                    className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
-                  >
-                    O que é sangue artificial?
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSendMessage('Por que o lote está em risco?')}
-                    className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
-                  >
-                    Por que o lote está em risco?
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
-                    className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
-                  >
-                    Limpeza de Ruído & pH
-                  </button>
+                  {QUICK_CHAT_ACTIONS.map((action, index) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => handleSendMessage(action)}
+                      className={`whitespace-nowrap text-[11px] border px-3 py-1 rounded-full transition-colors font-medium ${[
+                        'text-emerald-400 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10',
+                        'text-rose-400 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10',
+                        'text-sky-400 border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10',
+                        'text-violet-400 border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/10',
+                        'text-amber-400 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10',
+                        'text-slate-300 border-slate-700 bg-slate-800/40 hover:bg-slate-800',
+                      ][index]}`}
+                    >
+                      {action}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Caixa de Entrada de Texto */}
                 <form
-                  onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }}
+                  onSubmit={(event) => event.preventDefault()}
                   className="flex gap-2 items-center"
                 >
                   <input
                     type="text"
                     value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Pergunte sobre os lotes, sensores ou previsões..."
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
+                    disabled
+                    placeholder="Selecione uma das opções acima para consultar a IA Flow..."
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-500 placeholder-slate-500 transition-all font-sans cursor-not-allowed"
                   />
                   <Button
                     type="submit"
-                    className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+                    disabled
+                    aria-label="Envio manual desativado"
+                    className="bg-slate-800 text-slate-500 p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 cursor-not-allowed"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
