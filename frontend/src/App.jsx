@@ -76,11 +76,16 @@ const createStrategicChatCard = (action, lot, telemetry) => {
     temperaturaForaDaFaixa && `A temperatura de ${temperatura.toFixed(1)}°C está fora da faixa segura de 35,0 a 37,5°C.`,
   ].filter(Boolean);
   const economia = estabilidade === 'CRÍTICO' ? 42500 : estabilidade === 'ALERTA' ? 28500 : 18000;
+  const estabilidadeVisual = estabilidade === 'ESTÁVEL'
+    ? { progress: 100, color: 'bg-emerald-400' }
+    : estabilidade === 'ALERTA'
+      ? { progress: 65, color: 'bg-purple-400' }
+      : { progress: 35, color: 'bg-purple-400' };
   const metrics = [
-    { label: 'Lote', value: lotId },
-    { label: 'Vazão', value: `${vazao.toFixed(1)} L/min` },
-    { label: 'Temperatura', value: `${temperatura.toFixed(1)}°C` },
-    { label: 'Estabilidade', value: estabilidade },
+    { label: 'Lote', value: lotId, progress: 100, color: 'bg-purple-400' },
+    { label: 'Vazão', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400' },
+    { label: 'Temperatura', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-amber-400' },
+    { label: 'Estabilidade', value: estabilidade, ...estabilidadeVisual },
   ];
 
   if (action === STRATEGIC_CHAT_ACTIONS[0]) {
@@ -274,6 +279,7 @@ export default function App() {
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime] = useState(null);
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
+  const [zoomedChatCard, setZoomedChatCard] = useState(null);
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   const [accessibilityPreferences, setAccessibilityPreferences] = useState(() => {
     try {
@@ -365,7 +371,10 @@ export default function App() {
   // Fecha a sobreposição sem interferir no estado do dashboard.
   useEffect(() => {
     const handleEscape = (event) => {
-      if (event.key === 'Escape') setIsChatFullscreen(false);
+      if (event.key === 'Escape') {
+        setIsChatFullscreen(false);
+        setZoomedChatCard(null);
+      }
     };
 
     window.addEventListener('keydown', handleEscape);
@@ -2228,17 +2237,43 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                 {messages.map((msg, index) => (
                   <div 
                     key={index}
-                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
+                    onClick={() => {
+                      if (msg.role === 'assistant' && msg.showAnalysisCard) {
+                        setZoomedChatCard({
+                          eyebrow: 'Laudo clínico ampliado',
+                          title: `Laudo Clínico do Lote ${selectedLot}`,
+                          summary: currentReading?.alerta_mensagem || 'Leitura de telemetria ativa para o lote selecionado.',
+                          metrics: [
+                            { label: 'Lote', value: selectedLot, progress: 100, color: 'bg-purple-400' },
+                            { label: 'Vazão', value: `${rawFlow.toFixed(1)} L/min`, progress: Math.min(100, (rawFlow / 6.5) * 100), color: 'bg-cyan-400' },
+                            { label: 'Temperatura', value: `${rawTemp.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((rawTemp - 30) / 10) * 100)), color: 'bg-amber-400' },
+                            { label: 'Estabilidade', value: currentReading?.status || 'ESTÁVEL', progress: currentReading?.status === 'CRÍTICO' ? 35 : currentReading?.status === 'ALERTA' ? 65 : 100, color: currentReading?.status === 'ESTÁVEL' ? 'bg-emerald-400' : 'bg-purple-400' },
+                          ],
+                        });
+                      }
+                    }}
+                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'} ${msg.showAnalysisCard ? 'cursor-zoom-in' : ''}`}
                   >
                     {msg.content && (
                       <>
                         <div
+                          onClick={() => {
+                            if (msg.role === 'assistant') {
+                              setZoomedChatCard({
+                                eyebrow: 'Resposta da IA Flow',
+                                title: 'Resposta ampliada',
+                                summary: msg.content,
+                                metrics: [],
+                              });
+                            }
+                          }}
                           className={`accessibility-zoom-target p-3.5 rounded-2xl text-sm leading-relaxed ${
                             msg.role === 'user'
                               ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60'
-                              : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
+                              : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border cursor-zoom-in relative pr-11'
                           }`}
                         >
+                          {msg.role === 'assistant' && <Maximize2 className="absolute right-3 top-3 h-4 w-4 text-sky-400" />}
                           <div className="whitespace-pre-line font-sans">{msg.content}</div>
                         </div>
 
@@ -2249,17 +2284,32 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
                     )}
 
                     {msg.role === 'assistant' && msg.strategicCard && (
-                      <article className="mt-2.5 w-full rounded-xl border border-sky-500/30 bg-slate-950/95 p-4 shadow-2xl">
-                        <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-sky-400">
-                          {msg.strategicCard.eyebrow}
-                        </p>
+                      <article
+                        onClick={() => setZoomedChatCard(msg.strategicCard)}
+                        className="mt-2.5 w-full cursor-zoom-in rounded-xl border border-sky-500/30 bg-slate-950/95 p-4 shadow-2xl transition-transform duration-200 hover:scale-[1.01]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-sky-400">
+                            {msg.strategicCard.eyebrow}
+                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-emerald-300">SINAL SERIAL</span>
+                            <Maximize2 className="h-4 w-4 text-sky-400" />
+                          </div>
+                        </div>
                         <h4 className="mt-1 text-sm font-bold text-white">{msg.strategicCard.title}</h4>
                         <p className="mt-2 text-xs leading-relaxed text-slate-300">{msg.strategicCard.summary}</p>
                         <dl className="mt-3 grid grid-cols-2 gap-2">
                           {msg.strategicCard.metrics.map((metric) => (
                             <div key={metric.label} className="rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-2">
-                              <dt className="font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
+                              <div className="flex items-center justify-between gap-1">
+                                <dt className="font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
+                                <span className="rounded border border-slate-700 px-1 py-0.5 font-mono text-[7px] text-slate-400">TELEMETRIA ATIVA</span>
+                              </div>
                               <dd className="mt-0.5 text-[11px] font-semibold text-slate-200">{metric.value}</dd>
+                              <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-800">
+                                <div className={`h-full rounded-full ${metric.color}`} style={{ width: `${metric.progress}%` }} />
+                              </div>
                             </div>
                           ))}
                         </dl>
@@ -3572,6 +3622,56 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
         <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10">
           <EmergencySimulator />
         </main>
+      )}
+
+      {zoomedChatCard && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+          role="presentation"
+          onClick={() => setZoomedChatCard(null)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="chat-card-modal-title"
+            className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-sky-400/30 bg-slate-950 p-6 shadow-[0_0_50px_rgba(34,211,238,0.18)] sm:p-8"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setZoomedChatCard(null)}
+              aria-label="Fechar resposta ampliada"
+              className="absolute right-4 top-4 rounded-lg border border-slate-700 p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="pr-12 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-400">
+              {zoomedChatCard.eyebrow}
+            </p>
+            <h2 id="chat-card-modal-title" className="mt-2 pr-12 text-2xl font-bold text-white sm:text-3xl">
+              {zoomedChatCard.title}
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
+              {zoomedChatCard.summary}
+            </p>
+            {zoomedChatCard.metrics?.length > 0 && (
+              <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+                {zoomedChatCard.metrics.map((metric) => (
+                  <div key={metric.label} className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="font-mono text-[10px] uppercase tracking-widest text-slate-400">{metric.label}</dt>
+                      <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-emerald-300">TELEMETRIA ATIVA</span>
+                    </div>
+                    <dd className="mt-2 text-lg font-semibold text-white">{metric.value}</dd>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                      <div className={`h-full rounded-full transition-all duration-500 ${metric.color}`} style={{ width: `${metric.progress}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </section>
+        </div>
       )}
 
       {/* Modal de Criação de Novo Lote */}
