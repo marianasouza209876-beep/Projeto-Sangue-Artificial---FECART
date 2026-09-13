@@ -901,6 +901,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     return (
       <LandingPage
         onNavigate={setActiveTab}
+        onStartDemo={() => {
+          setSelectedLot(null);
+          setActiveTab('dashboard');
+        }}
         onInjectReading={handleInjectReading}
         apiBase={API_BASE}
       />

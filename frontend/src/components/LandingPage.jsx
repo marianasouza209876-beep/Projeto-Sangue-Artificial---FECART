@@ -13,12 +13,11 @@ import {
   X,
   ShieldCheck,
   CheckCircle2,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuickEntryModal } from "./QuickEntryModal";
 
-export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
+export function LandingPage({ onNavigate, onStartDemo, onInjectReading, apiBase }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -150,30 +149,11 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
               <div className="flex flex-wrap gap-3.5 pt-2">
                 <Button
                   size="lg"
-                  onClick={() => onNavigate("emergency")}
-                  className="gap-2 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white shadow-[0_0_25px_rgba(255,42,66,0.5)] text-sm px-6 h-12 font-bold border border-rose-400/30"
+                  onClick={onStartDemo}
+                  className="h-12 w-full gap-2 border border-fuchsia-400/30 bg-gradient-to-r from-rose-600 via-fuchsia-600 to-violet-600 px-6 text-sm font-bold text-white shadow-[0_0_25px_rgba(217,70,239,0.35)] hover:from-rose-500 hover:via-fuchsia-500 hover:to-violet-500 sm:w-auto"
                 >
-                  <Zap className="h-4 w-4" />
-                  Simulador de Urgência (IA)
+                  Acessar Plataforma de Demonstração
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => onNavigate("dashboard")}
-                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-5 h-12"
-                >
-                  <Activity className="h-4 w-4 text-rose-500" />
-                  Monitor Clínico
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => onNavigate("forecast")}
-                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-5 h-12"
-                >
-                  <BrainCircuit className="h-4 w-4 text-sky-400" />
-                  Previsão IA
                 </Button>
               </div>
             </div>
