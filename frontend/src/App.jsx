@@ -815,6 +815,7 @@ while True:
     return (
       <LandingPage
         onNavigate={setActiveTab}
+        onStartDemo={() => setActiveTab('dashboard')}
         onInjectReading={handleInjectReading}
         apiBase={API_BASE}
       />
