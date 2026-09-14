@@ -26,7 +26,7 @@ export function createSerialConnection(serial, emit) {
     if (active.reader) await active.reader.cancel().catch(() => {});
     await active.done;
   };
-  const connect = async (baudRate = 115200) => {
+  const connect = async (baudRate = 115200, selectedPort = null) => {
     if (session) return false;
     if (!serial) { emit({ status: 'OFFLINE', error: 'Use Chrome ou Edge no computador, em HTTPS ou localhost.' }); return false; }
     const active = { stopped: false, reader: null };
@@ -36,7 +36,9 @@ export function createSerialConnection(serial, emit) {
       let port;
       let opened = false;
       try {
-        port = await serial.requestPort();
+        // Portas autorizadas anteriormente podem ser reabertas sem interação.
+        // Para a primeira autorização, o navegador ainda exige gesto do usuário.
+        port = selectedPort || await serial.requestPort();
         if (active.stopped) return;
         await port.open({ baudRate });
         opened = true;

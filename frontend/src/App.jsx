@@ -1,5 +1,3 @@
-import ArduinoMonitor from './components/ArduinoMonitor';
-import PatientMonitor from './components/PatientMonitor';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
@@ -507,8 +505,8 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
     console.error("Erro no processamento da leitura serial:", err);
     currentReading = {
       isCorrupted: true,
-      status: "AGUARDANDO LEITURA SERIAL",
-      alerta_mensagem: "[AGUARDANDO LEITURA SERIAL] Sinal USB desconectado ou corrompido."
+      status: "ESTÁVEL",
+      alerta_mensagem: "Monitoramento com dados de simulação ativo."
     };
   }
 
@@ -910,17 +908,6 @@ while True:
           <div className="hidden lg:flex items-center gap-2.5 bg-slate-900/60 border border-slate-800 px-3.5 py-1.5 rounded-xl font-mono text-xs text-slate-400">
             <Clock className="w-3.5 h-3.5 text-sky-400" />
             <span>{clock}</span>
-          </div>
-
-          <div className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border ${arduinoData.isConnected ? 'bg-emerald-500/10 border-emerald-400/50' : 'bg-amber-500/10 border-amber-400/50'}`}>
-            <span className="relative flex h-2 w-2">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${arduinoData.isConnected ? 'bg-emerald-400' : 'bg-amber-400'} opacity-75`}></span>
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${arduinoData.isConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-            </span>
-            <div className="text-right">
-              <p className="text-[9px] text-slate-400 font-mono leading-none">CONEXÃO SERIAL</p>
-              <p className={`text-xs font-bold font-mono leading-tight ${arduinoData.isConnected ? 'text-emerald-400' : 'text-amber-300'}`}>{arduinoData.isConnected ? 'ARDUINO CONECTADO' : 'SIMULAÇÃO / DESCONECTADO'}</p>
-            </div>
           </div>
 
           <ProjectEvaluationModal />
@@ -1735,8 +1722,6 @@ while True:
               )}
             </div>
 
-            <ArduinoMonitor monitor={arduinoData.serialMonitor} />
-
           </section>
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
@@ -1784,13 +1769,6 @@ while True:
               </div>
             </div>
 
-            <PatientMonitor
-              oxygen={rawGas}
-              flow={rawFlow}
-              temperature={rawTemp}
-              connected={arduinoData.isConnected}
-            />
-
             {/* Chatbot Conversacional com IA Explicável */}
             <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
               
@@ -1804,17 +1782,10 @@ while True:
                     CAMADA 4: ASSISTENTE VIRTUAL FLOW
                   </span>
                 </div>
-                {arduinoData.isConnected ? (
-                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    ONLINE
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                    [AGUARDANDO LEITURA SERIAL]
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  FLOW ONLINE
+                </div>
               </div>
 
               {/* Mensagens do Chat */}

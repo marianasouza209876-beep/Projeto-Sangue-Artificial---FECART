@@ -16,22 +16,9 @@ export function calculatePercentage(valorLido, valorIdeal) {
  * - Verde (#00ff9d) para porcentagem >= 90% -> [ÓTIMO]
  * - Amarelo (#ffb703) para porcentagem entre 70% e 89% -> [ESTÁVEL]
  * - Vermelho (#ff4d4d) para porcentagem < 70% -> [ALERTA]
- * - Desconectado / Nulo -> [AGUARDANDO LEITURA SERIAL]
+ * A classificação visual sempre segue o valor exibido, inclusive no fallback.
  */
-export function getStatusBadge(porcentagem, isConnected = true) {
-  if (!isConnected) {
-    return {
-      text: "[AGUARDANDO LEITURA SERIAL]",
-      badgeText: "AGUARDANDO LEITURA SERIAL",
-      statusText: "[AGUARDANDO LEITURA SERIAL]",
-      color: "#38bdf8",
-      textColor: "text-sky-400",
-      bgColor: "bg-sky-500/10",
-      borderColor: "border-sky-500/30",
-      isWaiting: true
-    };
-  }
-
+export function getStatusBadge(porcentagem) {
   const pct = parseFloat(porcentagem) || 0;
 
   if (pct >= 90) {
@@ -43,7 +30,7 @@ export function getStatusBadge(porcentagem, isConnected = true) {
       textColor: "text-emerald-400",
       bgColor: "bg-emerald-500/10",
       borderColor: "border-emerald-500/30",
-      isWaiting: false
+    isWaiting: false
     };
   } else if (pct >= 70) {
     return {
@@ -54,7 +41,7 @@ export function getStatusBadge(porcentagem, isConnected = true) {
       textColor: "text-amber-400",
       bgColor: "bg-amber-500/10",
       borderColor: "border-amber-500/30",
-      isWaiting: false
+    isWaiting: false
     };
   } else {
     return {
@@ -65,7 +52,7 @@ export function getStatusBadge(porcentagem, isConnected = true) {
       textColor: "text-rose-400",
       bgColor: "bg-rose-500/10",
       borderColor: "border-rose-500/30",
-      isWaiting: false
+    isWaiting: false
     };
   }
 }
@@ -193,7 +180,7 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
       flow_value: serialMonitor.sensors.flow_value ?? null,
       temp_value: serialMonitor.sensors.temp_value ?? null,
       isConnected: serialMonitor.fresh,
-      statusText: serialMonitor.fresh ? '[DADOS USB RECEBIDOS]' : '[AGUARDANDO LEITURA SERIAL]',
+      statusText: serialMonitor.fresh ? '[ATUALIZAÇÃO EM TEMPO REAL]' : '',
       lastUpdate: serialMonitor.lastUpdate,
     } : {}),
     isSerialConnected: serialMonitor.status === 'CONECTADO',

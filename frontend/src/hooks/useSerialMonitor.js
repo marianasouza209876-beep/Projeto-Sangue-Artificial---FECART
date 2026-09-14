@@ -30,6 +30,13 @@ export function useSerialMonitor() {
       });
     });
     owner.current = connection;
+    // Reconecta silenciosamente uma porta que já foi autorizada neste navegador.
+    // Sem permissão prévia, a aplicação mantém os dados de simulação.
+    if (supported) {
+      void navigator.serial.getPorts()
+        .then(ports => ports[0] && connection.connect(115200, ports[0]))
+        .catch(() => {});
+    }
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => { mounted = false; clearInterval(timer); void connection.disconnect(); };
   }, [supported]);
