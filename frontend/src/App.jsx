@@ -1,11 +1,19 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import {
-  Activity,
-  Database,
-  Cpu,
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
+import ArduinoMonitor from './components/ArduinoMonitor';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Activity, 
+  Database, 
+  Cpu, 
+  Terminal, 
+  Send, 
+  HelpCircle, 
+  CheckCircle, 
+  AlertTriangle, 
+  XCircle, 
+  Play, 
+  RefreshCw, 
+  FileText,
+  Copy,
   ChevronRight,
   TrendingUp,
   Droplets,
@@ -15,21 +23,16 @@ import {
   Thermometer,
   Layers,
   Clock,
+  Sparkles,
+  Info,
   Plus,
-  Zap,
-  Maximize2,
-  Minimize2,
-  X,
-  Contrast,
-  MousePointer2,
-  Accessibility,
-  Wifi
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
-import { DemandChart, getForecastScenario } from '@/components/DemandChart';
+import { DemandChart } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
-import { ProjectEvaluationModal } from '@/components/QuickEntryModal';
+import { QuickEntryModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
 import {
   Dialog,
@@ -38,136 +41,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useArduinoData, getStatusBadge } from '@/hooks/useArduinoData';
+import { useArduinoData, getStatusBadge, calculatePercentage } from '@/hooks/useArduinoData';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
-
-const QUICK_CHAT_ACTIONS = [
-  'Qual o status atual do lote?',
-  'O que é o Sangue Artificial (HBOC)?',
-  'Por que o lote está em risco?',
-  'Qual a recomendação da IA e o impacto no estoque?',
-  'Qual a economia financeira e redução de perdas?',
-  'Como o modelo preditivo calcula essa curva?',
-];
-
-const STRATEGIC_CHAT_ACTIONS = QUICK_CHAT_ACTIONS.slice(2);
-
-const createChatResponseCard = (action, lot, telemetry) => {
-  const parseTelemetryValue = (value, fallback) => {
-    const parsed = Number.parseFloat(String(value).replace(',', '.'));
-    return Number.isFinite(parsed) ? parsed : fallback;
-  };
-  const vazao = parseTelemetryValue(telemetry?.vazao_l_min ?? telemetry?.vazao, 4.8);
-  const temperatura = parseTelemetryValue(telemetry?.temperatura_c ?? telemetry?.temperatura, 36.5);
-  const oxigenacao = parseTelemetryValue(telemetry?.oxigenacao_pct ?? telemetry?.oxigenacao, 96);
-  const estabilidade = telemetry?.status || lot?.status || 'ESTÁVEL';
-  const lotId = lot?.id || 'lote ativo';
-  const vazaoForaDaFaixa = vazao < 4 || vazao > 6.5;
-  const temperaturaForaDaFaixa = temperatura < 35 || temperatura > 37.5;
-  const leiturasForaDaFaixa = [
-    vazaoForaDaFaixa && `A vazão de ${vazao.toFixed(1)} L/min está fora da faixa ideal de 4,0 a 6,5 L/min.`,
-    temperaturaForaDaFaixa && `A temperatura de ${temperatura.toFixed(1)}°C está fora da faixa segura de 35,0 a 37,5°C.`,
-  ].filter(Boolean);
-  const economia = estabilidade === 'CRÍTICO' ? 42500 : estabilidade === 'ALERTA' ? 28500 : 18000;
-  const metrics = [
-    { label: 'OXIGENAÇÃO', value: `${oxigenacao.toFixed(0)}%`, progress: Math.min(100, oxigenacao), color: 'bg-emerald-400', icon: Droplets, iconColor: 'text-emerald-300', iconBackground: 'bg-emerald-500/15 border-emerald-400/40', badgeClass: 'border-emerald-400/30 bg-emerald-500/5 text-emerald-200' },
-    { label: 'VAZÃO', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400', icon: Waves, iconColor: 'text-cyan-300', iconBackground: 'bg-cyan-500/15 border-cyan-400/40', badgeClass: 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200' },
-    { label: 'TEMPERATURA', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-amber-400', icon: Thermometer, iconColor: 'text-amber-300', iconBackground: 'bg-amber-500/15 border-amber-400/40', badgeClass: 'border-amber-400/30 bg-amber-500/5 text-amber-200' },
-    { label: 'ESTABILIDADE', value: estabilidade, progress: estabilidade === 'ESTÁVEL' ? 100 : estabilidade === 'ALERTA' ? 65 : 35, color: 'bg-purple-400', icon: ShieldCheck, iconColor: 'text-purple-300', iconBackground: 'bg-purple-500/15 border-purple-400/40', badgeClass: 'border-purple-400/30 bg-purple-500/5 text-purple-200' },
-  ];
-
-  if (action === QUICK_CHAT_ACTIONS[0]) {
-    return {
-      eyebrow: 'Telemetria do Arduino',
-      title: `Status do lote ${lotId}`,
-      summary: telemetry?.alerta_mensagem || `Lote ${lotId} em ${estabilidade.toLowerCase()}, com leituras acompanhadas em tempo real.`,
-      metrics,
-      icon: Activity,
-    };
-  }
-
-  if (action === QUICK_CHAT_ACTIONS[1]) {
-    return {
-      eyebrow: 'Fundamentos do composto',
-      title: 'O que é o Sangue Artificial (HBOC)?',
-      summary: 'Carreador sintético de oxigênio monitorado pela Flow.',
-      conceptual: true,
-      conceptualBlocks: [
-        {
-          title: 'Composto Biotecnológico (HBOC)',
-          text: 'Carreador sintético para suporte temporário de oxigênio.',
-          icon: Droplets,
-          accent: 'border-cyan-500/30 bg-cyan-500/5 text-cyan-300',
-        },
-        {
-          title: 'Indicação e Suporte Emergencial',
-          text: 'Indicado para suporte em emergências e escassez crítica.',
-          icon: Activity,
-          accent: 'border-violet-500/30 bg-violet-500/5 text-violet-300',
-        },
-        {
-          title: 'Estabilidade e Monitoramento',
-          text: 'A Flow acompanha a integridade de cada lote continuamente.',
-          icon: ShieldCheck,
-          accent: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
-        },
-      ],
-      icon: Droplets,
-    };
-  }
-
-  if (action === STRATEGIC_CHAT_ACTIONS[0]) {
-    return {
-      eyebrow: 'Diagnóstico do Arduino',
-      title: 'Por que o lote está em risco?',
-      summary: leiturasForaDaFaixa.length
-        ? `${leiturasForaDaFaixa[0]} Pode elevar o risco do lote ${lotId}.`
-        : `Lote ${lotId} dentro da faixa operacional e sem risco imediato.`,
-      metrics,
-      icon: AlertTriangle,
-    };
-  }
-
-  if (action === STRATEGIC_CHAT_ACTIONS[1]) {
-    return {
-      eyebrow: 'Ação recomendada pela IA',
-      title: 'Correção e impacto no estoque',
-      summary: `Manter 36,5°C e vazão entre 4,0 e 6,5 L/min. Reabasteça antes do limite crítico.`,
-      metrics,
-      icon: Zap,
-    };
-  }
-
-  if (action === STRATEGIC_CHAT_ACTIONS[2]) {
-    return {
-      eyebrow: 'Impacto financeiro',
-      title: 'Economia e redução de perdas',
-      summary: `Monitorar evita descarte precoce. Economia estimada: R$ ${economia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
-      metrics,
-      icon: TrendingUp,
-    };
-  }
-
-  return {
-    eyebrow: 'Modelo preditivo explicável',
-    title: 'Como a curva é calculada?',
-    summary: `A IA cruza vazão, temperatura e histórico clínico. A curva do lote ${lotId} é atualizada em tempo real.`,
-    metrics,
-    icon: Activity,
-  };
-};
 
 // Sparkline SVG Component
 const Sparkline = ({ data, color = "#00e5a3" }) => {
   if (!data || data.length < 2) return null;
   const width = 100;
   const height = 26;
-
+  
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min === 0 ? 1 : max - min;
-
+  
   const points = data.map((val, index) => {
     const x = (index / (data.length - 1)) * width;
     const y = height - ((val - min) / range) * height;
@@ -188,24 +75,6 @@ const Sparkline = ({ data, color = "#00e5a3" }) => {
   );
 };
 
-const AccessibilityToggle = ({ icon: Icon, title, description, enabled, onChange }) => (
-  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 transition-colors hover:border-slate-700">
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400">
-      <Icon className="h-4 w-4" />
-    </span>
-    <span className="min-w-0 flex-1">
-      <span className="block text-sm font-semibold text-slate-100">{title}</span>
-      <span className="mt-0.5 block text-xs leading-5 text-slate-400">{description}</span>
-    </span>
-    <input
-      type="checkbox"
-      checked={enabled}
-      onChange={onChange}
-      className="h-4 w-4 shrink-0 accent-rose-500"
-    />
-  </label>
-);
-
 // Lista Oficial das 9 Finalidades Clínicas
 const FINALIDADES_OPCOES = [
   "Atendimento Pré-Hospitalar de Emergência",
@@ -217,45 +86,6 @@ const FINALIDADES_OPCOES = [
   "Doação de Sangue",
   "Coleta e Reserva de Sangue",
   "Tipagem Sanguínea e Testes de Compatibilidade"
-];
-
-const LOTES_DEMONSTRACAO = [
-  {
-    id: "DEMO-EMERGENCIA",
-    name: "Lote DEMO Emergência",
-    finalidade: "Atendimento Pré-Hospitalar de Emergência",
-    icon: "🚨",
-    title: "Atendimento Pré-Hospitalar / Emergência",
-    focus: "Foco em Oxigenação B1 e Hemodinâmica B2",
-    accent: "border-rose-500/40 hover:border-rose-400 hover:bg-rose-500/10"
-  },
-  {
-    id: "DEMO-CARDIO",
-    name: "Lote DEMO Cardiovascular",
-    finalidade: "Cirurgia Cardíaca e Cardiovascular",
-    icon: "🫀",
-    title: "Cirurgia Cardiovascular",
-    focus: "Foco em perfusão, fluxo e estabilidade térmica",
-    accent: "border-sky-500/40 hover:border-sky-400 hover:bg-sky-500/10"
-  },
-  {
-    id: "DEMO-ONCO",
-    name: "Lote DEMO Oncológico",
-    finalidade: "Tratamento Oncológico",
-    icon: "🧬",
-    title: "Tratamento Oncológico / Anemia Crítica",
-    focus: "Foco em compatibilidade e carga de O₂",
-    accent: "border-fuchsia-500/40 hover:border-fuchsia-400 hover:bg-fuchsia-500/10"
-  },
-  {
-    id: "DEMO-RESERVA",
-    name: "Lote DEMO Reserva",
-    finalidade: "Doação de Sangue",
-    icon: "🩸",
-    title: "Unidade de Doação e Reserva",
-    focus: "Foco em conservação e estabilidade de estoque",
-    accent: "border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/10"
-  }
 ];
 
 // Protocolos Clínicos Médicos
@@ -291,7 +121,7 @@ const PROTOCOLOS_CLINICOS = {
 };
 
 export default function App() {
-  // Navegação: 'landing' | 'dashboard' | 'forecast' | 'emergency'
+  // Navegação: 'landing' | 'dashboard' | 'forecast' | 'tecnico'
   const [activeTab, setActiveTab] = useState('landing');
   const [clock, setClock] = useState("--:--:--");
 
@@ -304,45 +134,34 @@ export default function App() {
   }, []);
 
   // Estados da Aplicação
-  const [selectedLot, setSelectedLot] = useState(null);
-  const [lots, setLots] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [typingLotId, setTypingLotId] = useState(null);
-  const [packetCount, setPacketCount] = useState(1420);
-  const [lastPacketTime] = useState(null);
-  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
-  const [zoomedChatCard, setZoomedChatCard] = useState(null);
-  const [forecastDetailModal, setForecastDetailModal] = useState(null);
-  const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
-  const [accessibilityPreferences, setAccessibilityPreferences] = useState(() => {
-    try {
-      return {
-        highContrast: localStorage.getItem('flow-accessibility-high-contrast') === 'true',
-        hoverZoom: localStorage.getItem('flow-accessibility-hover-zoom') === 'true',
-        reducedMotion: localStorage.getItem('flow-accessibility-reduced-motion') === 'true',
-        fontSize: localStorage.getItem('flow-accessibility-font-size') || 'normal',
-      };
-    } catch {
-      return { highContrast: false, hoverZoom: false, reducedMotion: false, fontSize: 'normal' };
+  const [selectedLot, setSelectedLot] = useState("SA-025");
+  const [lots, setLots] = useState([
+    {
+      id: "SA-025",
+      name: "Lote Teste Primário",
+      createdAt: new Date().toLocaleString('pt-BR'),
+      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
+      destino: "Simulação Fisiológica Humana",
+      intervaloLeitura: "5s",
+      protocolo: PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"]
     }
-  });
-  const chatMessagesRef = useRef(null);
+  ]);
+  const [history, setHistory] = useState([]);
+  const [audits, setAudits] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [copiedScript, setCopiedScript] = useState(false);
+  const [_packetCount, setPacketCount] = useState(1420);
+  const [lastPacketTime, setLastPacketTime] = useState(null);
+  const messagesEndRef = useRef(null);
 
-  const [chatHistoryByLot, setChatHistoryByLot] = useState({});
-  const messages = selectedLot ? chatHistoryByLot[selectedLot] || [] : [];
-  const isTyping = typingLotId === selectedLot;
-
-  const appendMessagesToLot = (lotId, newMessages) => {
-    if (!lotId) return;
-
-    setChatHistoryByLot((previousHistory) => ({
-      ...previousHistory,
-      [lotId]: [
-        ...(previousHistory[lotId] || []),
-        ...newMessages,
-      ],
-    }));
-  };
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: 'Olá! Sou a Flow, sua assistente virtual. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
+      explicabilidade: null
+    }
+  ]);
 
   // Carrega lotes cadastrados
   const fetchLots = async () => {
@@ -361,11 +180,6 @@ export default function App() {
 
   // Carrega histórico do lote selecionado
   const fetchHistory = async () => {
-    if (!selectedLot) {
-      setHistory([]);
-      return;
-    }
-
     try {
       const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
       if (res.ok) {
@@ -379,8 +193,24 @@ export default function App() {
     }
   };
 
+  // Carrega logs de auditoria
+  const fetchAudits = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/audits`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setAudits(data);
+        }
+      }
+    } catch (err) {
+      console.log("Erro ao carregar auditoria:", err);
+    }
+  };
+
   useEffect(() => {
     fetchLots();
+    fetchAudits();
   }, []);
 
   useEffect(() => {
@@ -388,87 +218,8 @@ export default function App() {
   }, [selectedLot]);
 
   useEffect(() => {
-    if (!selectedLot) return;
-
-    setChatHistoryByLot((previousHistory) => (
-      previousHistory[selectedLot]
-        ? previousHistory
-        : { ...previousHistory, [selectedLot]: [] }
-    ));
-  }, [selectedLot]);
-
-  const scrollToBottom = () => {
-    const chatContainer = chatMessagesRef.current;
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-  };
-
-  useLayoutEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
-
-  // Fecha a sobreposição sem interferir no estado do dashboard.
-  useEffect(() => {
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        setIsChatFullscreen(false);
-        setZoomedChatCard(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, []);
-
-  useEffect(() => {
-    document.body.style.overflow = isChatFullscreen ? 'hidden' : 'unset';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isChatFullscreen]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const preferences = [
-      ['highContrast', 'high-contrast', 'flow-accessibility-high-contrast'],
-      ['hoverZoom', 'enable-hover-zoom', 'flow-accessibility-hover-zoom'],
-      ['reducedMotion', 'accessibility-reduced-motion', 'flow-accessibility-reduced-motion'],
-    ];
-
-    preferences.forEach(([key, className, storageKey]) => {
-      root.classList.toggle(className, accessibilityPreferences[key]);
-      try {
-        localStorage.setItem(storageKey, String(accessibilityPreferences[key]));
-      } catch {
-        // Preferências continuam ativas nesta sessão caso o armazenamento esteja indisponível.
-      }
-    });
-
-    const fontScales = { small: '0.9', normal: '1', large: '1.12' };
-    root.style.setProperty('--accessibility-font-scale', fontScales[accessibilityPreferences.fontSize] || '1');
-    try {
-      localStorage.setItem('flow-accessibility-font-size', accessibilityPreferences.fontSize);
-    } catch {
-      // Preferências continuam ativas nesta sessão caso o armazenamento esteja indisponível.
-    }
-  }, [accessibilityPreferences]);
-
-  useEffect(() => {
-    const closeAccessibilityModal = (event) => {
-      if (event.key === 'Escape') setIsAccessibilityOpen(false);
-    };
-
-    window.addEventListener('keydown', closeAccessibilityModal);
-    return () => window.removeEventListener('keydown', closeAccessibilityModal);
-  }, []);
-
-  const toggleAccessibilityPreference = (preference) => {
-    setAccessibilityPreferences((current) => ({
-      ...current,
-      [preference]: !current[preference],
-    }));
-  };
 
   // Estados do Modal de Criação de Novo Lote
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -480,14 +231,14 @@ export default function App() {
 
   // Função para abrir o modal de criação de lote com campos auto-preenchidos
   const openCreateLotModal = () => {
-    const existingNumbers = (lots || []).map(l => {
+    const existingNumbers = lots.map(l => {
       const match = String(l.id).match(/SA-(\d+)/i);
       return match ? parseInt(match[1], 10) : 0;
     });
     const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 24) : 25;
     const nextNum = maxNum + 1;
     const autoCode = `SA-${String(nextNum).padStart(3, '0')}`;
-
+    
     // Data e Hora do sistema em formato DD/MM/AAAA, HH:mm:ss
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
@@ -520,7 +271,7 @@ export default function App() {
       return;
     }
 
-    const finalCode = newLotCode.trim() || `SA-${String((lots?.length || 0) + 25).padStart(3, '0')}`;
+    const finalCode = newLotCode.trim() || `SA-${String(lots.length + 25).padStart(3, '0')}`;
     const finalName = newLotName.trim();
     const finalCreatedAt = newLotCreatedAt || new Date().toLocaleString('pt-BR');
     const finalFinalidade = newLotFinalidade;
@@ -549,7 +300,7 @@ export default function App() {
       await fetch(`${API_BASE}/api/lots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ 
           id: finalCode,
           nome: finalName,
           data_criacao: new Date().toISOString(),
@@ -566,61 +317,79 @@ export default function App() {
 
   // Deletar lote
   const handleDeleteLot = (lotIdToDelete) => {
-    const remainingLots = (lots || []).filter(lot => lot?.id !== lotIdToDelete);
-    setLots(remainingLots);
-    if (selectedLot === lotIdToDelete) {
-      setSelectedLot(remainingLots[0]?.id || null);
+    setLots(prev => prev.filter(lot => lot.id !== lotIdToDelete));
+    if (selectedLot === lotIdToDelete && lots.length > 1) {
+      setSelectedLot(lots[0].id);
     }
   };
 
-  const handleQuickStartLot = (demoLot) => {
-    const createdAt = new Date().toLocaleString('pt-BR');
-    const newLot = {
-      id: demoLot.id,
-      name: demoLot.name,
-      nome: demoLot.name,
-      createdAt,
-      data_criacao: createdAt,
-      finalidade: demoLot.finalidade,
-      destino: demoLot.finalidade,
-      responsaveis: "Demonstração Flowtificial",
-      intervaloLeitura: "5s",
-      protocolo: PROTOCOLOS_CLINICOS[demoLot.finalidade] || PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"],
-      status: "ESTÁVEL"
+  // Injeção de leitura manual / QR Code
+  const handleInjectReading = (reading) => {
+    const oxVal = parseFloat(String(reading.oxigenacao).replace("%", "").replace(",", ".")) / 100;
+    const tempVal = parseFloat(String(reading.temperatura).replace("C", "").replace(",", "."));
+    const vazaoVal = parseFloat(String(reading.vazao).replace(",", "."));
+
+    const newEntry = {
+      oxigenacao_limpa: isNaN(oxVal) ? 0.95 : oxVal,
+      temperatura_c: isNaN(tempVal) ? 36.8 : tempVal,
+      vazao_l_min: isNaN(vazaoVal) ? 4.8 : vazaoVal,
+      ph: 7.40,
+      viscosidade_cp: 3.8,
+      hematocrito_pct: 40.0,
+      status: (oxVal < 0.90 || tempVal > 38.0) ? "CRÍTICO" : "ESTÁVEL",
+      alerta_mensagem: (oxVal < 0.90 || tempVal > 38.0)
+        ? "ALERTA: Parâmetros fora da faixa fisiológica ideal."
+        : "Sistema operando dentro dos parâmetros de normalidade."
     };
 
-    setLots((previousLots) => {
-      const currentLots = previousLots || [];
-      return currentLots.some((lot) => lot?.id === demoLot.id)
-        ? currentLots
-        : [...currentLots, newLot];
-    });
-    setSelectedLot(demoLot.id);
-    setActiveTab('dashboard');
+    setHistory(prev => [...prev, newEntry]);
+    setPacketCount(p => p + 1);
   };
 
   // Envio de pergunta e integração com chat
   const handleSendMessage = async (text) => {
-    if (!text || !text.trim() || !selectedLot) return;
-    const lotId = selectedLot;
+    if (!text || !text.trim()) return;
 
-    if (QUICK_CHAT_ACTIONS.includes(text)) {
-      appendMessagesToLot(lotId, [
+    // Resposta fixa: O que é sangue artificial
+    if (text.toLowerCase().includes("o que é sangue artificial")) {
+      const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
+
+Diferente do sangue doado tradicional, o sangue artificial:
+• Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata.
+• Dura muito mais tempo: Pode ser armazenado por meses sem estragar.
+• É livre de contaminações: Não transmite vírus ou bactérias.
+
+Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Perfluorocarbonos (PFCs), que são líquidos sintéticos capazes de carregar gases.
+
+Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
+
+      setMessages(prev => [
+        ...prev, 
         { role: 'user', content: text },
-        {
-          role: 'assistant',
-          content: '',
-          responseCard: createChatResponseCard(text, activeLotObj, activeLotTelemetry),
-        },
+        { role: 'assistant', content: respostaPronta }
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    // Resposta fixa: Condições do sangue / Status atual
+    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
+      setMessages(prev => [...prev, 
+        { role: 'user', content: text },
+        { 
+          role: 'assistant', 
+          content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`,
+          showAnalysisCard: true
+        }
       ]);
       setInputValue('');
       return;
     }
 
     const userMsg = { role: 'user', content: text };
-    appendMessagesToLot(lotId, [userMsg]);
+    setMessages(prev => [...prev, userMsg]);
     setInputValue('');
-    setTypingLotId(lotId);
+    setIsTyping(true);
 
     try {
       const res = await fetch(`${API_BASE}/api/chat`, {
@@ -628,40 +397,37 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pergunta: text })
       });
-
+      
       if (res.ok) {
         const data = await res.json();
         setTimeout(() => {
-          appendMessagesToLot(lotId, [{
-            role: 'assistant',
-            content: data.resposta,
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: data.resposta, 
             explicabilidade: data.explicabilidade,
-            showAnalysisCard: false
+            showAnalysisCard: text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")
           }]);
-          setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
-
+          setIsTyping(false);
+          
           const match = text.toUpperCase().match(/SA-\d{3}/);
           if (match) {
             setSelectedLot(match[0]);
           }
         }, 800);
       } else {
-        setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
+        setIsTyping(false);
       }
     } catch (err) {
       console.log("Erro no chat:", err);
-      setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
-      appendMessagesToLot(lotId, [{
-        role: 'assistant',
+      setIsTyping(false);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
         content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar a assistente Flow. Verifique se o backend está ativo.'
       }]);
     }
   };
 
-  const safeLots = lots || [];
-  const safeHistory = history || [];
-  const activeLotObj = safeLots.find(l => l?.id === selectedLot) || null;
-  const forecastScenario = getForecastScenario(selectedLot, activeLotObj);
+  const activeLotObj = lots.find(l => l.id === selectedLot) || lots[0];
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
 
   const isEmergenciaActive = activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023";
@@ -677,7 +443,7 @@ export default function App() {
   // Tratamento de exceção (try/catch) com fallback visual em caso de corrupção ou perda de sinal USB
   let currentReading;
   try {
-    currentReading = safeHistory.length > 0 ? safeHistory[safeHistory.length - 1] : {
+    currentReading = history.length > 0 ? history[history.length - 1] : {
       oxigenacao_limpa: isEmergenciaActive ? 0.98 : isTraumaActive ? 0.99 : isCirurgiaCardiacaActive ? 0.985 : 0.95,
       temperatura_c: isEmergenciaActive ? 22.0 : isCirurgiaCardiacaActive ? 3.0 : 36.5,
       vazao_l_min: 4.8,
@@ -746,13 +512,12 @@ export default function App() {
   }
 
   // Hook global de dados do Arduino (B1, B2, B3, B4, B5 e conectividade serial)
-  const arduinoData = useArduinoData(currentReading || null, safeHistory, lastPacketTime);
-  const activeLotTelemetry = activeLotObj?.telemetry || currentReading;
+  const arduinoData = useArduinoData(currentReading, history, lastPacketTime);
 
   // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) para Atendimento Pré-Hospitalar de Emergência
-  const rawGas = arduinoData.gas_value || (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
-  const rawFlow = arduinoData.flow_value || currentReading?.vazao_l_min || 4.8;
-  const rawTemp = arduinoData.temp_value || currentReading?.temperatura_c || 22.0;
+  const rawGas = arduinoData.gas_value ?? (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
+  const rawFlow = arduinoData.flow_value ?? currentReading?.vazao_l_min ?? 4.8;
+  const rawTemp = arduinoData.temp_value ?? currentReading?.temperatura_c ?? 22.0;
 
   // B1: Saturação de O₂ (usa diretamente gas_value)
   const b1_val = rawGas;
@@ -991,10 +756,45 @@ export default function App() {
   const tc_b5_status = getStatusBadge(tc_b5_pct, arduinoData.isConnected);
 
   const getSparkValues = (key) => {
-    if (safeHistory.length === 0) {
-      return [currentReading?.[key] || 0, currentReading?.[key] || 0];
+    if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
+    return history.map(item => item[key]);
+  };
+
+  const pythonScript = `import time
+import json
+import random
+import requests
+
+API_URL = "${import.meta.env.VITE_API_URL || (window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : ''))}/api/sensor-data"
+LOTE_ID = "SA-025"
+
+print("Ponte de Dados Iniciada. Enviando para:", API_URL)
+t = 0
+while True:
+    # Leitura ou simulação de sensores físicos
+    ox = 95.0 + random.uniform(-1.0, 1.0)
+    temp = 36.5 + random.uniform(-0.3, 0.3)
+    vaz = 4.8 + random.uniform(-0.1, 0.1)
+    
+    payload = {
+        "lote_id": LOTE_ID,
+        "oxigenacao": f"{ox:.1f}%",
+        "temperatura": f"{temp:.1f}C",
+        "vazao": f"{vaz:.1f}"
     }
-    return safeHistory.map(item => item?.[key] || 0);
+    try:
+        r = requests.post(API_URL, json=payload, timeout=2.0)
+        print(f"POST {r.status_code} | Lote {LOTE_ID} | Ox: {ox:.1f}% | Temp: {temp:.1f}°C")
+    except Exception as e:
+        print("Erro ao enviar telemetria:", e)
+    
+    time.sleep(2.0)
+    t += 2`;
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(pythonScript);
+    setCopiedScript(true);
+    setTimeout(() => setCopiedScript(false), 2000);
   };
 
   // Se a aba for Landing Page, renderiza a tela de apresentação
@@ -1002,105 +802,17 @@ export default function App() {
     return (
       <LandingPage
         onNavigate={setActiveTab}
-        onStartDemo={() => {
-          setSelectedLot(null);
-          setActiveTab('dashboard');
-        }}
+        onInjectReading={handleInjectReading}
+        apiBase={API_BASE}
       />
     );
   }
 
-  // Apenas o Dashboard depende de um lote ativo. Previsão e Simulação de
-  // Emergência são ferramentas globais e continuam disponíveis sem lote.
-  if (activeTab === 'dashboard' && (!selectedLot || !activeLotObj)) {
-    return (
-      <main className="min-h-screen bg-[#0B0F19] px-4 py-10 text-slate-100 flex items-center justify-center sm:px-6">
-        <section className="w-full max-w-5xl rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl sm:p-9">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/10 shadow-[0_0_24px_rgba(244,63,94,0.2)]">
-              <FlaskConical className="h-7 w-7 text-rose-400" />
-            </div>
-            <p className="font-mono text-[11px] font-bold tracking-[0.22em] text-rose-400">MODO DEMONSTRAÇÃO</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-              Selecione uma Finalidade Clínica para Demonstração
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              Inicie um lote de exemplo com parâmetros pré-configurados ou cadastre um lote personalizado.
-            </p>
-            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button
-                className="ds-primary-action px-5"
-                onClick={openCreateLotModal}
-              >
-                <Plus className="mr-1.5 h-4 w-4" />
-                + Criar Lote Personalizado
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="ds-secondary-action"
-                onClick={() => setActiveTab('emergency')}
-              >
-                📈 Executar Simulação de Emergência
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-9 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {LOTES_DEMONSTRACAO.map((demoLot) => (
-              <button
-                key={demoLot.id}
-                type="button"
-                onClick={() => handleQuickStartLot(demoLot)}
-                className={`group rounded-2xl border bg-slate-950/60 p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${demoLot.accent}`}
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-2xl transition-transform duration-200 group-hover:scale-110">
-                  {demoLot.icon}
-                </span>
-                <h2 className="mt-4 text-sm font-bold leading-5 text-slate-100">{demoLot.title}</h2>
-                <p className="mt-2 text-xs leading-5 text-slate-400">{demoLot.focus}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
-                  Iniciar demonstração <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="glass-panel border-slate-700 bg-slate-950/95 text-slate-100 sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-white">
-                <Plus className="h-5 w-5 text-rose-500" />
-                Criar Lote Personalizado
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-400">
-                Cadastre os dados básicos para iniciar o monitoramento.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleConfirmCreateLot} className="grid gap-4">
-              {formError && <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-400">{formError}</p>}
-              <input value={newLotCode} disabled className="h-9 rounded-lg border border-slate-800 bg-slate-900/60 px-3 text-xs font-mono text-slate-400" />
-              <input value={newLotName} onChange={(event) => setNewLotName(event.target.value)} placeholder="Nome do lote" required className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-cyan-400" />
-              <select value={newLotFinalidade} onChange={(event) => setNewLotFinalidade(event.target.value)} className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-cyan-400">
-                {FINALIDADES_OPCOES.map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                <Button type="submit" className="ds-primary-action">Criar lote</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </main>
-    );
-  }
-
   return (
-    <div className={`min-h-screen bg-[#0B0F19] flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white ${accessibilityPreferences.hoverZoom ? 'enable-hover-zoom' : ''}`}>
+    <div className="min-h-screen bg-slate-950 flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white">
       {/* Background Decorativo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
-
+      
       {/* HEADER PRINCIPAL */}
       <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
         {/* Logo & Marca */}
@@ -1123,40 +835,40 @@ export default function App() {
 
         {/* Navegação entre Abas */}
         <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 shadow-inner">
-          <button
+          <button 
             onClick={() => setActiveTab('landing')}
             className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5"
           >
             <Layers className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Apresentação</span>
           </button>
-          <button
+          <button 
             onClick={() => setActiveTab('dashboard')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'dashboard'
-                ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm'
+              activeTab === 'dashboard' 
+                ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm' 
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Activity className="w-3.5 h-3.5 text-rose-500" />
             <span>Monitor Clínico</span>
           </button>
-          <button
+          <button 
             onClick={() => setActiveTab('forecast')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'forecast'
-                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm'
+              activeTab === 'forecast' 
+                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm' 
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
             <span className="hidden sm:inline">Previsão Demanda</span>
           </button>
-          <button
+          <button 
             onClick={() => setActiveTab('emergency')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'emergency'
-                ? 'bg-gradient-to-r from-red-600/30 to-fuchsia-600/30 border border-rose-500/60 text-rose-300 font-semibold shadow-[0_0_15px_rgba(255,42,66,0.35)]'
+              activeTab === 'emergency' 
+                ? 'bg-gradient-to-r from-red-600/30 to-fuchsia-600/30 border border-rose-500/60 text-rose-300 font-semibold shadow-[0_0_15px_rgba(255,42,66,0.35)]' 
                 : 'text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/30'
             }`}
           >
@@ -1165,6 +877,17 @@ export default function App() {
             <span className="hidden md:inline-block text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1 py-0.2 rounded font-mono font-bold">
               IA
             </span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('tecnico')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'tecnico' 
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Console Técnico</span>
           </button>
         </div>
 
@@ -1186,118 +909,17 @@ export default function App() {
             </div>
           </div>
 
-          <ProjectEvaluationModal />
+          <QuickEntryModal onInjectReading={handleInjectReading} apiBase={API_BASE} />
         </div>
       </header>
 
-      {isAccessibilityOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
-            onClick={() => setIsAccessibilityOpen(false)}
-            aria-hidden="true"
-          />
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="accessibility-modal-title"
-            className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-800 bg-[#0B0F19] p-6 shadow-2xl"
-          >
-            <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
-              <div>
-                <p className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-rose-400">Preferências</p>
-                <h2 id="accessibility-modal-title" className="mt-1 text-lg font-bold text-white">
-                  Acessibilidade e Visualização
-                </h2>
-                <p className="mt-1 text-xs leading-5 text-slate-400">
-                  Ajustes locais que preservam a estrutura dos formulários e painéis.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAccessibilityOpen(false)}
-                aria-label="Fechar Preferências de Acessibilidade e Visualização"
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-100">Tamanho do texto</p>
-                    <p className="mt-0.5 text-xs leading-5 text-slate-400">Ajuste proporcional para uma leitura confortável.</p>
-                  </div>
-                  <div className="flex shrink-0 items-center rounded-lg border border-slate-700 bg-slate-950 p-1">
-                    {[
-                      ['small', 'A-'],
-                      ['normal', 'Normal'],
-                      ['large', 'A+'],
-                    ].map(([size, label]) => (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() => setAccessibilityPreferences((current) => ({ ...current, fontSize: size }))}
-                        aria-pressed={accessibilityPreferences.fontSize === size}
-                        className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                          accessibilityPreferences.fontSize === size
-                            ? 'bg-rose-600 text-white'
-                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <AccessibilityToggle
-                icon={Contrast}
-                title="Alto Contraste"
-                description="Eleva a distinção entre textos, fundos e bordas."
-                enabled={accessibilityPreferences.highContrast}
-                onChange={() => toggleAccessibilityPreference('highContrast')}
-              />
-              <AccessibilityToggle
-                icon={MousePointer2}
-                title="Zoom no Hover (Foco)"
-                description="Destaca suavemente cards interativos ao passar o cursor."
-                enabled={accessibilityPreferences.hoverZoom}
-                onChange={() => toggleAccessibilityPreference('hoverZoom')}
-              />
-              <AccessibilityToggle
-                icon={Activity}
-                title="Animações Reduzidas"
-                description="Remove movimentos e transições não essenciais."
-                enabled={accessibilityPreferences.reducedMotion}
-                onChange={() => toggleAccessibilityPreference('reducedMotion')}
-              />
-            </div>
-          </section>
-        </>
-      )}
-
-      {!isAccessibilityOpen && (
-        <button
-          type="button"
-          onClick={() => setIsAccessibilityOpen(true)}
-          title="Acessibilidade e leitura dinâmica"
-          aria-label="Abrir Acessibilidade e leitura dinâmica"
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-rose-400/50 bg-slate-900 text-rose-300 shadow-[0_0_24px_rgba(244,63,94,0.35)] transition-all hover:scale-105 hover:bg-rose-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-2 focus:ring-offset-slate-950"
-        >
-          <Accessibility className="h-6 w-6" />
-        </button>
-      )}
-
       {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
       {activeTab === 'dashboard' && (
-        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 items-stretch lg:grid-cols-12 gap-6">
-
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
           {/* COLUNA ESQUERDA (MÉTRICAS & LOTES - 5/12) */}
-          <section className="lg:col-span-5 flex h-full flex-col gap-4">
-
+          <section className="lg:col-span-5 flex flex-col gap-4">
+            
             {/* Seletor de Lotes */}
             <div className="glass-panel rounded-xl p-4 flex flex-col gap-3 border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -1305,9 +927,9 @@ export default function App() {
                   <Database className="w-3.5 h-3.5 text-rose-500" />
                   LOTES DE SANGUE EM MONITORAMENTO
                 </h2>
-                <button
+                <button 
                   onClick={openCreateLotModal}
-                  className="ds-primary-action text-[10px] px-2.5 py-1 font-mono font-bold flex items-center gap-1"
+                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   NOVO LOTE
@@ -1315,7 +937,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {safeLots.map(l => (
+                {lots.map(l => (
                   <div key={l.id} className="relative group">
                     <button
                       onClick={() => setSelectedLot(l.id)}
@@ -1330,7 +952,7 @@ export default function App() {
                       <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
                     </button>
 
-                    {safeLots.length > 1 && (
+                    {lots.length > 1 && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -2099,37 +1721,25 @@ export default function App() {
               )}
             </div>
 
-            {/* Status do Hardware Arduino */}
-            <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between bg-slate-900/40 border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <Cpu className="w-4 h-4 text-emerald-400" />
-                <div>
-                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO ARDUINO SERIAL</p>
-                  <p className="text-xs font-mono font-bold text-slate-200">115200 baud • {packetCount} pacotes rx</p>
-                </div>
-              </div>
-              <span className="text-[9px] bg-slate-800 border border-slate-700 text-emerald-400 font-mono px-2.5 py-1 rounded-md font-semibold">
-                DRIVER: CH340G / COM3
-              </span>
-            </div>
+            <ArduinoMonitor monitor={arduinoData.serialMonitor} />
 
           </section>
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
-          <section className="lg:col-span-7 flex h-full flex-col gap-4">
-
+          <section className="lg:col-span-7 flex flex-col gap-4">
+            
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
-              currentReading.status === "CRÍTICO"
-                ? 'bg-rose-950/30 ds-status-critical'
+              currentReading.status === "CRÍTICO" 
+                ? 'bg-rose-950/30 border-rose-500/40' 
                 : currentReading.status === "ALERTA"
-                ? 'bg-amber-950/30 ds-status-warning'
-                : 'bg-emerald-950/20 ds-status-ok'
+                ? 'bg-amber-950/30 border-amber-500/40'
+                : 'bg-emerald-950/20 border-emerald-500/40'
             }`}>
               <div className="flex items-center gap-3.5">
                 <div className={`p-3 rounded-xl border bg-slate-950/80 ${
-                  currentReading.status === "CRÍTICO" ? 'ds-status-critical glow-crimson' :
-                  currentReading.status === "ALERTA" ? 'ds-status-warning' : 'ds-status-ok glow-neon'
+                  currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
+                  currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
                 }`}>
                   {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
                    currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
@@ -2161,180 +1771,51 @@ export default function App() {
             </div>
 
             {/* Chatbot Conversacional com IA Explicável */}
-            {isChatFullscreen && (
-              <div
-                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-                onClick={() => setIsChatFullscreen(false)}
-                aria-hidden="true"
-              />
-            )}
-            <div
-              className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${
-                isChatFullscreen
-                  ? 'fixed top-1/2 left-1/2 z-[100] h-[85vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-[#0B0F19]'
-                  : 'relative flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0B0F19]'
-              }`}
-              role={isChatFullscreen ? 'dialog' : undefined}
-              aria-modal={isChatFullscreen || undefined}
-              aria-label={isChatFullscreen ? 'Chat da IA Flow expandido' : undefined}
-            >
-
+            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
+              
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
-
+              
               {/* Header do Chat */}
-              <div className="z-10 flex-none h-12 px-4 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
+              <div className="z-10 bg-slate-900/70 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
                   <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
-                    IA FLOW
+                    CAMADA 4: ASSISTENTE VIRTUAL FLOW
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  {arduinoData.isConnected ? (
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      ONLINE
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                      [AGUARDANDO LEITURA SERIAL]
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setIsChatFullscreen((isFullscreen) => !isFullscreen)}
-                    title={isChatFullscreen ? 'Fechar Chat expandido' : 'Expandir Chat'}
-                    aria-label={isChatFullscreen ? 'Fechar Chat expandido' : 'Expandir Chat'}
-                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-                  >
-                    {isChatFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="z-10 flex-none border-b border-slate-800 bg-slate-950/80 px-4 py-2.5">
-                <p className="mx-auto w-fit rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1 text-center text-xs text-slate-400">
-                  Selecione uma opção rápida abaixo para iniciar a análise
-                </p>
+                {arduinoData.isConnected ? (
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    ONLINE
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                    [AGUARDANDO LEITURA SERIAL]
+                  </div>
+                )}
               </div>
 
               {/* Mensagens do Chat */}
-              <div
-                ref={chatMessagesRef}
-                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'flex-1 px-5 pb-6 pt-4 sm:px-10' : 'h-[600px] flex-none'}`}
-              >
+              <div className="z-10 flex-1 max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5">
                 {messages.map((msg, index) => (
-                  <div
+                  <div 
                     key={index}
-                    onClick={() => {
-                      if (msg.role === 'assistant' && msg.showAnalysisCard) {
-                        setZoomedChatCard({
-                          eyebrow: 'Laudo clínico ampliado',
-                          title: `Laudo Clínico do Lote ${selectedLot}`,
-                          summary: currentReading?.alerta_mensagem || 'Leitura de telemetria ativa para o lote selecionado.',
-                          metrics: [
-                            { label: 'Oxigenação', value: `${b1_val.toFixed(0)}%`, progress: Math.min(100, b1_pct), color: 'bg-emerald-400', badgeClass: 'border-emerald-400/30 bg-emerald-500/5 text-emerald-200' },
-                            { label: 'Vazão', value: `${rawFlow.toFixed(1)} L/min`, progress: Math.min(100, (rawFlow / 6.5) * 100), color: 'bg-cyan-400', badgeClass: 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200' },
-                            { label: 'Temperatura', value: `${rawTemp.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((rawTemp - 30) / 10) * 100)), color: 'bg-amber-400', badgeClass: 'border-amber-400/30 bg-amber-500/5 text-amber-200' },
-                            { label: 'Estabilidade', value: currentReading?.status || 'ESTÁVEL', progress: currentReading?.status === 'CRÍTICO' ? 35 : currentReading?.status === 'ALERTA' ? 65 : 100, color: 'bg-purple-400', badgeClass: 'border-purple-400/30 bg-purple-500/5 text-purple-200' },
-                          ],
-                        });
-                      }
-                    }}
-                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'} ${msg.showAnalysisCard ? 'cursor-zoom-in' : ''}`}
+                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
                   >
-                    {msg.content && (
-                      <>
-                        <div
-                          onClick={() => {
-                            if (msg.role === 'assistant') {
-                              setZoomedChatCard({
-                                eyebrow: 'Resposta da IA Flow',
-                                title: 'Resposta ampliada',
-                                summary: msg.content,
-                                metrics: [],
-                              });
-                            }
-                          }}
-                          className={`accessibility-zoom-target p-3 rounded-2xl text-sm leading-relaxed ${
-                            msg.role === 'user'
-                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-tr-none shadow-md'
-                              : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border cursor-zoom-in relative pr-11'
-                          }`}
-                        >
-                          {msg.role === 'assistant' && <Maximize2 className="absolute right-3 top-3 h-4 w-4 text-sky-400" />}
-                          <div className="whitespace-pre-line font-sans">{msg.content}</div>
-                        </div>
-
-                        <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
-                          {msg.role === 'user' ? 'Visitante' : 'Flow'}
-                        </span>
-                      </>
-                    )}
-
-                    {msg.role === 'assistant' && msg.responseCard && (
-                      <article
-                        onClick={() => setZoomedChatCard(msg.responseCard)}
-                        className={`mt-2.5 w-full cursor-zoom-in rounded-xl border p-3 shadow-2xl transition-transform duration-200 hover:scale-[1.01] ${msg.responseCard.conceptual ? 'border-cyan-500/30 bg-[#0F172A]' : 'border-sky-500/30 bg-slate-950/95'}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2.5">
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/30 to-purple-500/20 text-cyan-200">
-                              <msg.responseCard.icon className="h-4.5 w-4.5" />
-                            </span>
-                            <p className="pt-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cyan-300">
-                              {msg.responseCard.eyebrow}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="rounded border border-cyan-400/40 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-cyan-200">{msg.responseCard.conceptual ? 'CONCEITO CIENTÍFICO' : 'SINAL SERIAL'}</span>
-                            <Maximize2 className="h-4 w-4 text-sky-400" />
-                          </div>
-                        </div>
-                        <h4 className="mt-2 text-sm font-bold text-white">{msg.responseCard.title}</h4>
-                        {msg.responseCard.conceptual ? (
-                          <div className="mt-2 space-y-2">
-                            {msg.responseCard.conceptualBlocks.map((block) => {
-                              const BlockIcon = block.icon;
-                              return (
-                                <section key={block.title} className={`flex gap-3 rounded-xl border p-2 ${block.accent}`}>
-                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-current/30 bg-slate-950/30">
-                                    <BlockIcon className="h-4 w-4" />
-                                  </span>
-                                  <div>
-                                    <h5 className="text-sm font-bold text-slate-100">{block.title}</h5>
-                                    <p className="mt-0.5 text-sm leading-snug text-slate-300">{block.text}</p>
-                                  </div>
-                                </section>
-                              );
-                            })}
-                          </div>
-                        ) : <>
-                        <p className="mt-2 text-sm leading-snug text-slate-300">{msg.responseCard.summary}</p>
-                        <dl className="mt-2 grid grid-cols-2 gap-2">
-                          {msg.responseCard.metrics.map((metric) => {
-                            const MetricIcon = metric.icon;
-                            return (
-                            <div key={metric.label} className="rounded-lg border border-slate-700/80 bg-slate-900/70 px-2 py-2">
-                              <div className="flex items-center justify-between gap-1.5">
-                                <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${metric.iconBackground} ${metric.iconColor}`}>
-                                  <MetricIcon className="h-3.5 w-3.5" />
-                                </span>
-                                <span className={`inline-flex items-center gap-1 rounded border px-1 py-0.5 font-mono text-[7px] ${metric.badgeClass}`}><Wifi className="h-2.5 w-2.5" />TELEMETRIA ATIVA</span>
-                              </div>
-                              <dt className="mt-1 font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
-                              <dd className="mt-0.5 text-sm font-semibold text-slate-100">{metric.value}</dd>
-                              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-800">
-                                <div className={`h-full rounded-full ${metric.color}`} style={{ width: `${metric.progress}%` }} />
-                              </div>
-                            </div>
-                            );
-                          })}
-                        </dl>
-                        </>}
-                      </article>
-                    )}
+                    <div 
+                      className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
+                        msg.role === 'user' 
+                          ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
+                          : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
+                      }`}
+                    >
+                      <div className="whitespace-pre-line font-sans">{msg.content}</div>
+                    </div>
+                    
+                    <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
+                      {msg.role === 'user' ? 'Visitante' : 'Flow'}
+                    </span>
 
                     {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isEmergenciaActive && (
@@ -2364,8 +1845,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${b1_pct}%` }}
                               />
                             </div>
@@ -2383,8 +1864,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${b2_pct}%` }}
                               />
                             </div>
@@ -2402,8 +1883,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${b3_pct}%` }}
                               />
                             </div>
@@ -2421,8 +1902,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${b4_pct}%` }}
                               />
                             </div>
@@ -2440,8 +1921,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
                                 style={{ width: `${b5_pct}%` }}
                               />
                             </div>
@@ -2483,8 +1964,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ff4d4d] shadow-[0_0_8px_#ff4d4d] transition-all duration-500" 
                                 style={{ width: `${t_b1_pct}%` }}
                               />
                             </div>
@@ -2502,8 +1983,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${t_b2_pct}%` }}
                               />
                             </div>
@@ -2521,8 +2002,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${t_b3_pct}%` }}
                               />
                             </div>
@@ -2540,8 +2021,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${t_b4_pct}%` }}
                               />
                             </div>
@@ -2559,8 +2040,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${t_b5_pct}%` }}
                               />
                             </div>
@@ -2602,8 +2083,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${c_b1_pct}%` }}
                               />
                             </div>
@@ -2621,8 +2102,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${c_b2_pct}%` }}
                               />
                             </div>
@@ -2640,8 +2121,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${c_b3_pct}%` }}
                               />
                             </div>
@@ -2659,8 +2140,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${c_b4_pct}%` }}
                               />
                             </div>
@@ -2678,8 +2159,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500" 
                                 style={{ width: `${c_b5_pct}%` }}
                               />
                             </div>
@@ -2721,8 +2202,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${a_b1_pct}%` }}
                               />
                             </div>
@@ -2740,8 +2221,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
                                 style={{ width: `${a_b2_pct}%` }}
                               />
                             </div>
@@ -2759,8 +2240,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${a_b3_pct}%` }}
                               />
                             </div>
@@ -2778,8 +2259,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${a_b4_pct}%` }}
                               />
                             </div>
@@ -2797,8 +2278,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${a_b5_pct}%` }}
                               />
                             </div>
@@ -2840,8 +2321,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
                                 style={{ width: `${o_b1_pct}%` }}
                               />
                             </div>
@@ -2859,8 +2340,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${o_b2_pct}%` }}
                               />
                             </div>
@@ -2878,8 +2359,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${o_b3_pct}%` }}
                               />
                             </div>
@@ -2897,8 +2378,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${o_b4_pct}%` }}
                               />
                             </div>
@@ -2916,8 +2397,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${o_b5_pct}%` }}
                               />
                             </div>
@@ -2959,8 +2440,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ff9f1c] shadow-[0_0_8px_#ff9f1c] transition-all duration-500" 
                                 style={{ width: `${p_b1_pct}%` }}
                               />
                             </div>
@@ -2978,8 +2459,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${p_b2_pct}%` }}
                               />
                             </div>
@@ -2997,8 +2478,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${p_b3_pct}%` }}
                               />
                             </div>
@@ -3016,8 +2497,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${p_b4_pct}%` }}
                               />
                             </div>
@@ -3035,8 +2516,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${p_b5_pct}%` }}
                               />
                             </div>
@@ -3078,8 +2559,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${d_b1_pct}%` }}
                               />
                             </div>
@@ -3097,8 +2578,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
                                 style={{ width: `${d_b2_pct}%` }}
                               />
                             </div>
@@ -3116,8 +2597,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${d_b3_pct}%` }}
                               />
                             </div>
@@ -3135,8 +2616,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${d_b4_pct}%` }}
                               />
                             </div>
@@ -3154,8 +2635,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${d_b5_pct}%` }}
                               />
                             </div>
@@ -3197,8 +2678,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500" 
                                 style={{ width: `${cr_b1_pct}%` }}
                               />
                             </div>
@@ -3216,8 +2697,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${cr_b2_pct}%` }}
                               />
                             </div>
@@ -3235,8 +2716,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${cr_b3_pct}%` }}
                               />
                             </div>
@@ -3254,8 +2735,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${cr_b4_pct}%` }}
                               />
                             </div>
@@ -3273,8 +2754,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${cr_b5_pct}%` }}
                               />
                             </div>
@@ -3316,8 +2797,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
                                 style={{ width: `${tc_b1_pct}%` }}
                               />
                             </div>
@@ -3335,8 +2816,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
                                 style={{ width: `${tc_b2_pct}%` }}
                               />
                             </div>
@@ -3354,8 +2835,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
                                 style={{ width: `${tc_b3_pct}%` }}
                               />
                             </div>
@@ -3373,8 +2854,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
                                 style={{ width: `${tc_b4_pct}%` }}
                               />
                             </div>
@@ -3392,8 +2873,8 @@ export default function App() {
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
+                              <div 
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
                                 style={{ width: `${tc_b5_pct}%` }}
                               />
                             </div>
@@ -3419,7 +2900,7 @@ export default function App() {
                             RISCO: {msg.explicabilidade.risco_degradacao_pct}%
                           </span>
                         </div>
-
+                        
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                           <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-850">
                             <div className="flex justify-between text-[10px] font-mono mb-1">
@@ -3427,8 +2908,8 @@ export default function App() {
                               <span className="text-white font-bold">{(msg.explicabilidade.valores_sensores.oxigenacao*100).toFixed(0)}%</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-emerald-400"
+                              <div 
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.oxigenacao < 0.90 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
                                 style={{ width: `${msg.explicabilidade.valores_sensores.oxigenacao * 100}%` }}
                               />
                             </div>
@@ -3440,8 +2921,8 @@ export default function App() {
                               <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.temperatura.toFixed(1)}°C</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-amber-400"
+                              <div 
+                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.temperatura > 38.0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
                                 style={{ width: `${Math.min(100, (msg.explicabilidade.valores_sensores.temperatura / 45) * 100)}%` }}
                               />
                             </div>
@@ -3470,7 +2951,7 @@ export default function App() {
                         <Activity className="w-3.5 h-3.5 text-rose-500 animate-heartbeat" />
                         <span>Analisando dados mais recentes do Arduino...</span>
                       </div>
-
+                      
                       <svg width="240" height="24" className="stroke-rose-500" fill="none">
                         <path
                           className="ecg-path"
@@ -3481,24 +2962,61 @@ export default function App() {
                     </div>
                   </div>
                 )}
-
+                
+                <div ref={messagesEndRef} />
               </div>
 
-              {/* Rodapé fixo: ações rápidas */}
-              <div className="z-10 flex-none mt-auto border-t border-slate-800 p-4 bg-[#0B0F19]">
-                <div className="flex gap-2 overflow-x-auto px-3 pb-3">
-                  {QUICK_CHAT_ACTIONS.map((action) => (
-                    <button
-                      key={action}
-                      type="button"
-                      onClick={() => handleSendMessage(action)}
-                      className="cursor-pointer whitespace-nowrap rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1 text-[11px] font-medium text-slate-300 transition-all duration-200 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                    >
-                      {action}
-                    </button>
-                  ))}
-                </div>
+              {/* Botões de Ações Rápidas (Pills) */}
+              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/40">
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Qual o status atual do lote?')}
+                  className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
+                >
+                  Status atual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('O que é sangue artificial?')}
+                  className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
+                >
+                  O que é sangue artificial?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Por que o lote está em risco?')}
+                  className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
+                >
+                  Por que o lote está em risco?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
+                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
+                >
+                  Limpeza de Ruído & pH
+                </button>
               </div>
+
+              {/* Caixa de Entrada de Texto */}
+              <form 
+                onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }}
+                className="z-10 bg-slate-900/80 border-t border-slate-800 px-4 py-3 flex gap-2 items-center"
+              >
+                <input 
+                  type="text" 
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Pergunte sobre os lotes, sensores ou previsões..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
+                />
+                <Button 
+                  type="submit"
+                  className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </form>
 
             </div>
 
@@ -3509,7 +3027,7 @@ export default function App() {
       {/* ABA 2: PREVISÃO DE DEMANDA HOSPITALAR (LOVABLE RECHARTS) */}
       {activeTab === 'forecast' && (
         <main className="flex-1 max-w-[1480px] w-full mx-auto p-4 sm:p-6 z-10 space-y-6">
-
+          
           <div className="glass-panel rounded-2xl p-6 border-slate-800">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -3518,60 +3036,39 @@ export default function App() {
                 </span>
                 <div>
                   <h2 className="font-display text-xl font-bold text-white">
-                    Sistema de Apoio à Decisão: Previsão & Criação de Lotes
+                    Previsão de Demanda Hospitalar por IA
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Histórico real, projeção preditiva com incerteza e impacto preventivo das decisões da IA
+                    Histórico de 7 dias e projeção preditiva da IA para os próximos 4 dias
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-slate-400 bg-slate-900/60 border border-slate-800 px-3.5 py-1.5 rounded-xl">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <span>Modelo Autônomo Ativo • Lead Time 18h</span>
-              </div>
-            </div>
-
-            <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/50 px-3.5 py-2.5">
-              <label htmlFor="forecast-lot" className="font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Selecionar lote:
-              </label>
-              <select
-                id="forecast-lot"
-                value={selectedLot || ""}
-                onChange={(event) => setSelectedLot(event.target.value)}
-                className="min-w-44 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs font-bold text-slate-100 outline-none focus:border-rose-500"
-              >
-                {safeLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.id}{lot.name ? ` • ${lot.name}` : ""}</option>)}
-              </select>
-            </div>
-
-            <DemandChart lotId={selectedLot} lot={activeLotObj} />
-
-            <button type="button" onClick={() => setForecastDetailModal({ title: "Diagnóstico preditivo", metric: `Ruptura estimada em ${forecastScenario.riscoDia}`, detail: `Sem intervenção, o estoque chega a ${forecastScenario.critical.estoqueSemAcao} unidades, abaixo do mínimo de ${forecastScenario.minimo}. A IA recomenda ${forecastScenario.recomendacao} para preservar ${forecastScenario.protectedStock} unidades seguras.` })} className="mt-5 flex cursor-pointer flex-col items-start justify-between gap-4 rounded-xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-slate-900/50 to-emerald-950/30 px-5 py-4 text-left text-xs text-slate-200 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] sm:flex-row sm:items-center">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400 shrink-0">
-                  <AlertTriangle className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-white text-xs">
-                    DIAGNÓSTICO PREDITIVO: risco de ruptura em {forecastScenario.riscoDia} ({forecastScenario.critical.estoqueSemAcao} un &lt; {forecastScenario.minimo} un mínimo).
-                  </p>
-                  <p className="text-slate-400 text-[11px] font-mono mt-0.5">
-                    Decisão IA recomendada para {selectedLot}: {forecastScenario.recomendacao}, garantindo {forecastScenario.protectedStock} un em estoque seguro.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  IMPACTO: {forecastScenario.impacto.toUpperCase()}
+              <div className="flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-widest text-slate-400 bg-slate-900/60 border border-slate-800 px-4 py-2 rounded-xl">
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-sky-400" /> Demanda Histórica
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-rose-500" /> Previsão IA
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-4 rounded-full bg-emerald-400" /> Estoque Projetado
                 </span>
               </div>
-            </button>
+            </div>
+
+            <DemandChart />
+
+            <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-xs text-amber-300 flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
+              <span>
+                <strong>Alerta Clínico Preditivo:</strong> A IA estima 92 unidades de demanda em D+3, enquanto o estoque projetado cai para 43 unidades — reposição recomendada em até 48h para evitar desabastecimento crítico no pronto-socorro.
+              </span>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <button type="button" onClick={() => setForecastDetailModal({ title: "Capacidade de produção", metric: "120 unidades por dia", detail: "A capacidade considera o turno de esterilização e síntese de PFCs. Ela limita o volume que pode ser programado pela recomendação preditiva." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)]">
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Capacidade de Produção
               </p>
@@ -3579,9 +3076,9 @@ export default function App() {
                 120 <span className="text-xs text-slate-400 font-sans">unid/dia</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Turno de esterilização e síntese de PFCs</p>
-            </button>
+            </div>
 
-            <button type="button" onClick={() => setForecastDetailModal({ title: "Lead time de reposição", metric: "18 horas", detail: "Tempo médio entre a decisão, a validação biológica e a entrega. A janela ideal é calculada para respeitar esse intervalo." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)]">
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Lead Time de Reposição
               </p>
@@ -3589,9 +3086,9 @@ export default function App() {
                 18 <span className="text-xs text-slate-400 font-sans">horas</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Tempo médio de validação biológica e entrega</p>
-            </button>
+            </div>
 
-            <button type="button" onClick={() => setForecastDetailModal({ title: "Acurácia do modelo", metric: "94,8%", detail: "Score R² baseado nas séries temporais do sistema. Ele indica a aderência da projeção aos padrões de demanda observados." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.25)]">
+            <div className="glass-panel rounded-xl p-5 border-slate-800">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Acurácia do Modelo
               </p>
@@ -3599,99 +3096,141 @@ export default function App() {
                 94.8<span className="text-xs text-slate-400 font-sans">%</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Score R² com base em séries temporais</p>
-            </button>
+            </div>
           </div>
 
         </main>
       )}
 
+      {/* ABA 3: CONSOLE TÉCNICO & AUDITORIA */}
+      {activeTab === 'tecnico' && (
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* COLUNA ESQUERDA: SCRIPT PYTHON E ENDPOINT */}
+          <section className="flex flex-col gap-4">
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1 border-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
+                  <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                  SCRIPT DE SUPORTE: PONTE PYTHON (ARDUINO PARA API)
+                </h2>
+                <button 
+                  onClick={copyToClipboard}
+                  className="text-[10px] text-emerald-400 border border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-all font-mono flex items-center gap-1.5"
+                >
+                  <Copy className="w-3 h-3" />
+                  {copiedScript ? "COPIADO!" : "COPIAR SCRIPT"}
+                </button>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                Rode este script Python no computador do estande conectado ao Arduino. O script lê as leituras da porta serial e faz requisições HTTP POST para a API do site, alimentando o painel em tempo real.
+              </p>
+              
+              <div className="flex-1 bg-slate-950 border border-slate-900 rounded-xl p-3.5 overflow-auto max-h-[320px]">
+                <pre className="text-[11px] text-slate-300 font-mono select-text">{pythonScript}</pre>
+              </div>
+            </div>
 
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
+              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-rose-500" />
+                DOCUMENTAÇÃO DO ENDPOINT DE TELEMETRIA
+              </h2>
+              
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded font-mono font-bold">POST</span>
+                  <span className="text-xs font-mono text-white">/api/sensor-data</span>
+                </div>
+                <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                  O Arduino ou ponte envia leituras brutas em JSON. O backend limpa erros de digitação e calcula as variáveis secundárias.
+                </p>
+                <div className="bg-slate-950 border border-slate-900 rounded-xl p-3 mt-1">
+                  <p className="text-[9px] text-slate-500 font-mono mb-1">PAYLOAD DE ENTRADA EXIGIDO:</p>
+                  <pre className="text-[10px] text-slate-400 font-mono select-text">{JSON.stringify({
+                    "lote_id": "SA-025",
+                    "oxigenacao": "95%",
+                    "temperatura": "36.8C",
+                    "vazao": "4.8"
+                  }, null, 2)}</pre>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* COLUNA DIREITA: ARQUITETURA E AUDITORIA */}
+          <section className="flex flex-col gap-4">
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
+              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
+                <Cpu className="w-3.5 h-3.5 text-sky-400" />
+                FLUXO OPERACIONAL DE 4 CAMADAS
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px] font-mono mt-1">
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-emerald-400">1. DADOS</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Coleta e armazena</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-sky-400">2. PROCESS.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Limpa e normaliza</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-amber-400">3. IA EXPL.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Inferência de risco</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="block font-bold text-rose-500">4. INTERM.</span>
+                  <span className="text-[9px] text-slate-400 block mt-1">Chat de conversa</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Trilha de Auditoria */}
+            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800 flex-1">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2 uppercase">
+                  <Database className="w-3.5 h-3.5 text-rose-500" />
+                  CAMADA 1: LOGS DE AUDITORIA E RASTREABILIDADE
+                </h2>
+                <RefreshCw className="w-3.5 h-3.5 text-slate-400 cursor-pointer hover:text-white transition-colors" onClick={fetchAudits} />
+              </div>
+
+              <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[380px]">
+                {audits.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-500">
+                    Nenhum log de auditoria pendente no banco local.
+                  </div>
+                ) : (
+                  audits.map((a, index) => (
+                    <div
+                      key={a.id || index}
+                      className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs flex flex-col gap-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-300 font-bold font-mono">[{a.action}]</span>
+                        <span className="text-slate-500 font-mono text-[10px]">
+                          {a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : "--:--"}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-xs font-sans">{a.details}</p>
+                      <div className="flex items-center gap-1 text-[9px] text-slate-500 font-mono">
+                        <span>Operador:</span>
+                        <span className="text-slate-400 font-bold">{a.operator || "SISTEMA"}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+        </main>
+      )}
 
       {/* ABA 4: SIMULADOR DE URGÊNCIA COM IA */}
       {activeTab === 'emergency' && (
         <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10">
           <EmergencySimulator />
         </main>
-      )}
-
-      {forecastDetailModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md" role="presentation" onClick={() => setForecastDetailModal(null)}>
-          <section role="dialog" aria-modal="true" aria-labelledby="forecast-detail-title" className="relative w-full max-w-xl rounded-2xl border border-cyan-400/40 bg-slate-950 p-6 shadow-[0_0_45px_rgba(0,229,255,0.2)] sm:p-7" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => setForecastDetailModal(null)} aria-label="Fechar detalhes da previsão" className="absolute right-4 top-4 rounded-lg border border-slate-700 p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"><X className="h-5 w-5" /></button>
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-400">Previsão de demanda</p>
-            <h2 id="forecast-detail-title" className="mt-2 pr-10 text-2xl font-bold text-white">{forecastDetailModal.title}</h2>
-            <div className="mt-5 rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-4"><p className="font-mono text-[10px] uppercase tracking-wider text-cyan-300">Métrica</p><p className="mt-1 text-lg font-bold text-white">{forecastDetailModal.metric}</p></div>
-            <p className="mt-5 text-sm leading-6 text-slate-300">{forecastDetailModal.detail}</p>
-          </section>
-        </div>
-      )}
-
-      {zoomedChatCard && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
-          role="presentation"
-          onClick={() => setZoomedChatCard(null)}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="chat-card-modal-title"
-            className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-sky-400/30 bg-slate-950 p-6 shadow-[0_0_50px_rgba(34,211,238,0.18)] sm:p-8"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setZoomedChatCard(null)}
-              aria-label="Fechar resposta ampliada"
-              className="absolute right-4 top-4 rounded-lg border border-slate-700 p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <p className="pr-12 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-400">
-              {zoomedChatCard.eyebrow}
-            </p>
-            <h2 id="chat-card-modal-title" className="mt-2 pr-12 text-2xl font-bold text-white sm:text-3xl">
-              {zoomedChatCard.title}
-            </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-              {zoomedChatCard.summary}
-            </p>
-            {zoomedChatCard.conceptualBlocks?.length > 0 && (
-              <div className="mt-6 space-y-3">
-                {zoomedChatCard.conceptualBlocks.map((block) => {
-                  const BlockIcon = block.icon;
-                  return (
-                    <section key={block.title} className={`flex gap-4 rounded-xl border p-4 ${block.accent}`}>
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current/30 bg-slate-950/30">
-                        <BlockIcon className="h-5 w-5" />
-                      </span>
-                      <div>
-                        <h3 className="font-semibold text-white">{block.title}</h3>
-                        <p className="mt-1.5 text-sm leading-6 text-slate-300">{block.text}</p>
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-            )}
-            {zoomedChatCard.metrics?.length > 0 && (
-              <dl className="mt-6 grid gap-3 sm:grid-cols-2">
-                {zoomedChatCard.metrics.map((metric) => (
-                  <div key={metric.label} className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="font-mono text-[10px] uppercase tracking-widest text-slate-400">{metric.label}</dt>
-                      <span className={`rounded border px-1.5 py-0.5 font-mono text-[8px] font-bold ${metric.badgeClass || 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200'}`}>TELEMETRIA ATIVA</span>
-                    </div>
-                    <dd className="mt-2 text-lg font-semibold text-white">{metric.value}</dd>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
-                      <div className={`h-full rounded-full transition-all duration-500 ${metric.color}`} style={{ width: `${metric.progress}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </section>
-        </div>
       )}
 
       {/* Modal de Criação de Novo Lote */}
@@ -3793,7 +3332,7 @@ export default function App() {
               </Button>
               <Button
                 type="submit"
-                className="ds-primary-action text-xs gap-1.5 font-medium"
+                className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-medium text-xs gap-1.5 shadow-lg shadow-rose-500/20"
               >
                 <Plus className="h-4 w-4" />
                 Confirmar e Cadastrar Lote
