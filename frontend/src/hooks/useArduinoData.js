@@ -156,6 +156,36 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
   }, [currentReading, history, lastPacketTime]);
 
   const usbSelected = serialMonitor.status !== 'OFFLINE' || serialMonitor.received > 0;
+  const isUsbLive = serialMonitor.fresh;
+  const reading = useMemo(() => {
+    if (!isUsbLive) return currentReading;
+
+    const gas = serialMonitor.sensors.gas_value;
+    const flow = serialMonitor.sensors.flow_value;
+    const temperature = serialMonitor.sensors.temp_value;
+    const oxigenacao = typeof gas === 'number' ? gas / 100 : currentReading.oxigenacao_limpa;
+    const temperatura = typeof temperature === 'number' ? temperature : currentReading.temperatura_c;
+    const vazao = typeof flow === 'number' ? flow : currentReading.vazao_l_min;
+    const critical = oxigenacao < 0.9 || temperatura < 35 || temperatura > 38.5;
+    const warning = oxigenacao < 0.93 || temperatura < 36 || temperatura > 37.8;
+    const status = critical ? 'CRÍTICO' : warning ? 'ALERTA' : 'ESTÁVEL';
+
+    return {
+      ...currentReading,
+      oxigenacao_limpa: oxigenacao,
+      temperatura_c: temperatura,
+      vazao_l_min: vazao,
+      status,
+      alerta_mensagem: critical
+        ? 'Leitura USB fora da faixa clínica configurada. Verifique o lote e os sensores.'
+        : warning
+          ? 'Leitura USB requer atenção: parâmetro próximo da faixa de alerta.'
+          : 'Leitura USB recebida: parâmetros dentro da faixa configurada.',
+      source: 'arduino-usb',
+      receivedAt: serialMonitor.lastUpdate,
+    };
+  }, [currentReading, isUsbLive, serialMonitor.lastUpdate, serialMonitor.sensors]);
+
   return {
     ...sensorValues,
     ...(usbSelected ? {
@@ -171,5 +201,7 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
     connectSerial: serialMonitor.connect,
     disconnectSerial: serialMonitor.disconnect,
     webSerialSupported: serialMonitor.supported,
+    reading,
+    source: isUsbLive ? 'arduino-usb' : 'simulation',
   };
 }

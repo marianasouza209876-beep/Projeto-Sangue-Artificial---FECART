@@ -1,4 +1,5 @@
 import ArduinoMonitor from './components/ArduinoMonitor';
+import PatientMonitor from './components/PatientMonitor';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
@@ -32,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
 import { DemandChart } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
-import { QuickEntryModal } from '@/components/QuickEntryModal';
+import { ProjectEvaluationModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
 import {
   Dialog,
@@ -513,6 +514,18 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
   // Hook global de dados do Arduino (B1, B2, B3, B4, B5 e conectividade serial)
   const arduinoData = useArduinoData(currentReading, history, lastPacketTime);
+  // A leitura USB passa a ser a fonte efetiva de todo o dashboard enquanto
+  // estiver recente. Sem USB, o objeto de simulação/API continua intacto.
+  currentReading = arduinoData.reading || currentReading;
+  const latestArduinoReading = useRef(arduinoData.reading);
+  latestArduinoReading.current = arduinoData.reading;
+
+  useEffect(() => {
+    if (!arduinoData.isConnected || !arduinoData.lastUpdate) return;
+    setHistory(previous => [...previous.slice(-59), latestArduinoReading.current]);
+    setLastPacketTime(arduinoData.lastUpdate);
+    setPacketCount(count => count + 1);
+  }, [arduinoData.isConnected, arduinoData.lastUpdate]);
 
   // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) para Atendimento Pré-Hospitalar de Emergência
   const rawGas = arduinoData.gas_value ?? (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
@@ -898,18 +911,18 @@ while True:
             <span>{clock}</span>
           </div>
 
-          <div className="flex items-center gap-2.5 bg-slate-900/60 border border-slate-800/80 px-3.5 py-1.5 rounded-xl">
+          <div className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border ${arduinoData.isConnected ? 'bg-emerald-500/10 border-emerald-400/50' : 'bg-amber-500/10 border-amber-400/50'}`}>
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 animate-pulse-green"></span>
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${arduinoData.isConnected ? 'bg-emerald-400' : 'bg-amber-400'} opacity-75`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${arduinoData.isConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
             </span>
             <div className="text-right">
-              <p className="text-[9px] text-slate-400 font-mono leading-none">HARDWARE ATIVO</p>
-              <p className="text-xs text-emerald-400 font-bold font-mono leading-tight">Arduino Nano</p>
+              <p className="text-[9px] text-slate-400 font-mono leading-none">CONEXÃO SERIAL</p>
+              <p className={`text-xs font-bold font-mono leading-tight ${arduinoData.isConnected ? 'text-emerald-400' : 'text-amber-300'}`}>{arduinoData.isConnected ? 'ARDUINO CONECTADO' : 'SIMULAÇÃO / DESCONECTADO'}</p>
             </div>
           </div>
 
-          <QuickEntryModal onInjectReading={handleInjectReading} apiBase={API_BASE} />
+          <ProjectEvaluationModal />
         </div>
       </header>
 
@@ -1769,6 +1782,13 @@ while True:
                 </Button>
               </div>
             </div>
+
+            <PatientMonitor
+              oxygen={rawGas}
+              flow={rawFlow}
+              temperature={rawTemp}
+              connected={arduinoData.isConnected}
+            />
 
             {/* Chatbot Conversacional com IA Explicável */}
             <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">

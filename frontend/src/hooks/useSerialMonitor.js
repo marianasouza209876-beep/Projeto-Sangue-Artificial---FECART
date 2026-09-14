@@ -20,7 +20,9 @@ export function useSerialMonitor() {
           next.records = [{ text: event.line, time: event.time, valid: Boolean(event.sensors) }, ...next.records].slice(0, 40);
         }
         if (event.sensors) {
-          next.sensors = event.sensors;
+          // O firmware pode enviar sensores em pacotes separados. Preserve o
+          // último valor válido de cada um para não apagar a tela entre linhas.
+          next.sensors = { ...previous.sensors, ...event.sensors };
           next.valid++;
           next.lastUpdate = event.time;
         }
