@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo } from 'react';
+import { useSerialMonitor } from './useSerialMonitor';
 
 /**
  * Calcula dinamicamente a porcentagem em relação a um valor ideal/referência.
@@ -74,101 +75,9 @@ export function getStatusBadge(porcentagem, isConnected = true) {
  * processamento dos 3 sensores físicos (gas_value, flow_value, temp_value) e gestão do estado serial.
  */
 export function useArduinoData(currentReading, history, lastPacketTime) {
-  const [serialState, setSerialState] = useState({
-    port: null,
-    isSerialConnected: false,
-    baudRate: 115200,
-    webSerialSupported: typeof navigator !== 'undefined' && 'serial' in navigator
-  });
-
-  const [sensorValues, setSensorValues] = useState({
-    gas_value: 0,
-    flow_value: 0,
-    temp_value: 0,
-    b1: 0,
-    b2: 0,
-    b3: 0,
-    b4: 0,
-    b5: 0,
-    isConnected: false,
-    isSerialConnected: false,
-    statusText: "[AGUARDANDO LEITURA SERIAL]",
-    lastUpdate: null
-  });
-
-  // Conexão Web Serial USB direta via navegador (Baud Rate 115200)
-  const connectSerial = useCallback(async () => {
-    if (!serialState.webSerialSupported) return false;
-    try {
-      const port = await navigator.serial.requestPort();
-      await port.open({ baudRate: 115200 });
-      setSerialState(prev => ({ ...prev, port, isSerialConnected: true }));
-      
-      const decoder = new TextDecoderStream();
-      port.readable.pipeTo(decoder.writable);
-      const inputStream = decoder.readable;
-      const reader = inputStream.getReader();
-
-      (async () => {
-        let buffer = '';
-        try {
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buffer += value;
-            const lines = buffer.split('\n');
-            buffer = lines.pop();
-
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-                try {
-                  const json = JSON.parse(trimmed);
-                  const gas = parseFloat(json.gas_value ?? json.gas ?? json.oxigenacao ?? 0);
-                  const flow = parseFloat(json.flow_value ?? json.flow ?? json.vazao ?? 0);
-                  const temp = parseFloat(json.temp_value ?? json.temp ?? json.temperatura ?? 0);
-                  
-                  setSensorValues(prev => ({
-                    ...prev,
-                    gas_value: gas,
-                    flow_value: flow,
-                    temp_value: temp,
-                    isConnected: true,
-                    isSerialConnected: true,
-                    statusText: getStatusBadge((gas / 100) * 100, true).text,
-                    lastUpdate: new Date()
-                  }));
-                } catch {
-                  // Silently ignore parse errors
-                }
-              }
-            }
-          }
-        } catch {
-          setSerialState(prev => ({ ...prev, isSerialConnected: false, port: null }));
-        } finally {
-          reader.releaseLock();
-        }
-      })();
-
-      return true;
-    } catch {
-      setSerialState(prev => ({ ...prev, isSerialConnected: false, port: null }));
-      return false;
-    }
-  }, [serialState.webSerialSupported]);
-
-  // Atualização síncrona de estado com base nas leituras recebidas por props (Arduino/API Telemetria)
-  useEffect(() => {
-    if (!currentReading) {
-      setSensorValues(prev => ({
-        ...prev,
-        isConnected: serialState.isSerialConnected,
-        isSerialConnected: serialState.isSerialConnected,
-        statusText: serialState.isSerialConnected ? prev.statusText : "[AGUARDANDO LEITURA SERIAL]"
-      }));
-      return;
-    }
+  const serialMonitor = useSerialMonitor();
+  const sensorValues = useMemo(() => {
+    if (!currentReading) return { gas_value: null, flow_value: null, temp_value: null, isConnected: false };
 
     // Leitura contínua dos 3 sensores físicos
     const gas_value = parseFloat(
@@ -223,13 +132,13 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
 
     // Validação da transmissão serial ativa (últimos 15 segundos)
     const now = Date.now();
-    const isRecent = serialState.isSerialConnected || (lastPacketTime ? (now - lastPacketTime < 15000) : (history && history.length > 0));
+    const isRecent = (lastPacketTime ? (now - lastPacketTime < 15000) : (history && history.length > 0));
     const activeConnection = Boolean(isRecent);
 
     const mainPct = isNaN(gas_value) ? (isNaN(b1) ? 0 : b1) : gas_value;
     const badgeInfo = getStatusBadge(mainPct, activeConnection);
 
-    setSensorValues({
+    return {
       gas_value: isNaN(gas_value) ? 0 : gas_value,
       flow_value: isNaN(flow_value) ? 0 : flow_value,
       temp_value: isNaN(temp_value) ? 0 : temp_value,
@@ -239,17 +148,28 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
       b4: isNaN(b4) ? 0 : b4,
       b5: isNaN(b5) ? 0 : b5,
       isConnected: activeConnection,
-      isSerialConnected: activeConnection,
+      isSerialConnected: false,
       statusText: badgeInfo.text,
       badgeInfo: badgeInfo,
       lastUpdate: new Date()
-    });
-  }, [currentReading, history, lastPacketTime, serialState.isSerialConnected]);
+    };
+  }, [currentReading, history, lastPacketTime]);
 
+  const usbSelected = serialMonitor.status !== 'OFFLINE' || serialMonitor.received > 0;
   return {
     ...sensorValues,
-    connectSerial,
-    baudRate: 115200,
-    webSerialSupported: serialState.webSerialSupported
+    ...(usbSelected ? {
+      gas_value: serialMonitor.sensors.gas_value ?? null,
+      flow_value: serialMonitor.sensors.flow_value ?? null,
+      temp_value: serialMonitor.sensors.temp_value ?? null,
+      isConnected: serialMonitor.fresh,
+      statusText: serialMonitor.fresh ? '[DADOS USB RECEBIDOS]' : '[AGUARDANDO LEITURA SERIAL]',
+      lastUpdate: serialMonitor.lastUpdate,
+    } : {}),
+    isSerialConnected: serialMonitor.status === 'CONECTADO',
+    serialMonitor,
+    connectSerial: serialMonitor.connect,
+    disconnectSerial: serialMonitor.disconnect,
+    webSerialSupported: serialMonitor.supported,
   };
 }

@@ -1,3 +1,4 @@
+import ArduinoMonitor from './components/ArduinoMonitor';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
@@ -150,7 +151,7 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
-  const [packetCount, setPacketCount] = useState(1420);
+  const [_packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime, setLastPacketTime] = useState(null);
   const messagesEndRef = useRef(null);
 
@@ -514,9 +515,9 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const arduinoData = useArduinoData(currentReading, history, lastPacketTime);
 
   // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) para Atendimento Pré-Hospitalar de Emergência
-  const rawGas = arduinoData.gas_value || (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
-  const rawFlow = arduinoData.flow_value || currentReading?.vazao_l_min || 4.8;
-  const rawTemp = arduinoData.temp_value || currentReading?.temperatura_c || 22.0;
+  const rawGas = arduinoData.gas_value ?? (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
+  const rawFlow = arduinoData.flow_value ?? currentReading?.vazao_l_min ?? 4.8;
+  const rawTemp = arduinoData.temp_value ?? currentReading?.temperatura_c ?? 22.0;
 
   // B1: Saturação de O₂ (usa diretamente gas_value)
   const b1_val = rawGas;
@@ -1720,19 +1721,7 @@ while True:
               )}
             </div>
 
-            {/* Status do Hardware Arduino */}
-            <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between bg-slate-900/40 border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <Cpu className="w-4 h-4 text-emerald-400" />
-                <div>
-                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO ARDUINO SERIAL</p>
-                  <p className="text-xs font-mono font-bold text-slate-200">115200 baud • {packetCount} pacotes rx</p>
-                </div>
-              </div>
-              <span className="text-[9px] bg-slate-800 border border-slate-700 text-emerald-400 font-mono px-2.5 py-1 rounded-md font-semibold">
-                DRIVER: CH340G / COM3
-              </span>
-            </div>
+            <ArduinoMonitor monitor={arduinoData.serialMonitor} />
 
           </section>
 
