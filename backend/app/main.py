@@ -55,6 +55,8 @@ class LoteCreate(BaseModel):
 
 class ChatInput(BaseModel):
     pergunta: str
+    lote_id: Optional[str] = None
+    finalidade: Optional[str] = None
 
 class TriageInput(BaseModel):
     modo: Optional[str] = "Com IA"
@@ -264,7 +266,12 @@ def get_audits(limit: int = 15, db: Session = Depends(get_db)):
 @app.post("/api/chat")
 def chatbot_interaction(chat_in: ChatInput, db: Session = Depends(get_db)):
     pergunta = chat_in.pergunta
-    resposta = responder_pergunta_cientifica(pergunta, db)
+    resposta = responder_pergunta_cientifica(
+        pergunta,
+        db,
+        finalidade=chat_in.finalidade,
+        lote_id=chat_in.lote_id
+    )
     
     # Adicionar na trilha de auditoria
     db.add(TrilhaAuditoria(

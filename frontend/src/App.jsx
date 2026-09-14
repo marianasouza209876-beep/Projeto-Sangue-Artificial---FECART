@@ -53,7 +53,7 @@ const QUICK_CHAT_ACTIONS = [
 
 const STRATEGIC_CHAT_ACTIONS = QUICK_CHAT_ACTIONS.slice(2);
 
-const createChatResponseCard = (action, lot, telemetry) => {
+const createChatResponseCard = (action, lot, telemetry, activeFinalidade) => {
   const parseTelemetryValue = (value, fallback) => {
     const parsed = Number.parseFloat(String(value).replace(',', '.'));
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -63,6 +63,8 @@ const createChatResponseCard = (action, lot, telemetry) => {
   const oxigenacao = parseTelemetryValue(telemetry?.oxigenacao_pct ?? telemetry?.oxigenacao, 96);
   const estabilidade = telemetry?.status || lot?.status || 'ESTÁVEL';
   const lotId = lot?.id || 'lote ativo';
+  const finConfig = getMetricasConfigByFinalidade(activeFinalidade || lot?.finalidade || lot?.destino);
+  
   const vazaoForaDaFaixa = vazao < 4 || vazao > 6.5;
   const temperaturaForaDaFaixa = temperatura < 35 || temperatura > 37.5;
   const leiturasForaDaFaixa = [
@@ -71,9 +73,9 @@ const createChatResponseCard = (action, lot, telemetry) => {
   ].filter(Boolean);
   const economia = estabilidade === 'CRÍTICO' ? 42500 : estabilidade === 'ALERTA' ? 28500 : 18000;
   const metrics = [
-    { label: 'OXIGENAÇÃO', value: `${oxigenacao.toFixed(0)}%`, progress: Math.min(100, oxigenacao), color: 'bg-emerald-400', icon: Droplets, iconColor: 'text-emerald-300', iconBackground: 'bg-emerald-500/15 border-emerald-400/40', badgeClass: 'border-emerald-400/30 bg-emerald-500/5 text-emerald-200' },
-    { label: 'VAZÃO', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400', icon: Waves, iconColor: 'text-cyan-300', iconBackground: 'bg-cyan-500/15 border-cyan-400/40', badgeClass: 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200' },
-    { label: 'TEMPERATURA', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-amber-400', icon: Thermometer, iconColor: 'text-amber-300', iconBackground: 'bg-amber-500/15 border-amber-400/40', badgeClass: 'border-amber-400/30 bg-amber-500/5 text-amber-200' },
+    { label: finConfig[0]?.title.split('•')[1]?.trim() || 'OXIGENAÇÃO', value: `${oxigenacao.toFixed(0)}%`, progress: Math.min(100, oxigenacao), color: 'bg-emerald-400', icon: Droplets, iconColor: 'text-emerald-300', iconBackground: 'bg-emerald-500/15 border-emerald-400/40', badgeClass: 'border-emerald-400/30 bg-emerald-500/5 text-emerald-200' },
+    { label: finConfig[1]?.title.split('•')[1]?.trim() || 'VAZÃO', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400', icon: Waves, iconColor: 'text-cyan-300', iconBackground: 'bg-cyan-500/15 border-cyan-400/40', badgeClass: 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200' },
+    { label: finConfig[2]?.title.split('•')[1]?.trim() || 'TEMPERATURA', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-amber-400', icon: Thermometer, iconColor: 'text-amber-300', iconBackground: 'bg-amber-500/15 border-amber-400/40', badgeClass: 'border-amber-400/30 bg-amber-500/5 text-amber-200' },
     { label: 'ESTABILIDADE', value: estabilidade, progress: estabilidade === 'ESTÁVEL' ? 100 : estabilidade === 'ALERTA' ? 65 : 35, color: 'bg-purple-400', icon: ShieldCheck, iconColor: 'text-purple-300', iconBackground: 'bg-purple-500/15 border-purple-400/40', badgeClass: 'border-purple-400/30 bg-purple-500/5 text-purple-200' },
   ];
 
@@ -218,6 +220,534 @@ const FINALIDADES_OPCOES = [
   "Coleta e Reserva de Sangue",
   "Tipagem Sanguínea e Testes de Compatibilidade"
 ];
+
+// Mapeamento Dinâmico de Métricas B1 a B5 por Nome de Finalidade Clínica
+const getMetricasConfigByFinalidade = (finalidadeName = "") => {
+  const fin = String(finalidadeName).trim();
+  
+  if (fin.includes("Pré-Hospitalar") || fin.includes("Pre-Hospitalar")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Garante aporte imediato de oxigênio em quadros de trauma e choque volumétrico.",
+        icon: Waves,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • RESISTÊNCIA DE FLUXO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Permite rápida infusão sob pressão em acessos venosos periféricos.",
+        icon: Droplets,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • ESTABILIDADE TÉRMICA",
+        subtitle: "Usa diretamente temp_value",
+        getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
+        getUnit: () => "°C",
+        getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
+        detail: "Conserva a integridade funcional fora de refrigeração, ideal para ambulâncias.",
+        icon: Thermometer,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B4",
+        title: "B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA",
+        subtitle: "(gas_value * 0.6) + (temp_value * 0.4)",
+        getValue: (rawGas, rawFlow, rawTemp) => (rawGas * 0.6) + (rawTemp * 0.4),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Estabilidade estendida em circulação sistêmica durante transporte de emergência.",
+        icon: Clock,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "meia_vida_h"
+      },
+      {
+        id: "B5",
+        title: "B5 • TAXA DE EXTRAÇÃO TISSULAR DE O₂",
+        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Eficiência de transferência de O₂ para tecidos hipóxicos em ressuscitação.",
+        icon: Activity,
+        accentColor: "bg-[#ff4d4d]",
+        sparklineKey: "extracao_o2_pct"
+      }
+    ];
+  }
+  
+  if (fin.includes("Trauma") || fin.includes("Hemorragia")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • CAPACIDADE DE CARGA DE O₂",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Maximização do transporte de O₂ para reversão acelerada de choque hemorrágico grave.",
+        icon: Waves,
+        accentColor: "bg-[#ff4d4d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • PRESSÃO ONCÓTICA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Manutenção da pressão coloidosmótica intravascular em grandes perdas de volemia.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • PERMUTABILIDADE GASEIRA",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Troca rápida de gases em capilares sistêmicos comprometidos por trauma grave.",
+        icon: Activity,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B4",
+        title: "B4 • RESISTÊNCIA À COMPRESSÃO MECÂNICA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Integridade estrutural da molécula sob infusões de alta pressão e bombas mecânicas.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B5",
+        title: "B5 • TAMPONAMENTO ÁCIDO-BÁSICO",
+        subtitle: "(gas_value * 0.7) + (temp_value * 0.3)",
+        getValue: (rawGas, rawFlow, rawTemp) => (rawGas * 0.7) + (rawTemp * 0.3),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Neutralização de acidose metabólica grave decorrente de hipoperfusão prolongada.",
+        icon: Thermometer,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "temperatura_c"
+      }
+    ];
+  }
+
+  if (fin.includes("Cirurgia") || fin.includes("Cardíaca") || fin.includes("Cardiaca") || fin.includes("Cardiovascular")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC)",
+        subtitle: "(flow_value * 0.6) + (gas_value * 0.4)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (flow_pct * 0.6) + (rawGas * 0.4),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Desempenho otimizado em máquinas de circulação extracorpórea em cirurgias de peito aberto.",
+        icon: Waves,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "vazao_l_min"
+      },
+      {
+        id: "B2",
+        title: "B2 • TENSÃO DE CISAILHAMENTO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Resistência contra lise molecular sob elevadas forças de cisalhamento em oxigenadores.",
+        icon: Droplets,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • TEMPO DE MEIA-VIDA EXTENDED",
+        subtitle: "(gas_value * 0.5) + (temp_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (rawGas * 0.5) + (temp_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Durabilidade estendida em procedimento de longa duração e substituição volêmica.",
+        icon: Clock,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B4",
+        title: "B4 • TAMPONAMENTO DE LACTATO",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Controle de acúmulo de lactato durante períodos de clampeamento de aorta.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B5",
+        title: "B5 • VISCOSIDADE EM HYPOTHERMIA",
+        subtitle: "Relação entre flow_value e variação de temp_value",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.6) + (temp_pct * 0.4),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Manutenção da fluidez sem congelamento ou hiperviscosidade sob hipotermia induzida (20-28°C).",
+        icon: Thermometer,
+        accentColor: "bg-[#3a86ef]",
+        sparklineKey: "temperatura_c"
+      }
+    ];
+  }
+
+  if (fin.includes("Anemias") || fin.includes("Anemia")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50)",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Curva de dissociação ideal para liberação facilitada em tecidos cronicamente anêmicos.",
+        icon: Waves,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • AUSÊNCIA DE RESPOSTA IMUNOGÊNICA",
+        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Isenção de reações aloimunes em pacientes multitransfundidos por anemia crônica.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#02c39a]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • ESTABILIDADE PLASMÁTICA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Manutenção da integridade na corrente sanguínea em infusões ambulatoriais.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B4",
+        title: "B4 • TOLERÂNCIA A INFUSÃO LENTA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Preservação da eficácia molecular sob taxas de gotejamento reduzidas.",
+        icon: Clock,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "vazao_l_min"
+      },
+      {
+        id: "B5",
+        title: "B5 • RETENÇÃO VASCULAR",
+        subtitle: "(flow_value * 0.6) + (temp_value * 0.4)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.6) + (temp_pct * 0.4),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Prevenção de extravasamento endotelial para tecidos intersticiais.",
+        icon: Activity,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "temperatura_c"
+      }
+    ];
+  }
+
+  if (fin.includes("Oncológico") || fin.includes("Oncologico")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • COMPATIBILIDADE COM QUIMIOTERÁPICOS",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Estabilidade físico-química na presença de agentes citotóxicos antineoplásicos.",
+        icon: Waves,
+        accentColor: "bg-[#02c39a]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • PROTEÇÃO CONTRA ESTRESSE OXIDATIVO",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Mecanismo antioxidante para neutralizar radicais livres em tecidos tumorais.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B3",
+        title: "B3 • PERMEABILIDADE EM MICROCIRCULAÇÃO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Perfusão eficiente em vasos tumorais desorganizados e de pequeno calibre.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B4",
+        title: "B4 • ESTABILIDADE EM NEUTROPÊNICOS",
+        subtitle: "(temp_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (temp_pct * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Segurança biológica máxima para pacientes imunossuprimidos sob quimioterapia.",
+        icon: Thermometer,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B5",
+        title: "B5 • ÍNDICE DE PURIFICAÇÃO MOLECULAR",
+        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Grau de eliminação de subprodutos metálicos e pirogênios.",
+        icon: Activity,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "viscosidade_cp"
+      }
+    ];
+  }
+
+  if (fin.includes("Politraumatizados") || fin.includes("Politrauma")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • SUPORTE MULTIORGÂNICO DE O₂",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Aporte simultâneo de O₂ para múltiplos órgãos em falência aguda pós-trauma.",
+        icon: Waves,
+        accentColor: "bg-[#ff9f1c]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • RESISTÊNCIA À ACIDOSE LÁCTICA",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Capacidade de manter transporte gasoso em pH sanguíneo severamente ácido (< 7.20).",
+        icon: ShieldCheck,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B3",
+        title: "B3 • ESTABILIDADE EM INFUSÃO PRESSURIZADA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Resistência estrutural durante ressuscitação volêmica acelerada com manguito de pressão.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "vazao_l_min"
+      },
+      {
+        id: "B4",
+        title: "B4 • CAPACIDADE EXPANSORA DE PLASMA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Efeito expansor intravascular imediato para estabilização hemodinâmica.",
+        icon: Activity,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B5",
+        title: "B5 • INTEGRIDADE EM VARIÂNCIA TÉRMICA",
+        subtitle: "Usa diretamente temp_value",
+        getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
+        getUnit: () => "°C",
+        getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
+        detail: "Tolerância a flutuações térmicas severas na sala de trauma e cirurgia de emergência.",
+        icon: Thermometer,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "temperatura_c"
+      }
+    ];
+  }
+
+  if (fin.includes("Doação") || fin.includes("Doacao") || fin.includes("Coleta") || fin.includes("Reserva")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE)",
+        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Ausência completa de antígenos de superfície (ABO/Rh), permitindo uso universal.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • PURIFICAÇÃO BIOLÓGICA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Eliminação total de patógenos, vírus e resíduos celulares durante a produção.",
+        icon: Droplets,
+        accentColor: "bg-[#02c39a]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • CONSERVABILIDADE EM ESTOQUE",
+        subtitle: "Usa diretamente temp_value",
+        getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
+        getUnit: () => "°C",
+        getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
+        detail: "Manutenção de propriedades funcionais por longos períodos em bancos de sangue.",
+        icon: Thermometer,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B4",
+        title: "B4 • ESTABILIDADE OSMÓTICA",
+        subtitle: "(flow_value * 0.5) + (temp_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.5) + (temp_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Equilíbrio de osmolaridade para prevenção de hemólise durante estocagem.",
+        icon: Waves,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B5",
+        title: "B5 • FLUIDEZ DE FRACIONAMENTO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Comportamento reológico ideal para etapas de fracionamento e envase industrial.",
+        icon: Activity,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "vazao_l_min"
+      }
+    ];
+  }
+
+  if (fin.includes("Tipagem") || fin.includes("Compatibilidade")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • REATIVIDADE EM PROVA CRUZADA (CROSSMATCH)",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Inexistência de aglutinação ou aglutininas imunológicas em prova cruzada.",
+        icon: Waves,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "vazao_l_min"
+      },
+      {
+        id: "B2",
+        title: "B2 • NEUTRALIDADE DE ANTICORPOS IRREGULARES",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Ausência de reação com painel de anticorpos anti-eritrocitários raros.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#02c39a]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B3",
+        title: "B3 • FIDELIDADE DE PADRÃO MOLECULAR",
+        subtitle: "(flow_value * 0.5) + (gas_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (flow_pct * 0.5) + (rawGas * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Constância nas propriedades físico-químicas exigidas em testes de laboratório.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B4",
+        title: "B4 • ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Reprodutibilidade em ensaios automatizados de compatibilidade pré-transfusional.",
+        icon: Activity,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B5",
+        title: "B5 • LIMPIDEZ ESPECTROFOTOMÉTRICA",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Transparência óptica sem interferência em leituras espectrofotométricas.",
+        icon: Thermometer,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "oxigenacao_limpa"
+      }
+    ];
+  }
+
+  // Fallback padrão: Atendimento Pré-Hospitalar de Emergência
+  return getMetricasConfigByFinalidade("Atendimento Pré-Hospitalar de Emergência");
+};
 
 const LOTES_DEMONSTRACAO = [
   {
@@ -610,7 +1140,7 @@ export default function App() {
         {
           role: 'assistant',
           content: '',
-          responseCard: createChatResponseCard(text, activeLotObj, activeLotTelemetry),
+          responseCard: createChatResponseCard(text, activeLotObj, activeLotTelemetry, activeFinalidade),
         },
       ]);
       setInputValue('');
@@ -626,7 +1156,11 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pergunta: text })
+        body: JSON.stringify({
+          pergunta: text,
+          lote_id: lotId,
+          finalidade: activeFinalidade
+        })
       });
 
       if (res.ok) {
@@ -1349,754 +1883,29 @@ export default function App() {
 
             {/* Grid dos Novos MetricCards do Lovable */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {isEmergenciaActive ? (
-                <>
-                  {/* CARD B1: SATURAÇÃO DE O₂ */}
-                  <MetricCard
-                    title="B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)"
-                    subtitle="Usa diretamente gas_value"
-                    value={b1_val.toFixed(1)}
-                    unit="%"
-                    percent={b1_pct}
-                    level={b1_pct >= 90 ? "success" : b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={b1_status.badgeText}
-                    detail="Garante aporte imediato de oxigênio em quadros de trauma e choque volumétrico."
-                    icon={Waves}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color="#00ff9d" />}
-                  />
+              {getMetricasConfigByFinalidade(activeFinalidade).map((metric) => {
+                const calculatedValue = metric.getValue(rawGas, rawFlow, rawTemp, flow_pct_for_b5, temp_pct_for_card);
+                const unitStr = metric.getUnit(rawFlow, rawTemp);
+                const percentVal = metric.getPercent(calculatedValue, rawFlow, rawTemp, flow_pct_for_b5, temp_pct_for_card);
+                const badgeInfo = getStatusBadge(percentVal, arduinoData.isConnected);
 
-                  {/* CARD B2: RESISTÊNCIA DE FLUXO */}
+                return (
                   <MetricCard
-                    title="B2 • RESISTÊNCIA DE FLUXO"
-                    subtitle="Usa diretamente flow_value"
-                    value={b2_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={b2_pct}
-                    level={b2_pct >= 90 ? "success" : b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={b2_status.badgeText}
-                    detail="Permite rápida infusão sob pressão em acessos venosos periféricos."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
+                    key={metric.id}
+                    title={metric.title}
+                    subtitle={metric.subtitle}
+                    value={typeof calculatedValue === 'number' ? calculatedValue.toFixed(1) : calculatedValue}
+                    unit={unitStr}
+                    percent={percentVal}
+                    level={percentVal >= 90 ? "success" : percentVal >= 70 ? "warning" : "error"}
+                    badgeText={badgeInfo.badgeText}
+                    detail={metric.detail}
+                    icon={metric.icon}
+                    accentColor={metric.accentColor}
+                    sparkline={<Sparkline data={getSparkValues(metric.sparklineKey)} color={badgeInfo.color} />}
                   />
-
-                  {/* CARD B3: ESTABILIDADE TÉRMICA */}
-                  <MetricCard
-                    title="B3 • ESTABILIDADE TÉRMICA"
-                    subtitle="Usa diretamente temp_value"
-                    value={b3_val.toFixed(1)}
-                    unit="°C"
-                    percent={b3_pct}
-                    level={b3_pct >= 90 ? "success" : b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={b3_status.badgeText}
-                    detail="Conserva a integridade funcional fora de refrigeração, ideal para ambulâncias."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('temperatura_c')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B4: TEMPO DE MEIA-VIDA CIRCULATÓRIA */}
-                  <MetricCard
-                    title="B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA"
-                    subtitle="Calculado via (gas_value × 0.6) + (temp_value × 0.4)"
-                    value={b4_val.toFixed(1)}
-                    unit="h"
-                    percent={b4_pct}
-                    level={b4_pct >= 90 ? "success" : b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={b4_status.badgeText}
-                    detail="Mantém a oxigenação até que o paciente chegue ao hospital."
-                    icon={Clock}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('meia_vida_h')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B5: TAXA DE EXTRAÇÃO TISSULAR DE O₂ */}
-                  <MetricCard
-                    title="B5 • TAXA DE EXTRAÇÃO TISSULAR DE O₂"
-                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
-                    value={b5_val.toFixed(1)}
-                    unit="%"
-                    percent={b5_pct}
-                    level={b5_pct >= 90 ? "success" : b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={b5_status.badgeText}
-                    detail="Facilidade com que o oxigênio se solta do composto para ir direto aos tecidos."
-                    icon={FlaskConical}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('extracao_o2_pct')} color="#02c39a" />}
-                  />
-                </>
-              ) : isTraumaActive ? (
-                <>
-                  {/* CARD B1: CAPACIDADE DE CARGA DE O₂ */}
-                  <MetricCard
-                    title="B1 • CAPACIDADE DE CARGA DE O₂"
-                    subtitle="Usa diretamente gas_value"
-                    value={t_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={t_b1_pct}
-                    level={t_b1_pct >= 90 ? "success" : t_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b1_status.badgeText}
-                    detail="Compensa rapidamente a perda massiva de volemia e glóbulos vermelhos."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#ff4d4d]"
-                    sparkline={<Sparkline data={getSparkValues('carga_o2_pct')} color="#ff4d4d" />}
-                  />
-
-                  {/* CARD B2: PRESSÃO ONCÓTICA */}
-                  <MetricCard
-                    title="B2 • PRESSÃO ONCÓTICA"
-                    subtitle="Usa diretamente flow_value"
-                    value={t_b2_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={t_b2_pct}
-                    level={t_b2_pct >= 90 ? "success" : t_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b2_status.badgeText}
-                    detail="Evita extravasamento de plasma e mantém a pressão arterial estável."
-                    icon={Waves}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('pressao_oncotica_mmhg')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B3: PERMUTABILIDADE GASOSA */}
-                  <MetricCard
-                    title="B3 • PERMUTABILIDADE GASOSA"
-                    subtitle="Usa diretamente gas_value ajustado à curva de desaturação"
-                    value={t_b3_val.toFixed(1)}
-                    unit="%"
-                    percent={t_b3_pct}
-                    level={t_b3_pct >= 90 ? "success" : t_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b3_status.badgeText}
-                    detail="Assegura rápida troca de O₂ e CO₂ nos alvéolos pulmonares."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('permutabilidade_gasosa_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: RESISTÊNCIA À COMPRESSÃO MECÂNICA */}
-                  <MetricCard
-                    title="B4 • RESISTÊNCIA À COMPRESSÃO MECÂNICA"
-                    subtitle="Usa diretamente flow_value sob vazão máxima"
-                    value={t_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={t_b4_pct}
-                    level={t_b4_pct >= 90 ? "success" : t_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b4_status.badgeText}
-                    detail="Suporta bombas de infusão rápida em ressuscitação volêmica."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('resistencia_compressao_pct')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: TAMPONAMENTO ÁCIDO-BÁSICO */}
-                  <MetricCard
-                    title="B5 • TAMPONAMENTO ÁCIDO-BÁSICO"
-                    subtitle="Calculado via (gas_value × 0.7) + (temp_value × 0.3)"
-                    value={t_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={t_b5_pct}
-                    level={t_b5_pct >= 90 ? "success" : t_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b5_status.badgeText}
-                    detail="Previne acidose metabólica decorrente da hipoperfusão tecidual."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('tamponamento_ph')} color="#ffb703" />}
-                  />
-                </>
-              ) : isCirurgiaCardiacaActive ? (
-                <>
-                  {/* CARD B1: COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC) */}
-                  <MetricCard
-                    title="B1 • COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC)"
-                    subtitle="Calculado via (flow_value × 0.6) + (gas_value × 0.4)"
-                    value={c_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={c_b1_pct}
-                    level={c_b1_pct >= 90 ? "success" : c_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b1_status.badgeText}
-                    detail="Mantém a estabilidade molecular em circuitos de circulação extracorpórea."
-                    icon={Waves}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('compatibilidade_cec_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B2: TENSÃO DE CISAILHAMENTO */}
-                  <MetricCard
-                    title="B2 • TENSÃO DE CISAILHAMENTO"
-                    subtitle="Usa diretamente flow_value"
-                    value={c_b2_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={c_b2_pct}
-                    level={c_b2_pct >= 90 ? "success" : c_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b2_status.badgeText}
-                    detail="Previne degradação mecânica por bombas rotativas e oxigenadores."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('tensao_cisalhamento_cp')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B3: TEMPO DE MEIA-VIDA EXTENDED */}
-                  <MetricCard
-                    title="B3 • TEMPO DE MEIA-VIDA EXTENDED"
-                    subtitle="Calculado via (gas_value × 0.5) + (temp_value × 0.5)"
-                    value={c_b3_val.toFixed(1)}
-                    unit="h"
-                    percent={c_b3_pct}
-                    level={c_b3_pct >= 90 ? "success" : c_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b3_status.badgeText}
-                    detail="Suporta procedimentos cirúrgicos de longa duração sem perda funcional."
-                    icon={Clock}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('meia_vida_extended_h')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: TAMPONAMENTO DE LACTATO */}
-                  <MetricCard
-                    title="B4 • TAMPONAMENTO DE LACTATO"
-                    subtitle="Usa diretamente gas_value"
-                    value={c_b4_val.toFixed(1)}
-                    unit="%"
-                    percent={c_b4_pct}
-                    level={c_b4_pct >= 90 ? "success" : c_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b4_status.badgeText}
-                    detail="Minimiza acúmulo de metabólitos ácidos durante o clampeamento vascular."
-                    icon={Droplets}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('tamponamento_lactato_ph')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B5: VISCOSIDADE EM HYPOTHERMIA */}
-                  <MetricCard
-                    title="B5 • VISCOSIDADE EM HYPOTHERMIA"
-                    subtitle="Calculado via flow_value correlacionado com a queda em temp_value"
-                    value={c_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={c_b5_pct}
-                    level={c_b5_pct >= 90 ? "success" : c_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b5_status.badgeText}
-                    detail="Preserva a fluidez hemodinâmica sob hipotermia cirúrgica induzida."
-                    icon={Thermometer}
-                    accentColor="bg-[#3a86ef]"
-                    sparkline={<Sparkline data={getSparkValues('viscosidade_hipotermia_cp')} color="#3a86ef" />}
-                  />
-                </>
-              ) : isAnemiaActive ? (
-                <>
-                  {/* CARD B1: EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50) */}
-                  <MetricCard
-                    title="B1 • EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50)"
-                    subtitle="Usa diretamente gas_value"
-                    value={a_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={a_b1_pct}
-                    level={a_b1_pct >= 90 ? "success" : a_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b1_status.badgeText}
-                    detail="Entrega oxigênio aos tecidos mesmo em baixas concentrações circulantes."
-                    icon={Waves}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('eficiencia_p50_mmhg')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B2: AUSÊNCIA DE RESPOSTA IMUNOGÊNICA */}
-                  <MetricCard
-                    title="B2 • AUSÊNCIA DE RESPOSTA IMUNOGÊNICA"
-                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
-                    value={a_b2_val.toFixed(1)}
-                    unit="%"
-                    percent={a_b2_pct}
-                    level={a_b2_pct >= 90 ? "success" : a_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b2_status.badgeText}
-                    detail="Reduz risco de reações alérgicas ou rejeição em transfusões crônicas."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('ausencia_imunogenica_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B3: ESTABILIDADE PLASMÁTICA */}
-                  <MetricCard
-                    title="B3 • ESTABILIDADE PLASMÁTICA"
-                    subtitle="Usa diretamente flow_value"
-                    value={a_b3_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={a_b3_pct}
-                    level={a_b3_pct >= 90 ? "success" : a_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b3_status.badgeText}
-                    detail="Evita flutuações na concentração de hemoglobina sintética."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_plasmatica_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: TOLERÂNCIA A INFUSÃO LENTA */}
-                  <MetricCard
-                    title="B4 • TOLERÂNCIA A INFUSÃO LENTA"
-                    subtitle="Usa diretamente flow_value em baixa rotação"
-                    value={a_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={a_b4_pct}
-                    level={a_b4_pct >= 90 ? "success" : a_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b4_status.badgeText}
-                    detail="Ideal para esquemas de administração gradual em pacientes debilitados."
-                    icon={Clock}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('tolerancia_infusao_lenta_h')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B5: RETENÇÃO VASCULAR */}
-                  <MetricCard
-                    title="B5 • RETENÇÃO VASCULAR"
-                    subtitle="Calculado via (flow_value × 0.6) + (temp_value × 0.4)"
-                    value={a_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={a_b5_pct}
-                    level={a_b5_pct >= 90 ? "success" : a_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b5_status.badgeText}
-                    detail="Impede filtração glomerular precoce, prolongando o benefício terapêutico."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('retencao_vascular_h')} color="#a855f7" />}
-                  />
-                </>
-              ) : isOncologicoActive ? (
-                <>
-                  {/* CARD B1: COMPATIBILIDADE COM QUIMIOTERÁPICOS */}
-                  <MetricCard
-                    title="B1 • COMPATIBILIDADE COM QUIMIOTERÁPICOS"
-                    subtitle="Usa diretamente gas_value"
-                    value={o_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={o_b1_pct}
-                    level={o_b1_pct >= 90 ? "success" : o_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b1_status.badgeText}
-                    detail="Não reage nem degrada compostos citostáticos na corrente sanguínea."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('compatibilidade_quimioterapicos_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B2: PROTEÇÃO CONTRA ESTRESSE OXIDATIVO */}
-                  <MetricCard
-                    title="B2 • PROTEÇÃO CONTRA ESTRESSE OXIDATIVO"
-                    subtitle="Usa diretamente gas_value"
-                    value={o_b2_val.toFixed(1)}
-                    unit="%"
-                    percent={o_b2_pct}
-                    level={o_b2_pct >= 90 ? "success" : o_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b2_status.badgeText}
-                    detail="Neutraliza radicais livres gerados por tratamentos radioterápicos."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('protecao_estresse_oxidativo_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B3: PERMEABILIDADE EM MICROCIRCULAÇÃO */}
-                  <MetricCard
-                    title="B3 • PERMEABILIDADE EM MICROCIRCULAÇÃO"
-                    subtitle="Usa diretamente flow_value"
-                    value={o_b3_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={o_b3_pct}
-                    level={o_b3_pct >= 90 ? "success" : o_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b3_status.badgeText}
-                    detail="Penetra redes capilares comprimidas por massas tumorais."
-                    icon={Waves}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('permeabilidade_microcirculacao_cp')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: ESTABILIDADE EM NEUTROPÉNICOS */}
-                  <MetricCard
-                    title="B4 • ESTABILIDADE EM NEUTROPÉNICOS"
-                    subtitle="Calculado via (temp_value × 0.5) + (flow_value × 0.5)"
-                    value={o_b4_val.toFixed(1)}
-                    unit="%"
-                    percent={o_b4_pct}
-                    level={o_b4_pct >= 90 ? "success" : o_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b4_status.badgeText}
-                    detail="Formulação livre de contaminantes que possam ameaçar imunodeprimidos."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_neutropenicos_pct')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: ÍNDICE DE PURIFICAÇÃO MOLECULAR */}
-                  <MetricCard
-                    title="B5 • ÍNDICE DE PURIFICAÇÃO MOLECULAR"
-                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
-                    value={o_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={o_b5_pct}
-                    level={o_b5_pct >= 90 ? "success" : o_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b5_status.badgeText}
-                    detail="Minimiza a carga metabólica sobre fígado e rins fragilizados."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('purificacao_molecular_pct')} color="#ffb703" />}
-                  />
-                </>
-              ) : isPolitraumatizadosActive ? (
-                <>
-                  {/* CARD B1: SUPORTE MULTIORGÂNICO DE O₂ */}
-                  <MetricCard
-                    title="B1 • SUPORTE MULTIORGÂNICO DE O₂"
-                    subtitle="Usa diretamente gas_value"
-                    value={p_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={p_b1_pct}
-                    level={p_b1_pct >= 90 ? "success" : p_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b1_status.badgeText}
-                    detail="Garante perfusão simultânea de órgãos vitais em falência iminente."
-                    icon={Waves}
-                    accentColor="bg-[#ff9f1c]"
-                    sparkline={<Sparkline data={getSparkValues('suporte_multiorganico_o2_pct')} color="#ff9f1c" />}
-                  />
-
-                  {/* CARD B2: RESISTÊNCIA À ACIDOSE LÁCTICA */}
-                  <MetricCard
-                    title="B2 • RESISTÊNCIA À ACIDOSE LÁCTICA"
-                    subtitle="Usa diretamente gas_value"
-                    value={p_b2_val.toFixed(1)}
-                    unit="%"
-                    percent={p_b2_pct}
-                    level={p_b2_pct >= 90 ? "success" : p_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b2_status.badgeText}
-                    detail="Mantém a capacidade de transporte gasoso mesmo em pH sanguíneo reduzido."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('resistencia_acidose_lactica_ph')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B3: ESTABILIDADE EM INFUSÃO PRESSURIZADA */}
-                  <MetricCard
-                    title="B3 • ESTABILIDADE EM INFUSÃO PRESSURIZADA"
-                    subtitle="Usa diretamente flow_value"
-                    value={p_b3_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={p_b3_pct}
-                    level={p_b3_pct >= 90 ? "success" : p_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b3_status.badgeText}
-                    detail="Não sofre hemólise sintética quando injetado sob alta velocidade."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_infusao_pressurizada_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: CAPACIDADE EXPANSORA DE PLASMA */}
-                  <MetricCard
-                    title="B4 • CAPACIDADE EXPANSORA DE PLASMA"
-                    subtitle="Usa diretamente flow_value"
-                    value={p_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={p_b4_pct}
-                    level={p_b4_pct >= 90 ? "success" : p_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b4_status.badgeText}
-                    detail="Restabelece a pressão arterial em quadros de choque múltiplo."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('capacidade_expansora_plasma_mmhg')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: INTEGRIDADE EM VARIÂNCIA TÉRMICA */}
-                  <MetricCard
-                    title="B5 • INTEGRIDADE EM VARIÂNCIA TÉRMICA"
-                    subtitle="Usa diretamente temp_value"
-                    value={p_b5_val.toFixed(1)}
-                    unit={rawTemp > 10 ? "%" : "°C"}
-                    percent={p_b5_pct}
-                    level={p_b5_pct >= 90 ? "success" : p_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b5_status.badgeText}
-                    detail="Funciona adequadamente em quadros de hipotermia por trauma."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('integridade_variancia_termica_c')} color="#ffb703" />}
-                  />
-                </>
-              ) : isDoacaoActive ? (
-                <>
-                  {/* CARD B1: ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE) */}
-                  <MetricCard
-                    title="B1 • ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE)"
-                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
-                    value={d_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={d_b1_pct}
-                    level={d_b1_pct >= 90 ? "success" : d_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b1_status.badgeText}
-                    detail="Ausência de antígenos A, B e Rh, permitindo transfusão sem reação hemolítica."
-                    icon={Waves}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('isencao_antigenica_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B2: PURIFICAÇÃO BIOLÓGICA */}
-                  <MetricCard
-                    title="B2 • PURIFICAÇÃO BIOLÓGICA"
-                    subtitle="Usa diretamente flow_value"
-                    value={d_b2_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={d_b2_pct}
-                    level={d_b2_pct >= 90 ? "success" : d_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b2_status.badgeText}
-                    detail="Totalmente livre de agentes patogênicos, vírus ou bactérias."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('purificacao_biologica_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B3: CONSERVABILIDADE EM ESTOQUE */}
-                  <MetricCard
-                    title="B3 • CONSERVABILIDADE EM ESTOQUE"
-                    subtitle="Usa diretamente temp_value"
-                    value={d_b3_val.toFixed(1)}
-                    unit={rawTemp > 10 ? "%" : "°C"}
-                    percent={d_b3_pct}
-                    level={d_b3_pct >= 90 ? "success" : d_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b3_status.badgeText}
-                    detail="Mantém propriedades funcionais por longos períodos sob refrigeração."
-                    icon={Clock}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('conservabilidade_estoque_dias')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: ESTABILIDADE OSMÓTICA */}
-                  <MetricCard
-                    title="B4 • ESTABILIDADE OSMÓTICA"
-                    subtitle="Calculado via (flow_value × 0.5) + (temp_value × 0.5)"
-                    value={d_b4_val.toFixed(1)}
-                    unit="%"
-                    percent={d_b4_pct}
-                    level={d_b4_pct >= 90 ? "success" : d_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b4_status.badgeText}
-                    detail="Mantém o volume e a estrutura molecular estáveis na bolsa de estocagem."
-                    icon={FlaskConical}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_osmotica_mosm')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B5: FLUIDEZ DE FRACIONAMENTO */}
-                  <MetricCard
-                    title="B5 • FLUIDEZ DE FRACIONAMENTO"
-                    subtitle="Usa diretamente flow_value"
-                    value={d_b5_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={d_b5_pct}
-                    level={d_b5_pct >= 90 ? "success" : d_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b5_status.badgeText}
-                    detail="Facilita a mistura ou divisão em alíquotas para diferentes necessidades."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('fluidez_fracionamento_cp')} color="#a855f7" />}
-                  />
-                </>
-              ) : isColetaReservaActive ? (
-                <>
-                  {/* CARD B1: LONGEVIDADE DE ARMAZENAMENTO */}
-                  <MetricCard
-                    title="B1 • LONGEVIDADE DE ARMAZENAMENTO"
-                    subtitle="Calculado via (temp_value × 0.6) + (gas_value × 0.4)"
-                    value={cr_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={cr_b1_pct}
-                    level={cr_b1_pct >= 90 ? "success" : cr_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b1_status.badgeText}
-                    detail="Formulado para suportar longos períodos em bancos de reserva sem degradação."
-                    icon={Clock}
-                    accentColor="bg-[#3a86ef]"
-                    sparkline={<Sparkline data={getSparkValues('longevidade_armazenamento_dias')} color="#3a86ef" />}
-                  />
-
-                  {/* CARD B2: RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA */}
-                  <MetricCard
-                    title="B2 • RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA"
-                    subtitle="Usa diretamente temp_value"
-                    value={cr_b2_val.toFixed(1)}
-                    unit={rawTemp > 10 ? "%" : "°C"}
-                    percent={cr_b2_pct}
-                    level={cr_b2_pct >= 90 ? "success" : cr_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b2_status.badgeText}
-                    detail="Previne danos moleculares sob congelamento ou refrigeração profunda."
-                    icon={Thermometer}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('resistencia_cristalizacao_termica_c')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B3: MANUTENÇÃO DE pH EM ESTOCAGEM */}
-                  <MetricCard
-                    title="B3 • MANUTENÇÃO DE pH EM ESTOCAGEM"
-                    subtitle="Usa diretamente gas_value"
-                    value={cr_b3_val.toFixed(1)}
-                    unit="%"
-                    percent={cr_b3_pct}
-                    level={cr_b3_pct >= 90 ? "success" : cr_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b3_status.badgeText}
-                    detail="Evita a acidificação da amostra durante o tempo de reserva."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('manutencao_ph_estocagem')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: INTEGRIDADE DA MEMBRANA SINTÉTICA */}
-                  <MetricCard
-                    title="B4 • INTEGRIDADE DA MEMBRANA SINTÉTICA"
-                    subtitle="Usa diretamente flow_value"
-                    value={cr_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={cr_b4_pct}
-                    level={cr_b4_pct >= 90 ? "success" : cr_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b4_status.badgeText}
-                    detail="Mantém a estrutura das micropartículas sem agregação ou precipitação."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('integridade_membrana_sintetica_pct')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B5: REATIVIDADE PÓS-DESCONGELAMENTO */}
-                  <MetricCard
-                    title="B5 • REATIVIDADE PÓS-DESCONGELAMENTO"
-                    subtitle="Calculado via (temp_value × 0.5) + (gas_value × 0.5)"
-                    value={cr_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={cr_b5_pct}
-                    level={cr_b5_pct >= 90 ? "success" : cr_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b5_status.badgeText}
-                    detail="Retoma a capacidade total de transporte de O₂ após o aquecimento."
-                    icon={Waves}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('reatividade_pos_descongelamento_pct')} color="#a855f7" />}
-                  />
-                </>
-              ) : isTipagemCompatibilidadeActive ? (
-                <>
-                  {/* CARD B1: REATIVIDADE EM PROVA CRUZADA (CROSSMATCH) */}
-                  <MetricCard
-                    title="B1 • REATIVIDADE EM PROVA CRUZADA (CROSSMATCH)"
-                    subtitle="Usa diretamente flow_value"
-                    value={tc_b1_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={tc_b1_pct}
-                    level={tc_b1_pct >= 90 ? "success" : tc_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b1_status.badgeText}
-                    detail="Zero aglutinação em contato com soro ou plasma de qualquer receptor."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B2: NEUTRALIDADE DE ANTICORPOS IRREGULARES */}
-                  <MetricCard
-                    title="B2 • NEUTRALIDADE DE ANTICORPOS IRREGULARES"
-                    subtitle="Usa diretamente gas_value"
-                    value={tc_b2_val.toFixed(1)}
-                    unit="%"
-                    percent={tc_b2_pct}
-                    level={tc_b2_pct >= 90 ? "success" : tc_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b2_status.badgeText}
-                    detail="Não induz resposta imune em receptores multitransfundidos ou sensibilizados."
-                    icon={Waves}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('neutralidade_anticorpos_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B3: FIDELIDADE DE PADRÃO MOLECULAR */}
-                  <MetricCard
-                    title="B3 • FIDELIDADE DE PADRÃO MOLECULAR"
-                    subtitle="Calculado via (flow_value × 0.5) + (gas_value × 0.5)"
-                    value={tc_b3_val.toFixed(1)}
-                    unit="%"
-                    percent={tc_b3_pct}
-                    level={tc_b3_pct >= 90 ? "success" : tc_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b3_status.badgeText}
-                    detail="Resposta uniforme e previsível em testes laboratoriais automatizados."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('fidelidade_padrao_molecular_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO */}
-                  <MetricCard
-                    title="B4 • ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO"
-                    subtitle="Usa diretamente flow_value"
-                    value={tc_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={tc_b4_pct}
-                    level={tc_b4_pct >= 90 ? "success" : tc_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b4_status.badgeText}
-                    detail="Mantém o comportamento inerte mesmo na presença de anticorpos raros."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_painel_pct')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: LIMPIDEZ SPECTROFOTOMÉTRICA */}
-                  <MetricCard
-                    title="B5 • LIMPIDEZ ESPECTROFOTOMÉTRICA"
-                    subtitle="Usa diretamente gas_value"
-                    value={tc_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={tc_b5_pct}
-                    level={tc_b5_pct >= 90 ? "success" : tc_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b5_status.badgeText}
-                    detail="Permite leitura óptica precisa sem interferir nos reagentes de tipagem."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('limpidez_spectrofotometrica_pct')} color="#ffb703" />}
-                  />
-                </>
-              ) : (
-                <>
-                  {/* CARD 1: OXIGENAÇÃO */}
-                  <MetricCard
-                    title="Saturação de O₂"
-                    subtitle="Transporte de oxigênio do lote"
-                    value={(currentReading.oxigenacao_limpa * 100).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.oxigenacao_limpa * 100}
-                    level={currentReading.oxigenacao_limpa < 0.90 ? 'critical' : 'success'}
-                    detail={currentReading.oxigenacao_limpa < 0.90 ? 'SATURAÇÃO BAIXA' : 'SpO₂ Equivalente Ideal'}
-                    icon={Waves}
-                    sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00e5a3'} />}
-                  />
-
-                  {/* CARD 2: TEMPERATURA */}
-                  <MetricCard
-                    title="Estabilidade Térmica"
-                    subtitle="Sensor DS18B20 em bancada"
-                    value={currentReading.temperatura_c.toFixed(1)}
-                    unit="°C"
-                    percent={Math.min(100, (currentReading.temperatura_c / 42) * 100)}
-                    level={currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'critical' : currentReading.temperatura_c > 37.5 ? 'warning' : 'success'}
-                    detail={currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA CRÍTICA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'Faixa Fisiológica'}
-                    icon={Thermometer}
-                    sparkline={<Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />}
-                  />
-
-                  {/* CARD 3: pH */}
-                  <MetricCard
-                    title="Potencial pH"
-                    subtitle="Equilíbrio ácido-base"
-                    value={currentReading.ph.toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, (currentReading.ph / 8.5) * 100)}
-                    level={currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'warning' : 'success'}
-                    detail={currentReading.ph < 7.35 ? 'Tendência à Acidose' : currentReading.ph > 7.45 ? 'Tendência à Alcalose' : 'pH 7.40 Fisiológico'}
-                    icon={FlaskConical}
-                    sparkline={<Sparkline data={getSparkValues('ph')} color="#38bdf8" />}
-                  />
-
-                  {/* CARD 4: VISCOSIDADE */}
-                  <MetricCard
-                    title="Viscosidade"
-                    subtitle="Resistência ao fluxo"
-                    value={currentReading.viscosidade_cp.toFixed(1)}
-                    unit="cP"
-                    percent={Math.min(100, (currentReading.viscosidade_cp / 6) * 100)}
-                    level={currentReading.viscosidade_cp > 5.0 ? 'critical' : currentReading.viscosidade_cp < 3.2 ? 'warning' : 'success'}
-                    detail={currentReading.viscosidade_cp > 4.5 ? 'Composto Espesso' : 'Fluidez Adequada'}
-                    icon={Droplets}
-                    sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
-                  />
-                </>
-              )}
+                );
+              })}
             </div>
 
             {/* Status do Hardware Arduino */}

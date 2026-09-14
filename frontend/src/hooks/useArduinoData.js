@@ -188,37 +188,42 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
       0
     );
 
-    // Extração dos 5 valores numéricos B1 a B5
+    // Extração dos 5 valores numéricos B1 a B5 (fallback)
     const b1 = parseFloat(
-      currentReading.oxigenacao_limpa ? (currentReading.oxigenacao_limpa * 100).toFixed(1) :
+      currentReading.b1 ??
+      (currentReading.oxigenacao_limpa ? (currentReading.oxigenacao_limpa * 100).toFixed(1) :
       currentReading.expansao_volemica_pct ||
       currentReading.suporte_cec_pct ||
       currentReading.meia_vida_h ||
-      0
+      0)
     );
 
     const b2 = parseFloat(
-      currentReading.viscosidade_cp ||
+      currentReading.b2 ??
+      (currentReading.viscosidade_cp ||
       currentReading.carga_o2_pct ||
-      0
+      0)
     );
 
     const b3 = parseFloat(
-      currentReading.temperatura_c ||
+      currentReading.b3 ??
+      (currentReading.temperatura_c ||
       currentReading.tempo_reconstituicao_s ||
-      0
+      0)
     );
 
     const b4 = parseFloat(
-      currentReading.meia_vida_h ||
+      currentReading.b4 ??
+      (currentReading.meia_vida_h ||
       currentReading.coagulabilidade_pct ||
-      0
+      0)
     );
 
     const b5 = parseFloat(
-      currentReading.extracao_o2_pct ||
+      currentReading.b5 ??
+      (currentReading.extracao_o2_pct ||
       currentReading.pressao_perfusao_mmhg ||
-      0
+      0)
     );
 
     // Validação da transmissão serial ativa (últimos 15 segundos)

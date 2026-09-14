@@ -4,7 +4,9 @@ from .database import Lote, LeituraSensor
 from .ai_model import analisar_risco_ia
 from .triage_engine import executar_triagem_emergencia
 
-def responder_pergunta_cientifica(pergunta: str, db: Session) -> str:
+from typing import Optional
+
+def responder_pergunta_cientifica(pergunta: str, db: Session, finalidade: Optional[str] = None, lote_id: Optional[str] = None) -> str:
     """
     CAMADA DE INTERMEDIAÇÃO (TRADUTOR CIENTÍFICO):
     Interpreta a pergunta e retorna respostas diretas, com no máximo duas frases curtas.
@@ -56,7 +58,9 @@ def responder_pergunta_cientifica(pergunta: str, db: Session) -> str:
             emoji = "✅"
             sugestao = "O composto está apto para o monitoramento atual."
             
-        resposta = f"{emoji} Lote {lote_id}: **{status}** (risco de {risco}%). O₂ {leitura.oxigenacao_limpa*100:.1f}%, temperatura {leitura.temperatura_c:.1f}°C e vazão {leitura.vazao_l_min:.1f} L/min. {sugestao}"
+        fin_nome = finalidade or (lote.finalidade if lote else None)
+        fin_info = f" ({fin_nome})" if fin_nome else ""
+        resposta = f"{emoji} Lote {lote_id}{fin_info}: **{status}** (risco de {risco}%). O₂ {leitura.oxigenacao_limpa*100:.1f}%, temperatura {leitura.temperatura_c:.1f}°C e vazão {leitura.vazao_l_min:.1f} L/min. {sugestao}"
         return resposta
 
     # 2. Perguntas sobre o estado geral dos sensores do Arduino
