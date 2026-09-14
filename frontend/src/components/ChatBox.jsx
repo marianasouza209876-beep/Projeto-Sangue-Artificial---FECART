@@ -71,6 +71,12 @@ export const ChatBox = ({
             <span className="text-xs text-slate-400 mt-1 block">{subtitle}</span>
           </div>
         </div>
+
+        {!isConnected && (
+          <div className="text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 rounded font-mono font-bold">
+            [AGUARDANDO LEITURA SERIAL]
+          </div>
+        )}
       </div>
 
       {/* Área de Mensagens com Rolagem Automática (overflow-y-auto) */}

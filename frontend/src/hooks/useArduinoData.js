@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { useSerialMonitor } from './useSerialMonitor';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * Calcula dinamicamente a porcentagem em relação a um valor ideal/referência.
@@ -16,9 +15,22 @@ export function calculatePercentage(valorLido, valorIdeal) {
  * - Verde (#00ff9d) para porcentagem >= 90% -> [ÓTIMO]
  * - Amarelo (#ffb703) para porcentagem entre 70% e 89% -> [ESTÁVEL]
  * - Vermelho (#ff4d4d) para porcentagem < 70% -> [ALERTA]
- * A classificação visual sempre segue o valor exibido, inclusive no fallback.
+ * - Desconectado / Nulo -> [AGUARDANDO LEITURA SERIAL]
  */
-export function getStatusBadge(porcentagem) {
+export function getStatusBadge(porcentagem, isConnected = true) {
+  if (!isConnected) {
+    return {
+      text: "[AGUARDANDO LEITURA SERIAL]",
+      badgeText: "AGUARDANDO LEITURA SERIAL",
+      statusText: "[AGUARDANDO LEITURA SERIAL]",
+      color: "#38bdf8",
+      textColor: "text-sky-400",
+      bgColor: "bg-sky-500/10",
+      borderColor: "border-sky-500/30",
+      isWaiting: true
+    };
+  }
+
   const pct = parseFloat(porcentagem) || 0;
 
   if (pct >= 90) {
@@ -30,7 +42,7 @@ export function getStatusBadge(porcentagem) {
       textColor: "text-emerald-400",
       bgColor: "bg-emerald-500/10",
       borderColor: "border-emerald-500/30",
-    isWaiting: false
+      isWaiting: false
     };
   } else if (pct >= 70) {
     return {
@@ -41,7 +53,7 @@ export function getStatusBadge(porcentagem) {
       textColor: "text-amber-400",
       bgColor: "bg-amber-500/10",
       borderColor: "border-amber-500/30",
-    isWaiting: false
+      isWaiting: false
     };
   } else {
     return {
@@ -52,7 +64,7 @@ export function getStatusBadge(porcentagem) {
       textColor: "text-rose-400",
       bgColor: "bg-rose-500/10",
       borderColor: "border-rose-500/30",
-    isWaiting: false
+      isWaiting: false
     };
   }
 }
@@ -62,9 +74,101 @@ export function getStatusBadge(porcentagem) {
  * processamento dos 3 sensores físicos (gas_value, flow_value, temp_value) e gestão do estado serial.
  */
 export function useArduinoData(currentReading, history, lastPacketTime) {
-  const serialMonitor = useSerialMonitor();
-  const sensorValues = useMemo(() => {
-    if (!currentReading) return { gas_value: null, flow_value: null, temp_value: null, isConnected: false };
+  const [serialState, setSerialState] = useState({
+    port: null,
+    isSerialConnected: false,
+    baudRate: 115200,
+    webSerialSupported: typeof navigator !== 'undefined' && 'serial' in navigator
+  });
+
+  const [sensorValues, setSensorValues] = useState({
+    gas_value: 0,
+    flow_value: 0,
+    temp_value: 0,
+    b1: 0,
+    b2: 0,
+    b3: 0,
+    b4: 0,
+    b5: 0,
+    isConnected: false,
+    isSerialConnected: false,
+    statusText: "[AGUARDANDO LEITURA SERIAL]",
+    lastUpdate: null
+  });
+
+  // Conexão Web Serial USB direta via navegador (Baud Rate 115200)
+  const connectSerial = useCallback(async () => {
+    if (!serialState.webSerialSupported) return false;
+    try {
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 115200 });
+      setSerialState(prev => ({ ...prev, port, isSerialConnected: true }));
+      
+      const decoder = new TextDecoderStream();
+      port.readable.pipeTo(decoder.writable);
+      const inputStream = decoder.readable;
+      const reader = inputStream.getReader();
+
+      (async () => {
+        let buffer = '';
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += value;
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                try {
+                  const json = JSON.parse(trimmed);
+                  const gas = parseFloat(json.gas_value ?? json.gas ?? json.oxigenacao ?? 0);
+                  const flow = parseFloat(json.flow_value ?? json.flow ?? json.vazao ?? 0);
+                  const temp = parseFloat(json.temp_value ?? json.temp ?? json.temperatura ?? 0);
+                  
+                  setSensorValues(prev => ({
+                    ...prev,
+                    gas_value: gas,
+                    flow_value: flow,
+                    temp_value: temp,
+                    isConnected: true,
+                    isSerialConnected: true,
+                    statusText: getStatusBadge((gas / 100) * 100, true).text,
+                    lastUpdate: new Date()
+                  }));
+                } catch {
+                  // Silently ignore parse errors
+                }
+              }
+            }
+          }
+        } catch {
+          setSerialState(prev => ({ ...prev, isSerialConnected: false, port: null }));
+        } finally {
+          reader.releaseLock();
+        }
+      })();
+
+      return true;
+    } catch {
+      setSerialState(prev => ({ ...prev, isSerialConnected: false, port: null }));
+      return false;
+    }
+  }, [serialState.webSerialSupported]);
+
+  // Atualização síncrona de estado com base nas leituras recebidas por props (Arduino/API Telemetria)
+  useEffect(() => {
+    if (!currentReading) {
+      setSensorValues(prev => ({
+        ...prev,
+        isConnected: serialState.isSerialConnected,
+        isSerialConnected: serialState.isSerialConnected,
+        statusText: serialState.isSerialConnected ? prev.statusText : "[AGUARDANDO LEITURA SERIAL]"
+      }));
+      return;
+    }
 
     // Leitura contínua dos 3 sensores físicos
     const gas_value = parseFloat(
@@ -119,13 +223,13 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
 
     // Validação da transmissão serial ativa (últimos 15 segundos)
     const now = Date.now();
-    const isRecent = (lastPacketTime ? (now - lastPacketTime < 15000) : (history && history.length > 0));
+    const isRecent = serialState.isSerialConnected || (lastPacketTime ? (now - lastPacketTime < 15000) : (history && history.length > 0));
     const activeConnection = Boolean(isRecent);
 
     const mainPct = isNaN(gas_value) ? (isNaN(b1) ? 0 : b1) : gas_value;
     const badgeInfo = getStatusBadge(mainPct, activeConnection);
 
-    return {
+    setSensorValues({
       gas_value: isNaN(gas_value) ? 0 : gas_value,
       flow_value: isNaN(flow_value) ? 0 : flow_value,
       temp_value: isNaN(temp_value) ? 0 : temp_value,
@@ -135,60 +239,17 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
       b4: isNaN(b4) ? 0 : b4,
       b5: isNaN(b5) ? 0 : b5,
       isConnected: activeConnection,
-      isSerialConnected: false,
+      isSerialConnected: activeConnection,
       statusText: badgeInfo.text,
       badgeInfo: badgeInfo,
       lastUpdate: new Date()
-    };
-  }, [currentReading, history, lastPacketTime]);
-
-  const usbSelected = serialMonitor.status !== 'OFFLINE' || serialMonitor.received > 0;
-  const isUsbLive = serialMonitor.fresh;
-  const reading = useMemo(() => {
-    if (!isUsbLive) return currentReading;
-
-    const gas = serialMonitor.sensors.gas_value;
-    const flow = serialMonitor.sensors.flow_value;
-    const temperature = serialMonitor.sensors.temp_value;
-    const oxigenacao = typeof gas === 'number' ? gas / 100 : currentReading.oxigenacao_limpa;
-    const temperatura = typeof temperature === 'number' ? temperature : currentReading.temperatura_c;
-    const vazao = typeof flow === 'number' ? flow : currentReading.vazao_l_min;
-    const critical = oxigenacao < 0.9 || temperatura < 35 || temperatura > 38.5;
-    const warning = oxigenacao < 0.93 || temperatura < 36 || temperatura > 37.8;
-    const status = critical ? 'CRÍTICO' : warning ? 'ALERTA' : 'ESTÁVEL';
-
-    return {
-      ...currentReading,
-      oxigenacao_limpa: oxigenacao,
-      temperatura_c: temperatura,
-      vazao_l_min: vazao,
-      status,
-      alerta_mensagem: critical
-        ? 'Leitura USB fora da faixa clínica configurada. Verifique o lote e os sensores.'
-        : warning
-          ? 'Leitura USB requer atenção: parâmetro próximo da faixa de alerta.'
-          : 'Leitura USB recebida: parâmetros dentro da faixa configurada.',
-      source: 'arduino-usb',
-      receivedAt: serialMonitor.lastUpdate,
-    };
-  }, [currentReading, isUsbLive, serialMonitor.lastUpdate, serialMonitor.sensors]);
+    });
+  }, [currentReading, history, lastPacketTime, serialState.isSerialConnected]);
 
   return {
     ...sensorValues,
-    ...(usbSelected ? {
-      gas_value: serialMonitor.sensors.gas_value ?? null,
-      flow_value: serialMonitor.sensors.flow_value ?? null,
-      temp_value: serialMonitor.sensors.temp_value ?? null,
-      isConnected: serialMonitor.fresh,
-      statusText: serialMonitor.fresh ? '[ATUALIZAÇÃO EM TEMPO REAL]' : '',
-      lastUpdate: serialMonitor.lastUpdate,
-    } : {}),
-    isSerialConnected: serialMonitor.status === 'CONECTADO',
-    serialMonitor,
-    connectSerial: serialMonitor.connect,
-    disconnectSerial: serialMonitor.disconnect,
-    webSerialSupported: serialMonitor.supported,
-    reading,
-    source: isUsbLive ? 'arduino-usb' : 'simulation',
+    connectSerial,
+    baudRate: 115200,
+    webSerialSupported: serialState.webSerialSupported
   };
 }
