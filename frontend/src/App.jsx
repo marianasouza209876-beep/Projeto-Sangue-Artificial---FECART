@@ -23,10 +23,12 @@ import {
   Contrast,
   MousePointer2,
   Accessibility,
-  Wifi
+  Wifi,
+  Terminal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
+import { ArduinoSerialMonitor } from '@/components/ArduinoSerialMonitor';
 import { DemandChart, getForecastScenario } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
 import { ProjectEvaluationModal } from '@/components/QuickEntryModal';
@@ -841,6 +843,7 @@ export default function App() {
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime] = useState(null);
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
+  const [showSerialMonitor, setShowSerialMonitor] = useState(false);
   const [zoomedChatCard, setZoomedChatCard] = useState(null);
   const [forecastDetailModal, setForecastDetailModal] = useState(null);
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
@@ -1283,10 +1286,10 @@ export default function App() {
   const arduinoData = useArduinoData(currentReading || null, safeHistory, lastPacketTime);
   const activeLotTelemetry = activeLotObj?.telemetry || currentReading;
 
-  // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) para Atendimento Pré-Hospitalar de Emergência
-  const rawGas = arduinoData.gas_value || (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
-  const rawFlow = arduinoData.flow_value || currentReading?.vazao_l_min || 4.8;
-  const rawTemp = arduinoData.temp_value || currentReading?.temperatura_c || 22.0;
+  // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) do Arduino ou fallback
+  const rawGas = arduinoData.gas_value ?? (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
+  const rawFlow = arduinoData.flow_value ?? currentReading?.vazao_l_min ?? 4.8;
+  const rawTemp = arduinoData.temp_value ?? currentReading?.temperatura_c ?? 22.0;
 
   // B1: Saturação de O₂ (usa diretamente gas_value)
   const b1_val = rawGas;
@@ -1884,7 +1887,10 @@ export default function App() {
             {/* Grid dos Novos MetricCards do Lovable */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {getMetricasConfigByFinalidade(activeFinalidade).map((metric) => {
-                const calculatedValue = metric.getValue(rawGas, rawFlow, rawTemp, flow_pct_for_b5, temp_pct_for_card);
+                let calculatedValue = metric.getValue(rawGas, rawFlow, rawTemp, flow_pct_for_b5, temp_pct_for_card);
+                if (arduinoData.isSerialConnected && arduinoData[metric.id.toLowerCase()] !== undefined) {
+                  calculatedValue = arduinoData[metric.id.toLowerCase()];
+                }
                 const unitStr = metric.getUnit(rawFlow, rawTemp);
                 const percentVal = metric.getPercent(calculatedValue, rawFlow, rawTemp, flow_pct_for_b5, temp_pct_for_card);
                 const badgeInfo = getStatusBadge(percentVal, arduinoData.isConnected);
@@ -1908,19 +1914,122 @@ export default function App() {
               })}
             </div>
 
-            {/* Status do Hardware Arduino */}
-            <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between bg-slate-900/40 border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <Cpu className="w-4 h-4 text-emerald-400" />
+            {/* Status do Hardware Arduino com Conexão Web Serial e Teste Rápido */}
+            <div className="glass-panel rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border-slate-800 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg border transition-colors ${arduinoData.isSerialConnected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}>
+                  <Cpu className="w-5 h-5" />
+                </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO ARDUINO SERIAL</p>
-                  <p className="text-xs font-mono font-bold text-slate-200">115200 baud • {packetCount} pacotes rx</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">CONEXÃO ARDUINO SERIAL</p>
+                    {arduinoData.isSerialConnected ? (
+                      <span className="flex items-center gap-1 text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        ONLINE
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                        STANDBY
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-mono font-bold text-slate-200 mt-0.5">
+                    {arduinoData.baudRate} baud • {arduinoData.packetCount} pacotes rx
+                  </p>
                 </div>
               </div>
-              <span className="text-[9px] bg-slate-800 border border-slate-700 text-emerald-400 font-mono px-2.5 py-1 rounded-md font-semibold">
-                DRIVER: CH340G / COM3
-              </span>
+
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                {/* Seletor de Baudrate */}
+                <select
+                  aria-label="Taxa de transmissão serial"
+                  value={arduinoData.baudRate}
+                  disabled={arduinoData.isSerialConnected}
+                  onChange={(e) => arduinoData.setBaudRate(Number(e.target.value))}
+                  className="text-[10px] bg-slate-800 text-slate-300 font-mono border border-slate-700 rounded px-2 py-1.5 focus:outline-none focus:border-cyan-500 disabled:opacity-60 cursor-pointer"
+                  title="Taxa de transmissão serial"
+                >
+                  <option value={115200}>115200 baud</option>
+                  <option value={9600}>9600 baud</option>
+                </select>
+
+                {/* Botão de Conexão Web Serial USB */}
+                {arduinoData.isSerialConnected ? (
+                  <Button
+                    type="button"
+                    onClick={arduinoData.disconnectSerial}
+                    size="sm"
+                    className="gap-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs font-mono px-3 py-1.5 h-auto transition-all shadow-sm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    DESCONECTAR
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => arduinoData.connectSerial()}
+                    size="sm"
+                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-semibold px-3 py-1.5 h-auto transition-all shadow-lg shadow-emerald-950/40 border border-emerald-400/30"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-emerald-200" />
+                    CONECTAR ARDUINO (USB)
+                  </Button>
+                )}
+
+                {/* Botão de Abrir Monitor Serial Estilo Arduino IDE */}
+                <Button
+                  type="button"
+                  onClick={() => setShowSerialMonitor(prev => !prev)}
+                  size="sm"
+                  variant="outline"
+                  title="Abre o Monitor Serial em tempo real idêntico ao da Arduino IDE"
+                  className={`gap-1.5 text-xs font-mono px-3 py-1.5 h-auto transition-all ${
+                    showSerialMonitor
+                      ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/50 shadow-sm'
+                      : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  }`}
+                >
+                  <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                  {showSerialMonitor ? "FECHAR MONITOR" : "MONITOR SERIAL IDE"}
+                </Button>
+
+                {/* Botão de Teste Rápido / Simulação Bancada */}
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const sampleGas = Number((96.0 + Math.random() * 3.5).toFixed(1));
+                    const sampleFlow = Number((4.6 + Math.random() * 0.4).toFixed(1));
+                    const sampleTemp = Number((21.5 + Math.random() * 1.5).toFixed(1));
+                    arduinoData.injectTestData({ gas: sampleGas, flow: sampleFlow, temp: sampleTemp });
+                  }}
+                  size="sm"
+                  variant="outline"
+                  title="Injeta leituras simuladas para validar a resposta dos campos B1..B5 na hora"
+                  className="gap-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700 text-[10px] font-mono px-2 py-1.5 h-auto"
+                >
+                  TESTAR
+                </Button>
+              </div>
             </div>
+
+            {/* Componente Monitor Serial Integrado da Arduino IDE */}
+            {showSerialMonitor && (
+              <div className="mt-1 transition-all">
+                <ArduinoSerialMonitor
+                  logs={arduinoData.rawSerialLogs}
+                  onClearLogs={arduinoData.clearSerialLogs}
+                  onSendData={arduinoData.sendSerialData}
+                  isSerialConnected={arduinoData.isSerialConnected}
+                  onConnect={arduinoData.connectSerial}
+                  onDisconnect={arduinoData.disconnectSerial}
+                  baudRate={arduinoData.baudRate}
+                  onBaudChange={arduinoData.setBaudRate}
+                  packetCount={arduinoData.packetCount}
+                  portInfo={arduinoData.portInfo}
+                />
+              </div>
+            )}
 
           </section>
 
