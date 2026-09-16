@@ -2,9 +2,14 @@
 
 @theme {
   --color-biotech-bg: #0b0f19;
-  --color-biotech-crimson: #ff2a42;
-  --color-biotech-neon: #00e5a3;
-  --color-biotech-cyan: #22d3ee;
+  --color-biotech-crimson: #ff0255;
+  --color-biotech-neon: #00ffa3;
+  --color-biotech-cyan: #00e5ff;
+  --color-neon-magenta: #ff0055;
+  --color-neon-violet: #7c3aed;
+  --color-status-ok: #00ffa3;
+  --color-status-warning: #ffb800;
+  --color-status-critical: #ff0255;
   
   --color-background: #0b0f19;
   --color-foreground: #f8fafc;
@@ -13,7 +18,7 @@
   --color-popover: #0f172a;
   --color-popover-foreground: #f8fafc;
   
-  --color-primary: #ff2a42;
+  --color-primary: #ff0055;
   --color-primary-foreground: #ffffff;
   --color-secondary: rgba(30, 41, 59, 0.7);
   --color-secondary-foreground: #f1f5f9;
@@ -27,10 +32,10 @@
   --color-input: rgba(255, 255, 255, 0.12);
   --color-ring: #38bdf8;
   
-  --color-critical: #ff2a42;
-  --color-warning: #f59e0b;
-  --color-success: #00e5a3;
-  --color-tech: #38bdf8;
+  --color-critical: #ff0255;
+  --color-warning: #ffb800;
+  --color-success: #00ffa3;
+  --color-tech: #00e5ff;
   --color-tech-foreground: #0b0f19;
   
   --font-display: "Space Grotesk", "Plus Jakarta Sans", "Inter", sans-serif;
@@ -39,6 +44,7 @@
 }
 
 :root {
+  --accessibility-font-scale: 1;
   --radius: 0.9rem;
   --background: #0b0f19;
   --foreground: #f8fafc;
@@ -46,23 +52,23 @@
   --card-foreground: #f8fafc;
   --popover: #0f172a;
   --popover-foreground: #f8fafc;
-  --primary: #ff2a42;
+  --primary: #ff0055;
   --primary-foreground: #ffffff;
   --secondary: rgba(30, 41, 59, 0.7);
   --secondary-foreground: #f1f5f9;
   --muted: rgba(30, 41, 59, 0.5);
   --muted-foreground: #94a3b8;
-  --accent: #38bdf8;
+  --accent: #00e5ff;
   --accent-foreground: #ffffff;
-  --destructive: #ff2a42;
+  --destructive: #ff0255;
   --destructive-foreground: #ffffff;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.12);
-  --ring: #38bdf8;
-  --critical: #ff2a42;
-  --warning: #f59e0b;
-  --success: #00e5a3;
-  --tech: #38bdf8;
+  --ring: #00e5ff;
+  --critical: #ff0255;
+  --warning: #ffb800;
+  --success: #00ffa3;
+  --tech: #00e5ff;
   --tech-foreground: #0b0f19;
 
   --gradient-surface: linear-gradient(
@@ -70,9 +76,9 @@
     rgba(30, 41, 59, 0.75),
     rgba(15, 23, 42, 0.65)
   );
-  --gradient-blood: linear-gradient(135deg, #ff2a42, #b91c1c);
-  --gradient-tech: linear-gradient(135deg, #38bdf8, #6366f1);
-  --shadow-glow-blood: 0 0 0 1px rgba(255, 42, 66, 0.25), 0 18px 50px -18px rgba(255, 42, 66, 0.45);
+  --gradient-blood: linear-gradient(135deg, #ff0055, #7c3aed);
+  --gradient-tech: linear-gradient(135deg, #00e5ff, #7c3aed);
+  --shadow-glow-blood: 0 0 0 1px rgba(255, 0, 85, 0.25), 0 18px 50px -18px rgba(255, 0, 85, 0.45);
   --shadow-panel: 0 24px 60px -30px rgba(0, 0, 0, 0.8);
 }
 
@@ -93,7 +99,57 @@
     font-family: var(--font-sans);
     overflow-x: hidden;
     overflow-y: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+}
+
+html {
+  font-size: calc(16px * var(--accessibility-font-scale));
+}
+
+/* Preferências locais de acessibilidade: sem zoom global ou alteração de fonte. */
+.high-contrast .glass-panel {
+  background: #0b0f19;
+  border-color: #94a3b8;
+}
+
+.high-contrast .text-slate-400,
+.high-contrast .text-slate-500 {
+  color: #d1d5db !important;
+}
+
+.high-contrast .text-slate-300,
+.high-contrast .text-slate-200 {
+  color: #f8fafc !important;
+}
+
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea {
+  border-color: #cbd5e1 !important;
+  color: #f8fafc;
+}
+
+.enable-hover-zoom .glass-panel-hover:hover,
+.enable-hover-zoom .accessibility-zoom-target:hover,
+.enable-hover-zoom .flow-chat-messages [class*="bg-slate-900/80"][class*="border-slate-800/60"]:hover,
+.enable-hover-zoom .flow-chat-messages .glow-neon-border:hover {
+  position: relative;
+  z-index: 10;
+  transform: scale(1.03);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.accessibility-reduced-motion *,
+.accessibility-reduced-motion *::before,
+.accessibility-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
 }
 
 /* Custom Scrollbar for Biotech Console */
@@ -109,6 +165,31 @@
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Barra de rolagem exclusiva do histórico do chat Flow. */
+.flow-chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+.flow-chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.flow-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.flow-chat-messages::-webkit-scrollbar-thumb {
+  background: #334155;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+.flow-chat-messages::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
 
@@ -129,6 +210,38 @@
   border-color: rgba(255, 255, 255, 0.18);
   transform: translateY(-2px);
 }
+
+/* Design system: CTAs e status usam os mesmos tokens em todas as telas. */
+.ds-primary-action {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 0, 85, 0.45);
+  background-image: linear-gradient(90deg, #ff0055, #7c3aed);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
+  transition: all 0.2s ease;
+}
+
+.ds-primary-action:hover {
+  background-image: linear-gradient(90deg, #ff1a68, #8b5cf6);
+  box-shadow: 0 0 24px rgba(255, 0, 85, 0.45);
+}
+
+.ds-secondary-action {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(0, 229, 255, 0.55);
+  background-color: rgba(0, 229, 255, 0.08);
+  color: #00e5ff;
+  transition: all 0.2s ease;
+}
+
+.ds-secondary-action:hover {
+  background-color: rgba(0, 229, 255, 0.16);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.2);
+}
+
+.ds-status-ok { color: #00ffa3; border-color: rgba(0, 255, 163, 0.45); }
+.ds-status-warning { color: #ffb800; border-color: rgba(255, 184, 0, 0.45); }
+.ds-status-critical { color: #ff0255; border-color: rgba(255, 2, 85, 0.45); }
 
 .grid-lines {
   background-image:
@@ -153,23 +266,23 @@
 
 /* Glow Effects */
 .glow-crimson {
-  box-shadow: 0 0 15px rgba(255, 42, 66, 0.3);
-  text-shadow: 0 0 8px rgba(255, 42, 66, 0.4);
+  box-shadow: 0 0 15px rgba(255, 2, 85, 0.3);
+  text-shadow: 0 0 8px rgba(255, 2, 85, 0.4);
 }
 
 .glow-crimson-border {
-  box-shadow: 0 0 10px rgba(255, 42, 66, 0.2);
-  border-color: rgba(255, 42, 66, 0.5);
+  box-shadow: 0 0 10px rgba(255, 2, 85, 0.2);
+  border-color: rgba(255, 2, 85, 0.5);
 }
 
 .glow-neon {
-  box-shadow: 0 0 15px rgba(0, 229, 163, 0.3);
-  text-shadow: 0 0 8px rgba(0, 229, 163, 0.4);
+  box-shadow: 0 0 15px rgba(0, 255, 163, 0.3);
+  text-shadow: 0 0 8px rgba(0, 255, 163, 0.4);
 }
 
 .glow-neon-border {
-  box-shadow: 0 0 10px rgba(0, 229, 163, 0.2);
-  border-color: rgba(0, 229, 163, 0.5);
+  box-shadow: 0 0 10px rgba(0, 255, 163, 0.2);
+  border-color: rgba(0, 255, 163, 0.5);
 }
 
 /* Animations */
@@ -250,4 +363,45 @@
 
 .animate-pulse-green {
   animation: pulse-green 1.8s infinite;
+}
+
+/* Monitoramento clínico: scanner e sinais do painel do paciente. */
+@keyframes patient-scanner-sweep {
+  0%, 8% { transform: translateY(-78px); opacity: 0; }
+  15%, 82% { opacity: 1; }
+  92%, 100% { transform: translateY(78px); opacity: 0; }
+}
+
+@keyframes patient-clinical-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.82; filter: drop-shadow(0 0 0 rgba(0, 229, 255, 0)); }
+  45% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.55)); }
+}
+
+@keyframes patient-head-monitor {
+  0%, 100% { opacity: 0.62; filter: drop-shadow(0 0 0 rgba(255, 0, 85, 0)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 4px rgba(255, 0, 85, 0.55)); }
+}
+
+.patient-neon-scanner {
+  width: 112px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.95), transparent);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.45);
+  animation: patient-scanner-sweep 3s ease-in-out infinite;
+}
+
+.patient-ecg-pulse,
+.patient-bpm {
+  transform-origin: center;
+  animation: patient-clinical-pulse 1.6s ease-in-out infinite;
+}
+
+.patient-bpm {
+  display: inline-block;
+}
+
+.patient-head-pulse {
+  transform-origin: center;
+  animation: patient-head-monitor 2s ease-in-out infinite;
 }

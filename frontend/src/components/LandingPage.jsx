@@ -13,23 +13,22 @@ import {
   X,
   ShieldCheck,
   CheckCircle2,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { QuickEntryModal } from "./QuickEntryModal";
 
-export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
+export function LandingPage({ onNavigate, onStartDemo }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen overflow-x-hidden text-slate-100 selection:bg-rose-500 selection:text-white">
+    <div className="min-h-screen overflow-x-hidden bg-[#0B0F19] text-slate-100 selection:bg-rose-500 selection:text-white">
       {/* Navbar */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/80 bg-slate-950/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate("landing")}>
             <span
               className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-[0_0_15px_rgba(255,42,66,0.4)]"
-              style={{ background: "linear-gradient(135deg, #ff2a42, #b91c1c)" }}
+              style={{ background: "var(--gradient-blood)" }}
             >
               <Droplets className="h-5 w-5" />
             </span>
@@ -64,15 +63,15 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
             </a>
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
-            <QuickEntryModal onInjectReading={onInjectReading} apiBase={apiBase} />
-            <Button
-              onClick={() => onNavigate("dashboard")}
-              className="gap-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.35)]"
+          <div className="hidden md:flex items-center">
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(true)}
+              className="flex items-center gap-2 border border-emerald-500/40 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-lg px-3 py-1.5 text-xs font-mono"
             >
-              Entrar no Dashboard
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+              <QrCode className="h-4 w-4" />
+              Avaliar Projeto
+            </button>
           </div>
 
           <button
@@ -108,22 +107,52 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
               >
                 Como Funciona
               </a>
-              <div className="pt-2 flex flex-col gap-2">
-                <Button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    onNavigate("dashboard");
-                  }}
-                  className="w-full gap-2 bg-rose-600 text-white"
-                >
-                  Entrar no Dashboard
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
             </nav>
           </div>
         ) : null}
       </header>
+
+      {isQrModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setIsQrModalOpen(false)}
+          role="presentation"
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qr-modal-title"
+            className="relative w-full max-w-md rounded-2xl border border-slate-700 bg-[#0F172A] p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(false)}
+              aria-label="Fechar QR Code de avaliação"
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="text-center">
+              <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-400">
+                <QrCode className="h-6 w-6" />
+              </span>
+              <h2 id="qr-modal-title" className="mt-4 text-xl font-bold text-white">QR Code do Grupo</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Mostre este código para os visitantes acessarem o projeto e registrarem a avaliação.
+              </p>
+              <img
+                src="/qr-code-fecart.png"
+                alt="QR Code para avaliação do projeto na FECART"
+                className="w-48 h-48 mx-auto object-contain bg-white p-3 rounded-xl"
+              />
+              <p className="mt-4 break-all font-mono text-[10px] text-slate-500">
+                https://www.fecart.com.br/visitor/d1703db8-2c2c-495d-b94f-45dc2236dbe3
+              </p>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Main Content */}
       <main>
@@ -150,30 +179,11 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
               <div className="flex flex-wrap gap-3.5 pt-2">
                 <Button
                   size="lg"
-                  onClick={() => onNavigate("emergency")}
-                  className="gap-2 bg-gradient-to-r from-red-600 via-rose-600 to-fuchsia-600 hover:from-red-500 hover:to-fuchsia-500 text-white shadow-[0_0_25px_rgba(255,42,66,0.5)] text-sm px-6 h-12 font-bold border border-rose-400/30"
+                  onClick={onStartDemo}
+                  className="ds-primary-action h-12 w-full gap-2 px-6 text-sm font-bold sm:w-auto"
                 >
-                  <Zap className="h-4 w-4" />
-                  Simulador de Urgência (IA)
+                  Acessar Plataforma de Demonstração
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => onNavigate("dashboard")}
-                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-5 h-12"
-                >
-                  <Activity className="h-4 w-4 text-rose-500" />
-                  Monitor Clínico
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => onNavigate("forecast")}
-                  className="gap-2 border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm px-5 h-12"
-                >
-                  <BrainCircuit className="h-4 w-4 text-sky-400" />
-                  Previsão IA
                 </Button>
               </div>
             </div>
@@ -271,11 +281,11 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
               </p>
               <div className="flex gap-4">
                 <Button
-                  onClick={() => onNavigate("tecnico")}
+                  onClick={() => onNavigate("dashboard")}
                   variant="outline"
-                  className="gap-2 border-slate-700 text-slate-200 hover:bg-slate-800"
+                  className="ds-secondary-action gap-2"
                 >
-                  Ver Console Técnico
+                  Ver Monitor Clínico
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -327,7 +337,7 @@ export function LandingPage({ onNavigate, onInjectReading, apiBase }) {
           <div className="flex items-center gap-3">
             <span
               className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
-              style={{ background: "linear-gradient(135deg, #ff2a42, #b91c1c)" }}
+              style={{ background: "var(--gradient-blood)" }}
             >
               <Droplets className="h-4 w-4" />
             </span>

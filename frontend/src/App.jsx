@@ -1,18 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Activity, 
-  Database, 
-  Cpu, 
-  Terminal, 
-  Send, 
-  HelpCircle, 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle, 
-  Play, 
-  RefreshCw, 
-  FileText,
-  Copy,
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import {
+  Activity,
+  Database,
+  Cpu,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
   ChevronRight,
   TrendingUp,
   Droplets,
@@ -22,17 +15,26 @@ import {
   Thermometer,
   Layers,
   Clock,
-  Sparkles,
-  Info,
   Plus,
-  Zap
+  Zap,
+  Maximize2,
+  Minimize2,
+  X,
+  Contrast,
+  MousePointer2,
+  Accessibility,
+  Wifi,
+  Terminal,
+  Code
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
-import { DemandChart } from '@/components/DemandChart';
+import { ArduinoSerialMonitor } from '@/components/ArduinoSerialMonitor';
+import { DemandChart, getForecastScenario } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
-import { QuickEntryModal } from '@/components/QuickEntryModal';
+import { ProjectEvaluationModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
+import { ArduinoIDE } from '@/components/ArduinoIDE';
 import {
   Dialog,
   DialogContent,
@@ -40,20 +42,138 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useArduinoData, getStatusBadge, calculatePercentage } from '@/hooks/useArduinoData';
+import { useArduinoData, getStatusBadge } from '@/hooks/useArduinoData';
 
 const API_BASE = import.meta.env.VITE_API_URL || window.location.origin;
+
+const QUICK_CHAT_ACTIONS = [
+  'Qual o status atual do lote?',
+  'O que é o Sangue Artificial (HBOC)?',
+  'Por que o lote está em risco?',
+  'Qual a recomendação da IA e o impacto no estoque?',
+  'Qual a economia financeira e redução de perdas?',
+  'Como o modelo preditivo calcula essa curva?',
+];
+
+const STRATEGIC_CHAT_ACTIONS = QUICK_CHAT_ACTIONS.slice(2);
+
+const createChatResponseCard = (action, lot, telemetry, activeFinalidade) => {
+  const parseTelemetryValue = (value, fallback) => {
+    const parsed = Number.parseFloat(String(value).replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const vazao = parseTelemetryValue(telemetry?.vazao_l_min ?? telemetry?.vazao, 4.8);
+  const temperatura = parseTelemetryValue(telemetry?.temperatura_c ?? telemetry?.temperatura, 36.5);
+  const oxigenacao = parseTelemetryValue(telemetry?.oxigenacao_pct ?? telemetry?.oxigenacao, 96);
+  const estabilidade = telemetry?.status || lot?.status || 'ESTÁVEL';
+  const lotId = lot?.id || 'lote ativo';
+  const finConfig = getMetricasConfigByFinalidade(activeFinalidade || lot?.finalidade || lot?.destino);
+  
+  const vazaoForaDaFaixa = vazao < 4 || vazao > 6.5;
+  const temperaturaForaDaFaixa = temperatura < 35 || temperatura > 37.5;
+  const leiturasForaDaFaixa = [
+    vazaoForaDaFaixa && `A vazão de ${vazao.toFixed(1)} L/min está fora da faixa ideal de 4,0 a 6,5 L/min.`,
+    temperaturaForaDaFaixa && `A temperatura de ${temperatura.toFixed(1)}°C está fora da faixa segura de 35,0 a 37,5°C.`,
+  ].filter(Boolean);
+  const economia = estabilidade === 'CRÍTICO' ? 42500 : estabilidade === 'ALERTA' ? 28500 : 18000;
+  const metrics = [
+    { label: finConfig[0]?.title.split('•')[1]?.trim() || 'OXIGENAÇÃO', value: `${oxigenacao.toFixed(0)}%`, progress: Math.min(100, oxigenacao), color: 'bg-emerald-400', icon: Droplets, iconColor: 'text-emerald-300', iconBackground: 'bg-emerald-500/15 border-emerald-400/40', badgeClass: 'border-emerald-400/30 bg-emerald-500/5 text-emerald-200' },
+    { label: finConfig[1]?.title.split('•')[1]?.trim() || 'VAZÃO', value: `${vazao.toFixed(1)} L/min`, progress: Math.min(100, (vazao / 6.5) * 100), color: 'bg-cyan-400', icon: Waves, iconColor: 'text-cyan-300', iconBackground: 'bg-cyan-500/15 border-cyan-400/40', badgeClass: 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200' },
+    { label: finConfig[2]?.title.split('•')[1]?.trim() || 'TEMPERATURA', value: `${temperatura.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((temperatura - 30) / 10) * 100)), color: 'bg-amber-400', icon: Thermometer, iconColor: 'text-amber-300', iconBackground: 'bg-amber-500/15 border-amber-400/40', badgeClass: 'border-amber-400/30 bg-amber-500/5 text-amber-200' },
+    { label: 'ESTABILIDADE', value: estabilidade, progress: estabilidade === 'ESTÁVEL' ? 100 : estabilidade === 'ALERTA' ? 65 : 35, color: 'bg-purple-400', icon: ShieldCheck, iconColor: 'text-purple-300', iconBackground: 'bg-purple-500/15 border-purple-400/40', badgeClass: 'border-purple-400/30 bg-purple-500/5 text-purple-200' },
+  ];
+
+  if (action === QUICK_CHAT_ACTIONS[0]) {
+    return {
+      eyebrow: 'Telemetria do Arduino',
+      title: `Status do lote ${lotId}`,
+      summary: telemetry?.alerta_mensagem || `Lote ${lotId} em ${estabilidade.toLowerCase()}, com leituras acompanhadas em tempo real.`,
+      metrics,
+      icon: Activity,
+    };
+  }
+
+  if (action === QUICK_CHAT_ACTIONS[1]) {
+    return {
+      eyebrow: 'Fundamentos do composto',
+      title: 'O que é o Sangue Artificial (HBOC)?',
+      summary: 'Carreador sintético de oxigênio monitorado pela Flow.',
+      conceptual: true,
+      conceptualBlocks: [
+        {
+          title: 'Composto Biotecnológico (HBOC)',
+          text: 'Carreador sintético para suporte temporário de oxigênio.',
+          icon: Droplets,
+          accent: 'border-cyan-500/30 bg-cyan-500/5 text-cyan-300',
+        },
+        {
+          title: 'Indicação e Suporte Emergencial',
+          text: 'Indicado para suporte em emergências e escassez crítica.',
+          icon: Activity,
+          accent: 'border-violet-500/30 bg-violet-500/5 text-violet-300',
+        },
+        {
+          title: 'Estabilidade e Monitoramento',
+          text: 'A Flow acompanha a integridade de cada lote continuamente.',
+          icon: ShieldCheck,
+          accent: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
+        },
+      ],
+      icon: Droplets,
+    };
+  }
+
+  if (action === STRATEGIC_CHAT_ACTIONS[0]) {
+    return {
+      eyebrow: 'Diagnóstico do Arduino',
+      title: 'Por que o lote está em risco?',
+      summary: leiturasForaDaFaixa.length
+        ? `${leiturasForaDaFaixa[0]} Pode elevar o risco do lote ${lotId}.`
+        : `Lote ${lotId} dentro da faixa operacional e sem risco imediato.`,
+      metrics,
+      icon: AlertTriangle,
+    };
+  }
+
+  if (action === STRATEGIC_CHAT_ACTIONS[1]) {
+    return {
+      eyebrow: 'Ação recomendada pela IA',
+      title: 'Correção e impacto no estoque',
+      summary: `Manter 36,5°C e vazão entre 4,0 e 6,5 L/min. Reabasteça antes do limite crítico.`,
+      metrics,
+      icon: Zap,
+    };
+  }
+
+  if (action === STRATEGIC_CHAT_ACTIONS[2]) {
+    return {
+      eyebrow: 'Impacto financeiro',
+      title: 'Economia e redução de perdas',
+      summary: `Monitorar evita descarte precoce. Economia estimada: R$ ${economia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+      metrics,
+      icon: TrendingUp,
+    };
+  }
+
+  return {
+    eyebrow: 'Modelo preditivo explicável',
+    title: 'Como a curva é calculada?',
+    summary: `A IA cruza vazão, temperatura e histórico clínico. A curva do lote ${lotId} é atualizada em tempo real.`,
+    metrics,
+    icon: Activity,
+  };
+};
 
 // Sparkline SVG Component
 const Sparkline = ({ data, color = "#00e5a3" }) => {
   if (!data || data.length < 2) return null;
   const width = 100;
   const height = 26;
-  
+
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min === 0 ? 1 : max - min;
-  
+
   const points = data.map((val, index) => {
     const x = (index / (data.length - 1)) * width;
     const y = height - ((val - min) / range) * height;
@@ -74,6 +194,24 @@ const Sparkline = ({ data, color = "#00e5a3" }) => {
   );
 };
 
+const AccessibilityToggle = ({ icon: Icon, title, description, enabled, onChange }) => (
+  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 transition-colors hover:border-slate-700">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400">
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-sm font-semibold text-slate-100">{title}</span>
+      <span className="mt-0.5 block text-xs leading-5 text-slate-400">{description}</span>
+    </span>
+    <input
+      type="checkbox"
+      checked={enabled}
+      onChange={onChange}
+      className="h-4 w-4 shrink-0 accent-rose-500"
+    />
+  </label>
+);
+
 // Lista Oficial das 9 Finalidades Clínicas
 const FINALIDADES_OPCOES = [
   "Atendimento Pré-Hospitalar de Emergência",
@@ -85,6 +223,573 @@ const FINALIDADES_OPCOES = [
   "Doação de Sangue",
   "Coleta e Reserva de Sangue",
   "Tipagem Sanguínea e Testes de Compatibilidade"
+];
+
+// Mapeamento Dinâmico de Métricas B1 a B5 por Nome de Finalidade Clínica
+const getMetricasConfigByFinalidade = (finalidadeName = "") => {
+  const fin = String(finalidadeName).trim();
+  
+  if (fin.includes("Pré-Hospitalar") || fin.includes("Pre-Hospitalar")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Garante aporte imediato de oxigênio em quadros de trauma e choque volumétrico.",
+        icon: Waves,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • RESISTÊNCIA DE FLUXO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Permite rápida infusão sob pressão em acessos venosos periféricos.",
+        icon: Droplets,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • ESTABILIDADE TÉRMICA",
+        subtitle: "Usa diretamente temp_value",
+        getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
+        getUnit: () => "°C",
+        getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
+        detail: "Conserva a integridade funcional fora de refrigeração, ideal para ambulâncias.",
+        icon: Thermometer,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B4",
+        title: "B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA",
+        subtitle: "(gas_value * 0.6) + (temp_value * 0.4)",
+        getValue: (rawGas, rawFlow, rawTemp) => (rawGas * 0.6) + (rawTemp * 0.4),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Estabilidade estendida em circulação sistêmica durante transporte de emergência.",
+        icon: Clock,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "meia_vida_h"
+      },
+      {
+        id: "B5",
+        title: "B5 • TAXA DE EXTRAÇÃO TISSULAR DE O₂",
+        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Eficiência de transferência de O₂ para tecidos hipóxicos em ressuscitação.",
+        icon: Activity,
+        accentColor: "bg-[#ff4d4d]",
+        sparklineKey: "extracao_o2_pct"
+      }
+    ];
+  }
+  
+  if (fin.includes("Trauma") || fin.includes("Hemorragia")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • CAPACIDADE DE CARGA DE O₂",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Maximização do transporte de O₂ para reversão acelerada de choque hemorrágico grave.",
+        icon: Waves,
+        accentColor: "bg-[#ff4d4d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • PRESSÃO ONCÓTICA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Manutenção da pressão coloidosmótica intravascular em grandes perdas de volemia.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • PERMUTABILIDADE GASEIRA",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Troca rápida de gases em capilares sistêmicos comprometidos por trauma grave.",
+        icon: Activity,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B4",
+        title: "B4 • RESISTÊNCIA À COMPRESSÃO MECÂNICA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Integridade estrutural da molécula sob infusões de alta pressão e bombas mecânicas.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B5",
+        title: "B5 • TAMPONAMENTO ÁCIDO-BÁSICO",
+        subtitle: "(gas_value * 0.7) + (temp_value * 0.3)",
+        getValue: (rawGas, rawFlow, rawTemp) => (rawGas * 0.7) + (rawTemp * 0.3),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Neutralização de acidose metabólica grave decorrente de hipoperfusão prolongada.",
+        icon: Thermometer,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "temperatura_c"
+      }
+    ];
+  }
+
+  if (fin.includes("Cirurgia") || fin.includes("Cardíaca") || fin.includes("Cardiaca") || fin.includes("Cardiovascular")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC)",
+        subtitle: "(flow_value * 0.6) + (gas_value * 0.4)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (flow_pct * 0.6) + (rawGas * 0.4),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Desempenho otimizado em máquinas de circulação extracorpórea em cirurgias de peito aberto.",
+        icon: Waves,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "vazao_l_min"
+      },
+      {
+        id: "B2",
+        title: "B2 • TENSÃO DE CISAILHAMENTO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Resistência contra lise molecular sob elevadas forças de cisalhamento em oxigenadores.",
+        icon: Droplets,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • TEMPO DE MEIA-VIDA EXTENDED",
+        subtitle: "(gas_value * 0.5) + (temp_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (rawGas * 0.5) + (temp_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Durabilidade estendida em procedimento de longa duração e substituição volêmica.",
+        icon: Clock,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B4",
+        title: "B4 • TAMPONAMENTO DE LACTATO",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Controle de acúmulo de lactato durante períodos de clampeamento de aorta.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B5",
+        title: "B5 • VISCOSIDADE EM HYPOTHERMIA",
+        subtitle: "Relação entre flow_value e variação de temp_value",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.6) + (temp_pct * 0.4),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Manutenção da fluidez sem congelamento ou hiperviscosidade sob hipotermia induzida (20-28°C).",
+        icon: Thermometer,
+        accentColor: "bg-[#3a86ef]",
+        sparklineKey: "temperatura_c"
+      }
+    ];
+  }
+
+  if (fin.includes("Anemias") || fin.includes("Anemia")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50)",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Curva de dissociação ideal para liberação facilitada em tecidos cronicamente anêmicos.",
+        icon: Waves,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • AUSÊNCIA DE RESPOSTA IMUNOGÊNICA",
+        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Isenção de reações aloimunes em pacientes multitransfundidos por anemia crônica.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#02c39a]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • ESTABILIDADE PLASMÁTICA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Manutenção da integridade na corrente sanguínea em infusões ambulatoriais.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B4",
+        title: "B4 • TOLERÂNCIA A INFUSÃO LENTA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Preservação da eficácia molecular sob taxas de gotejamento reduzidas.",
+        icon: Clock,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "vazao_l_min"
+      },
+      {
+        id: "B5",
+        title: "B5 • RETENÇÃO VASCULAR",
+        subtitle: "(flow_value * 0.6) + (temp_value * 0.4)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.6) + (temp_pct * 0.4),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Prevenção de extravasamento endotelial para tecidos intersticiais.",
+        icon: Activity,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "temperatura_c"
+      }
+    ];
+  }
+
+  if (fin.includes("Oncológico") || fin.includes("Oncologico")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • COMPATIBILIDADE COM QUIMIOTERÁPICOS",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Estabilidade físico-química na presença de agentes citotóxicos antineoplásicos.",
+        icon: Waves,
+        accentColor: "bg-[#02c39a]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • PROTEÇÃO CONTRA ESTRESSE OXIDATIVO",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Mecanismo antioxidante para neutralizar radicais livres em tecidos tumorais.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B3",
+        title: "B3 • PERMEABILIDADE EM MICROCIRCULAÇÃO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Perfusão eficiente em vasos tumorais desorganizados e de pequeno calibre.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B4",
+        title: "B4 • ESTABILIDADE EM NEUTROPÊNICOS",
+        subtitle: "(temp_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (temp_pct * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Segurança biológica máxima para pacientes imunossuprimidos sob quimioterapia.",
+        icon: Thermometer,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B5",
+        title: "B5 • ÍNDICE DE PURIFICAÇÃO MOLECULAR",
+        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Grau de eliminação de subprodutos metálicos e pirogênios.",
+        icon: Activity,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "viscosidade_cp"
+      }
+    ];
+  }
+
+  if (fin.includes("Politraumatizados") || fin.includes("Politrauma")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • SUPORTE MULTIORGÂNICO DE O₂",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Aporte simultâneo de O₂ para múltiplos órgãos em falência aguda pós-trauma.",
+        icon: Waves,
+        accentColor: "bg-[#ff9f1c]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • RESISTÊNCIA À ACIDOSE LÁCTICA",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Capacidade de manter transporte gasoso em pH sanguíneo severamente ácido (< 7.20).",
+        icon: ShieldCheck,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B3",
+        title: "B3 • ESTABILIDADE EM INFUSÃO PRESSURIZADA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Resistência estrutural durante ressuscitação volêmica acelerada com manguito de pressão.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "vazao_l_min"
+      },
+      {
+        id: "B4",
+        title: "B4 • CAPACIDADE EXPANSORA DE PLASMA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Efeito expansor intravascular imediato para estabilização hemodinâmica.",
+        icon: Activity,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B5",
+        title: "B5 • INTEGRIDADE EM VARIÂNCIA TÉRMICA",
+        subtitle: "Usa diretamente temp_value",
+        getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
+        getUnit: () => "°C",
+        getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
+        detail: "Tolerância a flutuações térmicas severas na sala de trauma e cirurgia de emergência.",
+        icon: Thermometer,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "temperatura_c"
+      }
+    ];
+  }
+
+  if (fin.includes("Doação") || fin.includes("Doacao") || fin.includes("Coleta") || fin.includes("Reserva")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE)",
+        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Ausência completa de antígenos de superfície (ABO/Rh), permitindo uso universal.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B2",
+        title: "B2 • PURIFICAÇÃO BIOLÓGICA",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Eliminação total de patógenos, vírus e resíduos celulares durante a produção.",
+        icon: Droplets,
+        accentColor: "bg-[#02c39a]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B3",
+        title: "B3 • CONSERVABILIDADE EM ESTOQUE",
+        subtitle: "Usa diretamente temp_value",
+        getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
+        getUnit: () => "°C",
+        getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
+        detail: "Manutenção de propriedades funcionais por longos períodos em bancos de sangue.",
+        icon: Thermometer,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B4",
+        title: "B4 • ESTABILIDADE OSMÓTICA",
+        subtitle: "(flow_value * 0.5) + (temp_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.5) + (temp_pct * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Equilíbrio de osmolaridade para prevenção de hemólise durante estocagem.",
+        icon: Waves,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "temperatura_c"
+      },
+      {
+        id: "B5",
+        title: "B5 • FLUIDEZ DE FRACIONAMENTO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Comportamento reológico ideal para etapas de fracionamento e envase industrial.",
+        icon: Activity,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "vazao_l_min"
+      }
+    ];
+  }
+
+  if (fin.includes("Tipagem") || fin.includes("Compatibilidade")) {
+    return [
+      {
+        id: "B1",
+        title: "B1 • REATIVIDADE EM PROVA CRUZADA (CROSSMATCH)",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Inexistência de aglutinação ou aglutininas imunológicas em prova cruzada.",
+        icon: Waves,
+        accentColor: "bg-[#00ff9d]",
+        sparklineKey: "vazao_l_min"
+      },
+      {
+        id: "B2",
+        title: "B2 • NEUTRALIDADE DE ANTICORPOS IRREGULARES",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Ausência de reação com painel de anticorpos anti-eritrocitários raros.",
+        icon: ShieldCheck,
+        accentColor: "bg-[#02c39a]",
+        sparklineKey: "oxigenacao_limpa"
+      },
+      {
+        id: "B3",
+        title: "B3 • FIDELIDADE DE PADRÃO MOLECULAR",
+        subtitle: "(flow_value * 0.5) + (gas_value * 0.5)",
+        getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (flow_pct * 0.5) + (rawGas * 0.5),
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Constância nas propriedades físico-químicas exigidas em testes de laboratório.",
+        icon: Droplets,
+        accentColor: "bg-[#00d8ff]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B4",
+        title: "B4 • ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO",
+        subtitle: "Usa diretamente flow_value",
+        getValue: (rawGas, rawFlow) => rawFlow,
+        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
+        detail: "Reprodutibilidade em ensaios automatizados de compatibilidade pré-transfusional.",
+        icon: Activity,
+        accentColor: "bg-[#a855f7]",
+        sparklineKey: "viscosidade_cp"
+      },
+      {
+        id: "B5",
+        title: "B5 • LIMPIDEZ ESPECTROFOTOMÉTRICA",
+        subtitle: "Usa diretamente gas_value",
+        getValue: (rawGas) => rawGas,
+        getUnit: () => "%",
+        getPercent: (val) => Math.min(100, Math.max(0, val)),
+        detail: "Transparência óptica sem interferência em leituras espectrofotométricas.",
+        icon: Thermometer,
+        accentColor: "bg-[#ffb703]",
+        sparklineKey: "oxigenacao_limpa"
+      }
+    ];
+  }
+
+  // Fallback padrão: Atendimento Pré-Hospitalar de Emergência
+  return getMetricasConfigByFinalidade("Atendimento Pré-Hospitalar de Emergência");
+};
+
+const LOTES_DEMONSTRACAO = [
+  {
+    id: "DEMO-EMERGENCIA",
+    name: "Lote DEMO Emergência",
+    finalidade: "Atendimento Pré-Hospitalar de Emergência",
+    icon: "🚨",
+    title: "Atendimento Pré-Hospitalar / Emergência",
+    focus: "Foco em Oxigenação B1 e Hemodinâmica B2",
+    accent: "border-rose-500/40 hover:border-rose-400 hover:bg-rose-500/10"
+  },
+  {
+    id: "DEMO-CARDIO",
+    name: "Lote DEMO Cardiovascular",
+    finalidade: "Cirurgia Cardíaca e Cardiovascular",
+    icon: "🫀",
+    title: "Cirurgia Cardiovascular",
+    focus: "Foco em perfusão, fluxo e estabilidade térmica",
+    accent: "border-sky-500/40 hover:border-sky-400 hover:bg-sky-500/10"
+  },
+  {
+    id: "DEMO-ONCO",
+    name: "Lote DEMO Oncológico",
+    finalidade: "Tratamento Oncológico",
+    icon: "🧬",
+    title: "Tratamento Oncológico / Anemia Crítica",
+    focus: "Foco em compatibilidade e carga de O₂",
+    accent: "border-fuchsia-500/40 hover:border-fuchsia-400 hover:bg-fuchsia-500/10"
+  },
+  {
+    id: "DEMO-RESERVA",
+    name: "Lote DEMO Reserva",
+    finalidade: "Doação de Sangue",
+    icon: "🩸",
+    title: "Unidade de Doação e Reserva",
+    focus: "Foco em conservação e estabilidade de estoque",
+    accent: "border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/10"
+  }
 ];
 
 // Protocolos Clínicos Médicos
@@ -120,7 +825,7 @@ const PROTOCOLOS_CLINICOS = {
 };
 
 export default function App() {
-  // Navegação: 'landing' | 'dashboard' | 'forecast' | 'tecnico'
+  // Navegação: 'landing' | 'dashboard' | 'forecast' | 'emergency'
   const [activeTab, setActiveTab] = useState('landing');
   const [clock, setClock] = useState("--:--:--");
 
@@ -133,34 +838,46 @@ export default function App() {
   }, []);
 
   // Estados da Aplicação
-  const [selectedLot, setSelectedLot] = useState("SA-025");
-  const [lots, setLots] = useState([
-    {
-      id: "SA-025",
-      name: "Lote Teste Primário",
-      createdAt: new Date().toLocaleString('pt-BR'),
-      responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
-      destino: "Simulação Fisiológica Humana",
-      intervaloLeitura: "5s",
-      protocolo: PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"]
-    }
-  ]);
+  const [selectedLot, setSelectedLot] = useState(null);
+  const [lots, setLots] = useState([]);
   const [history, setHistory] = useState([]);
-  const [audits, setAudits] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [copiedScript, setCopiedScript] = useState(false);
+  const [typingLotId, setTypingLotId] = useState(null);
   const [packetCount, setPacketCount] = useState(1420);
-  const [lastPacketTime, setLastPacketTime] = useState(null);
-  const messagesEndRef = useRef(null);
-
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Olá! Sou a Flow, sua assistente virtual. Posso explicar o estado de qualquer lote de sangue artificial ou as decisões da IA. Escolha uma das perguntas rápidas abaixo ou digite sua dúvida!',
-      explicabilidade: null
+  const [lastPacketTime] = useState(null);
+  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
+  const [showSerialMonitor, setShowSerialMonitor] = useState(false);
+  const [zoomedChatCard, setZoomedChatCard] = useState(null);
+  const [forecastDetailModal, setForecastDetailModal] = useState(null);
+  const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
+  const [accessibilityPreferences, setAccessibilityPreferences] = useState(() => {
+    try {
+      return {
+        highContrast: localStorage.getItem('flow-accessibility-high-contrast') === 'true',
+        hoverZoom: localStorage.getItem('flow-accessibility-hover-zoom') === 'true',
+        reducedMotion: localStorage.getItem('flow-accessibility-reduced-motion') === 'true',
+        fontSize: localStorage.getItem('flow-accessibility-font-size') || 'normal',
+      };
+    } catch {
+      return { highContrast: false, hoverZoom: false, reducedMotion: false, fontSize: 'normal' };
     }
-  ]);
+  });
+  const chatMessagesRef = useRef(null);
+
+  const [chatHistoryByLot, setChatHistoryByLot] = useState({});
+  const messages = selectedLot ? chatHistoryByLot[selectedLot] || [] : [];
+  const isTyping = typingLotId === selectedLot;
+
+  const appendMessagesToLot = (lotId, newMessages) => {
+    if (!lotId) return;
+
+    setChatHistoryByLot((previousHistory) => ({
+      ...previousHistory,
+      [lotId]: [
+        ...(previousHistory[lotId] || []),
+        ...newMessages,
+      ],
+    }));
+  };
 
   // Carrega lotes cadastrados
   const fetchLots = async () => {
@@ -179,6 +896,11 @@ export default function App() {
 
   // Carrega histórico do lote selecionado
   const fetchHistory = async () => {
+    if (!selectedLot) {
+      setHistory([]);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/history/${selectedLot}`);
       if (res.ok) {
@@ -192,24 +914,8 @@ export default function App() {
     }
   };
 
-  // Carrega logs de auditoria
-  const fetchAudits = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/audits`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setAudits(data);
-        }
-      }
-    } catch (err) {
-      console.log("Erro ao carregar auditoria:", err);
-    }
-  };
-
   useEffect(() => {
     fetchLots();
-    fetchAudits();
   }, []);
 
   useEffect(() => {
@@ -219,8 +925,87 @@ export default function App() {
   }, [selectedLot]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!selectedLot) return;
+
+    setChatHistoryByLot((previousHistory) => (
+      previousHistory[selectedLot]
+        ? previousHistory
+        : { ...previousHistory, [selectedLot]: [] }
+    ));
+  }, [selectedLot]);
+
+  const scrollToBottom = () => {
+    const chatContainer = chatMessagesRef.current;
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  };
+
+  useLayoutEffect(() => {
+    scrollToBottom();
   }, [messages, isTyping]);
+
+  // Fecha a sobreposição sem interferir no estado do dashboard.
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsChatFullscreen(false);
+        setZoomedChatCard(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = isChatFullscreen ? 'hidden' : 'unset';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isChatFullscreen]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const preferences = [
+      ['highContrast', 'high-contrast', 'flow-accessibility-high-contrast'],
+      ['hoverZoom', 'enable-hover-zoom', 'flow-accessibility-hover-zoom'],
+      ['reducedMotion', 'accessibility-reduced-motion', 'flow-accessibility-reduced-motion'],
+    ];
+
+    preferences.forEach(([key, className, storageKey]) => {
+      root.classList.toggle(className, accessibilityPreferences[key]);
+      try {
+        localStorage.setItem(storageKey, String(accessibilityPreferences[key]));
+      } catch {
+        // Preferências continuam ativas nesta sessão caso o armazenamento esteja indisponível.
+      }
+    });
+
+    const fontScales = { small: '0.9', normal: '1', large: '1.12' };
+    root.style.setProperty('--accessibility-font-scale', fontScales[accessibilityPreferences.fontSize] || '1');
+    try {
+      localStorage.setItem('flow-accessibility-font-size', accessibilityPreferences.fontSize);
+    } catch {
+      // Preferências continuam ativas nesta sessão caso o armazenamento esteja indisponível.
+    }
+  }, [accessibilityPreferences]);
+
+  useEffect(() => {
+    const closeAccessibilityModal = (event) => {
+      if (event.key === 'Escape') setIsAccessibilityOpen(false);
+    };
+
+    window.addEventListener('keydown', closeAccessibilityModal);
+    return () => window.removeEventListener('keydown', closeAccessibilityModal);
+  }, []);
+
+  const toggleAccessibilityPreference = (preference) => {
+    setAccessibilityPreferences((current) => ({
+      ...current,
+      [preference]: !current[preference],
+    }));
+  };
 
   // Estados do Modal de Criação de Novo Lote
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -232,14 +1017,14 @@ export default function App() {
 
   // Função para abrir o modal de criação de lote com campos auto-preenchidos
   const openCreateLotModal = () => {
-    const existingNumbers = lots.map(l => {
+    const existingNumbers = (lots || []).map(l => {
       const match = String(l.id).match(/SA-(\d+)/i);
       return match ? parseInt(match[1], 10) : 0;
     });
     const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 24) : 25;
     const nextNum = maxNum + 1;
     const autoCode = `SA-${String(nextNum).padStart(3, '0')}`;
-    
+
     // Data e Hora do sistema em formato DD/MM/AAAA, HH:mm:ss
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
@@ -272,7 +1057,7 @@ export default function App() {
       return;
     }
 
-    const finalCode = newLotCode.trim() || `SA-${String(lots.length + 25).padStart(3, '0')}`;
+    const finalCode = newLotCode.trim() || `SA-${String((lots?.length || 0) + 25).padStart(3, '0')}`;
     const finalName = newLotName.trim();
     const finalCreatedAt = newLotCreatedAt || new Date().toLocaleString('pt-BR');
     const finalFinalidade = newLotFinalidade;
@@ -301,7 +1086,7 @@ export default function App() {
       await fetch(`${API_BASE}/api/lots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           id: finalCode,
           nome: finalName,
           data_criacao: new Date().toISOString(),
@@ -318,117 +1103,106 @@ export default function App() {
 
   // Deletar lote
   const handleDeleteLot = (lotIdToDelete) => {
-    setLots(prev => prev.filter(lot => lot.id !== lotIdToDelete));
-    if (selectedLot === lotIdToDelete && lots.length > 1) {
-      setSelectedLot(lots[0].id);
+    const remainingLots = (lots || []).filter(lot => lot?.id !== lotIdToDelete);
+    setLots(remainingLots);
+    if (selectedLot === lotIdToDelete) {
+      setSelectedLot(remainingLots[0]?.id || null);
     }
   };
 
-  // Injeção de leitura manual / QR Code
-  const handleInjectReading = (reading) => {
-    const oxVal = parseFloat(String(reading.oxigenacao).replace("%", "").replace(",", ".")) / 100;
-    const tempVal = parseFloat(String(reading.temperatura).replace("C", "").replace(",", "."));
-    const vazaoVal = parseFloat(String(reading.vazao).replace(",", "."));
-
-    const newEntry = {
-      oxigenacao_limpa: isNaN(oxVal) ? 0.95 : oxVal,
-      temperatura_c: isNaN(tempVal) ? 36.8 : tempVal,
-      vazao_l_min: isNaN(vazaoVal) ? 4.8 : vazaoVal,
-      ph: 7.40,
-      viscosidade_cp: 3.8,
-      hematocrito_pct: 40.0,
-      status: (oxVal < 0.90 || tempVal > 38.0) ? "CRÍTICO" : "ESTÁVEL",
-      alerta_mensagem: (oxVal < 0.90 || tempVal > 38.0)
-        ? "ALERTA: Parâmetros fora da faixa fisiológica ideal."
-        : "Sistema operando dentro dos parâmetros de normalidade."
+  const handleQuickStartLot = (demoLot) => {
+    const createdAt = new Date().toLocaleString('pt-BR');
+    const newLot = {
+      id: demoLot.id,
+      name: demoLot.name,
+      nome: demoLot.name,
+      createdAt,
+      data_criacao: createdAt,
+      finalidade: demoLot.finalidade,
+      destino: demoLot.finalidade,
+      responsaveis: "Demonstração Flowtificial",
+      intervaloLeitura: "5s",
+      protocolo: PROTOCOLOS_CLINICOS[demoLot.finalidade] || PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"],
+      status: "ESTÁVEL"
     };
 
-    setHistory(prev => [...prev, newEntry]);
-    setPacketCount(p => p + 1);
+    setLots((previousLots) => {
+      const currentLots = previousLots || [];
+      return currentLots.some((lot) => lot?.id === demoLot.id)
+        ? currentLots
+        : [...currentLots, newLot];
+    });
+    setSelectedLot(demoLot.id);
+    setActiveTab('dashboard');
   };
 
   // Envio de pergunta e integração com chat
   const handleSendMessage = async (text) => {
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim() || !selectedLot) return;
+    const lotId = selectedLot;
 
-    // Resposta fixa: O que é sangue artificial
-    if (text.toLowerCase().includes("o que é sangue artificial")) {
-      const respostaPronta = `O sangue artificial (ou substituto sintético do sangue) é uma solução biotecnológica desenvolvida para desempenhar a função principal do sangue humano: o transporte de oxigênio e nutrientes para os tecidos do corpo.
-
-Diferente do sangue doado tradicional, o sangue artificial:
-• Não possui tipo sanguíneo (A, B, AB, O ou Rh): Pode ser usado em qualquer pessoa sem risco de rejeição imediata.
-• Dura muito mais tempo: Pode ser armazenado por meses sem estragar.
-• É livre de contaminações: Não transmite vírus ou bactérias.
-
-Existem duas tecnologias principais: as baseadas em Hemoglobina (HBOCs) e os Perfluorocarbonos (PFCs), que são líquidos sintéticos capazes de carregar gases.
-
-Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como oxigenação, pH e temperatura) para garantir que ele esteja perfeito e seguro para uso!`;
-
-      setMessages(prev => [
-        ...prev, 
+    if (QUICK_CHAT_ACTIONS.includes(text)) {
+      appendMessagesToLot(lotId, [
         { role: 'user', content: text },
-        { role: 'assistant', content: respostaPronta }
-      ]);
-      setInputValue('');
-      return;
-    }
-
-    // Resposta fixa: Condições do sangue / Status atual
-    if (text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")) {
-      setMessages(prev => [...prev, 
-        { role: 'user', content: text },
-        { 
-          role: 'assistant', 
-          content: `Análise em tempo real do lote ${selectedLot}: Oxigenação está em ${(currentReading.oxigenacao_limpa * 100).toFixed(0)}% (ótimo), pH em ${currentReading.ph.toFixed(2)} (fisiológico) e Temperatura em ${currentReading.temperatura_c.toFixed(1)}°C. Todos os parâmetros clínicos estão dentro da normalidade operacional.`,
-          showAnalysisCard: true
-        }
+        {
+          role: 'assistant',
+          content: '',
+          responseCard: createChatResponseCard(text, activeLotObj, activeLotTelemetry, activeFinalidade),
+        },
       ]);
       setInputValue('');
       return;
     }
 
     const userMsg = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMsg]);
+    appendMessagesToLot(lotId, [userMsg]);
     setInputValue('');
-    setIsTyping(true);
+    setTypingLotId(lotId);
 
     try {
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pergunta: text })
+        body: JSON.stringify({
+          pergunta: text,
+          lote_id: lotId,
+          finalidade: activeFinalidade
+        })
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setTimeout(() => {
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: data.resposta, 
+          appendMessagesToLot(lotId, [{
+            role: 'assistant',
+            content: data.resposta,
             explicabilidade: data.explicabilidade,
-            showAnalysisCard: text.toLowerCase().includes("status atual") || text.toLowerCase().includes("condições do sangue")
+            showAnalysisCard: false
           }]);
-          setIsTyping(false);
-          
+          setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
+
           const match = text.toUpperCase().match(/SA-\d{3}/);
           if (match) {
             setSelectedLot(match[0]);
           }
         }, 800);
       } else {
-        setIsTyping(false);
+        setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
       }
     } catch (err) {
       console.log("Erro no chat:", err);
-      setIsTyping(false);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
+      setTypingLotId((currentLotId) => currentLotId === lotId ? null : currentLotId);
+      appendMessagesToLot(lotId, [{
+        role: 'assistant',
         content: '⚠️ **[Erro de Conexão]**: Não foi possível contatar a assistente Flow. Verifique se o backend está ativo.'
       }]);
     }
   };
 
-  const activeLotObj = lots.find(l => l.id === selectedLot) || lots[0];
+  const safeLots = lots || [];
+  const safeHistory = history || [];
+  const activeLotObj = safeLots.find(l => l?.id === selectedLot) || null;
+  const forecastScenario = getForecastScenario(selectedLot, activeLotObj);
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
 
   const isEmergenciaActive = activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023";
@@ -444,7 +1218,7 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   // Tratamento de exceção (try/catch) com fallback visual em caso de corrupção ou perda de sinal USB
   let currentReading;
   try {
-    currentReading = history.length > 0 ? history[history.length - 1] : {
+    currentReading = safeHistory.length > 0 ? safeHistory[safeHistory.length - 1] : {
       oxigenacao_limpa: isEmergenciaActive ? 0.98 : isTraumaActive ? 0.99 : isCirurgiaCardiacaActive ? 0.985 : 0.95,
       temperatura_c: isEmergenciaActive ? 22.0 : isCirurgiaCardiacaActive ? 3.0 : 36.5,
       vazao_l_min: 4.8,
@@ -513,8 +1287,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   }
 
   // Hook global de dados do Arduino (B1, B2, B3, B4, B5 e conectividade serial)
-  const arduinoData = useArduinoData(currentReading, history, lastPacketTime);
+  const arduinoData = useArduinoData(currentReading || null, safeHistory, lastPacketTime);
+  const activeLotTelemetry = activeLotObj?.telemetry || currentReading;
 
+<<<<<<< HEAD
   const handleConnectArduino = async () => {
     await arduinoData.connectSerial();
   };
@@ -523,6 +1299,12 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const rawGas = arduinoData.gas_value || (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
   const rawFlow = arduinoData.flow_value || currentReading?.vazao_l_min || 4.8;
   const rawTemp = arduinoData.temp_value || currentReading?.temperatura_c || 22.0;
+=======
+  // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) do Arduino ou fallback
+  const rawGas = arduinoData.gas_value ?? (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
+  const rawFlow = arduinoData.flow_value ?? currentReading?.vazao_l_min ?? 4.8;
+  const rawTemp = arduinoData.temp_value ?? currentReading?.temperatura_c ?? 22.0;
+>>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
 
   // B1: Saturação de O₂ (usa diretamente gas_value)
   const b1_val = rawGas;
@@ -761,45 +1543,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
   const tc_b5_status = getStatusBadge(tc_b5_pct, arduinoData.isConnected);
 
   const getSparkValues = (key) => {
-    if (history.length === 0) return [currentReading[key] || 0, currentReading[key] || 0];
-    return history.map(item => item[key]);
-  };
-
-  const pythonScript = `import time
-import json
-import random
-import requests
-
-API_URL = "${import.meta.env.VITE_API_URL || (window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : ''))}/api/sensor-data"
-LOTE_ID = "SA-025"
-
-print("Ponte de Dados Iniciada. Enviando para:", API_URL)
-t = 0
-while True:
-    # Leitura ou simulação de sensores físicos
-    ox = 95.0 + random.uniform(-1.0, 1.0)
-    temp = 36.5 + random.uniform(-0.3, 0.3)
-    vaz = 4.8 + random.uniform(-0.1, 0.1)
-    
-    payload = {
-        "lote_id": LOTE_ID,
-        "oxigenacao": f"{ox:.1f}%",
-        "temperatura": f"{temp:.1f}C",
-        "vazao": f"{vaz:.1f}"
+    if (safeHistory.length === 0) {
+      return [currentReading?.[key] || 0, currentReading?.[key] || 0];
     }
-    try:
-        r = requests.post(API_URL, json=payload, timeout=2.0)
-        print(f"POST {r.status_code} | Lote {LOTE_ID} | Ox: {ox:.1f}% | Temp: {temp:.1f}°C")
-    except Exception as e:
-        print("Erro ao enviar telemetria:", e)
-    
-    time.sleep(2.0)
-    t += 2`;
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(pythonScript);
-    setCopiedScript(true);
-    setTimeout(() => setCopiedScript(false), 2000);
+    return safeHistory.map(item => item?.[key] || 0);
   };
 
   // Se a aba for Landing Page, renderiza a tela de apresentação
@@ -807,17 +1554,105 @@ while True:
     return (
       <LandingPage
         onNavigate={setActiveTab}
-        onInjectReading={handleInjectReading}
-        apiBase={API_BASE}
+        onStartDemo={() => {
+          setSelectedLot(null);
+          setActiveTab('dashboard');
+        }}
       />
     );
   }
 
+  // Apenas o Dashboard depende de um lote ativo. Previsão e Simulação de
+  // Emergência são ferramentas globais e continuam disponíveis sem lote.
+  if (activeTab === 'dashboard' && (!selectedLot || !activeLotObj)) {
+    return (
+      <main className="min-h-screen bg-[#0B0F19] px-4 py-10 text-slate-100 flex items-center justify-center sm:px-6">
+        <section className="w-full max-w-5xl rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl sm:p-9">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/10 shadow-[0_0_24px_rgba(244,63,94,0.2)]">
+              <FlaskConical className="h-7 w-7 text-rose-400" />
+            </div>
+            <p className="font-mono text-[11px] font-bold tracking-[0.22em] text-rose-400">MODO DEMONSTRAÇÃO</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Selecione uma Finalidade Clínica para Demonstração
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Inicie um lote de exemplo com parâmetros pré-configurados ou cadastre um lote personalizado.
+            </p>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button
+                className="ds-primary-action px-5"
+                onClick={openCreateLotModal}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                + Criar Lote Personalizado
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="ds-secondary-action"
+                onClick={() => setActiveTab('emergency')}
+              >
+                📈 Executar Simulação de Emergência
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-9 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {LOTES_DEMONSTRACAO.map((demoLot) => (
+              <button
+                key={demoLot.id}
+                type="button"
+                onClick={() => handleQuickStartLot(demoLot)}
+                className={`group rounded-2xl border bg-slate-950/60 p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${demoLot.accent}`}
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-2xl transition-transform duration-200 group-hover:scale-110">
+                  {demoLot.icon}
+                </span>
+                <h2 className="mt-4 text-sm font-bold leading-5 text-slate-100">{demoLot.title}</h2>
+                <p className="mt-2 text-xs leading-5 text-slate-400">{demoLot.focus}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                  Iniciar demonstração <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="glass-panel border-slate-700 bg-slate-950/95 text-slate-100 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-white">
+                <Plus className="h-5 w-5 text-rose-500" />
+                Criar Lote Personalizado
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400">
+                Cadastre os dados básicos para iniciar o monitoramento.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleConfirmCreateLot} className="grid gap-4">
+              {formError && <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-400">{formError}</p>}
+              <input value={newLotCode} disabled className="h-9 rounded-lg border border-slate-800 bg-slate-900/60 px-3 text-xs font-mono text-slate-400" />
+              <input value={newLotName} onChange={(event) => setNewLotName(event.target.value)} placeholder="Nome do lote" required className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              <select value={newLotFinalidade} onChange={(event) => setNewLotFinalidade(event.target.value)} className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none focus:border-cyan-400">
+                {FINALIDADES_OPCOES.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                <Button type="submit" className="ds-primary-action">Criar lote</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </main>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white">
+    <div className={`min-h-screen bg-[#0B0F19] flex flex-col relative text-slate-100 selection:bg-rose-500 selection:text-white ${accessibilityPreferences.hoverZoom ? 'enable-hover-zoom' : ''}`}>
       {/* Background Decorativo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 pointer-events-none z-0" />
-      
+
       {/* HEADER PRINCIPAL */}
       <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
         {/* Logo & Marca */}
@@ -840,40 +1675,40 @@ while True:
 
         {/* Navegação entre Abas */}
         <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 shadow-inner">
-          <button 
+          <button
             onClick={() => setActiveTab('landing')}
             className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5"
           >
             <Layers className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Apresentação</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('dashboard')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'dashboard' 
-                ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm' 
+              activeTab === 'dashboard'
+                ? 'bg-rose-600/20 border border-rose-500/40 text-rose-400 font-semibold shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Activity className="w-3.5 h-3.5 text-rose-500" />
             <span>Monitor Clínico</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('forecast')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'forecast' 
-                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm' 
+              activeTab === 'forecast'
+                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 font-semibold shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
             <span className="hidden sm:inline">Previsão Demanda</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('emergency')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'emergency' 
-                ? 'bg-gradient-to-r from-red-600/30 to-fuchsia-600/30 border border-rose-500/60 text-rose-300 font-semibold shadow-[0_0_15px_rgba(255,42,66,0.35)]' 
+              activeTab === 'emergency'
+                ? 'bg-gradient-to-r from-red-600/30 to-fuchsia-600/30 border border-rose-500/60 text-rose-300 font-semibold shadow-[0_0_15px_rgba(255,42,66,0.35)]'
                 : 'text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/30'
             }`}
           >
@@ -883,16 +1718,19 @@ while True:
               IA
             </span>
           </button>
-          <button 
-            onClick={() => setActiveTab('tecnico')}
+          <button
+            onClick={() => setActiveTab('arduino-ide')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'tecnico' 
-                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold shadow-sm' 
+              activeTab === 'arduino-ide'
+                ? 'bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 font-semibold shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Console Técnico</span>
+            <Code className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Programar Arduino</span>
+            <span className="hidden lg:inline-block text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1 py-0.2 rounded font-mono font-bold">
+              IDE
+            </span>
           </button>
         </div>
 
@@ -914,17 +1752,118 @@ while True:
             </div>
           </div>
 
-          <QuickEntryModal onInjectReading={handleInjectReading} apiBase={API_BASE} />
+          <ProjectEvaluationModal />
         </div>
       </header>
 
+      {isAccessibilityOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+            onClick={() => setIsAccessibilityOpen(false)}
+            aria-hidden="true"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="accessibility-modal-title"
+            className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-800 bg-[#0B0F19] p-6 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <p className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-rose-400">Preferências</p>
+                <h2 id="accessibility-modal-title" className="mt-1 text-lg font-bold text-white">
+                  Acessibilidade e Visualização
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  Ajustes locais que preservam a estrutura dos formulários e painéis.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAccessibilityOpen(false)}
+                aria-label="Fechar Preferências de Acessibilidade e Visualização"
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-100">Tamanho do texto</p>
+                    <p className="mt-0.5 text-xs leading-5 text-slate-400">Ajuste proporcional para uma leitura confortável.</p>
+                  </div>
+                  <div className="flex shrink-0 items-center rounded-lg border border-slate-700 bg-slate-950 p-1">
+                    {[
+                      ['small', 'A-'],
+                      ['normal', 'Normal'],
+                      ['large', 'A+'],
+                    ].map(([size, label]) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setAccessibilityPreferences((current) => ({ ...current, fontSize: size }))}
+                        aria-pressed={accessibilityPreferences.fontSize === size}
+                        className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                          accessibilityPreferences.fontSize === size
+                            ? 'bg-rose-600 text-white'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <AccessibilityToggle
+                icon={Contrast}
+                title="Alto Contraste"
+                description="Eleva a distinção entre textos, fundos e bordas."
+                enabled={accessibilityPreferences.highContrast}
+                onChange={() => toggleAccessibilityPreference('highContrast')}
+              />
+              <AccessibilityToggle
+                icon={MousePointer2}
+                title="Zoom no Hover (Foco)"
+                description="Destaca suavemente cards interativos ao passar o cursor."
+                enabled={accessibilityPreferences.hoverZoom}
+                onChange={() => toggleAccessibilityPreference('hoverZoom')}
+              />
+              <AccessibilityToggle
+                icon={Activity}
+                title="Animações Reduzidas"
+                description="Remove movimentos e transições não essenciais."
+                enabled={accessibilityPreferences.reducedMotion}
+                onChange={() => toggleAccessibilityPreference('reducedMotion')}
+              />
+            </div>
+          </section>
+        </>
+      )}
+
+      {!isAccessibilityOpen && (
+        <button
+          type="button"
+          onClick={() => setIsAccessibilityOpen(true)}
+          title="Acessibilidade e leitura dinâmica"
+          aria-label="Abrir Acessibilidade e leitura dinâmica"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-rose-400/50 bg-slate-900 text-rose-300 shadow-[0_0_24px_rgba(244,63,94,0.35)] transition-all hover:scale-105 hover:bg-rose-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+        >
+          <Accessibility className="h-6 w-6" />
+        </button>
+      )}
+
       {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
       {activeTab === 'dashboard' && (
-        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 items-stretch lg:grid-cols-12 gap-6">
+
           {/* COLUNA ESQUERDA (MÉTRICAS & LOTES - 5/12) */}
-          <section className="lg:col-span-5 flex flex-col gap-4">
-            
+          <section className="lg:col-span-5 flex h-full flex-col gap-4">
+
             {/* Seletor de Lotes */}
             <div className="glass-panel rounded-xl p-4 flex flex-col gap-3 border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -932,9 +1871,9 @@ while True:
                   <Database className="w-3.5 h-3.5 text-rose-500" />
                   LOTES DE SANGUE EM MONITORAMENTO
                 </h2>
-                <button 
+                <button
                   onClick={openCreateLotModal}
-                  className="text-[10px] text-rose-400 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-all font-mono font-bold flex items-center gap-1"
+                  className="ds-primary-action text-[10px] px-2.5 py-1 font-mono font-bold flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   NOVO LOTE
@@ -942,7 +1881,7 @@ while True:
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {lots.map(l => (
+                {safeLots.map(l => (
                   <div key={l.id} className="relative group">
                     <button
                       onClick={() => setSelectedLot(l.id)}
@@ -957,7 +1896,7 @@ while True:
                       <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
                     </button>
 
-                    {lots.length > 1 && (
+                    {safeLots.length > 1 && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -976,756 +1915,35 @@ while True:
 
             {/* Grid dos Novos MetricCards do Lovable */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {isEmergenciaActive ? (
-                <>
-                  {/* CARD B1: SATURAÇÃO DE O₂ */}
-                  <MetricCard
-                    title="B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)"
-                    subtitle="Usa diretamente gas_value"
-                    value={b1_val.toFixed(1)}
-                    unit="%"
-                    percent={b1_pct}
-                    level={b1_pct >= 90 ? "success" : b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={b1_status.badgeText}
-                    detail="Garante aporte imediato de oxigênio em quadros de trauma e choque volumétrico."
-                    icon={Waves}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color="#00ff9d" />}
-                  />
+              {getMetricasConfigByFinalidade(activeFinalidade).map((metric) => {
+                let calculatedValue = metric.getValue(rawGas, rawFlow, rawTemp, flow_pct_for_b5, temp_pct_for_card);
+                if (arduinoData.isSerialConnected && arduinoData[metric.id.toLowerCase()] !== undefined) {
+                  calculatedValue = arduinoData[metric.id.toLowerCase()];
+                }
+                const unitStr = metric.getUnit(rawFlow, rawTemp);
+                const percentVal = metric.getPercent(calculatedValue, rawFlow, rawTemp, flow_pct_for_b5, temp_pct_for_card);
+                const badgeInfo = getStatusBadge(percentVal, arduinoData.isConnected);
 
-                  {/* CARD B2: RESISTÊNCIA DE FLUXO */}
+                return (
                   <MetricCard
-                    title="B2 • RESISTÊNCIA DE FLUXO"
-                    subtitle="Usa diretamente flow_value"
-                    value={b2_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={b2_pct}
-                    level={b2_pct >= 90 ? "success" : b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={b2_status.badgeText}
-                    detail="Permite rápida infusão sob pressão em acessos venosos periféricos."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
+                    key={metric.id}
+                    title={metric.title}
+                    subtitle={metric.subtitle}
+                    value={typeof calculatedValue === 'number' ? calculatedValue.toFixed(1) : calculatedValue}
+                    unit={unitStr}
+                    percent={percentVal}
+                    level={percentVal >= 90 ? "success" : percentVal >= 70 ? "warning" : "error"}
+                    badgeText={badgeInfo.badgeText}
+                    detail={metric.detail}
+                    icon={metric.icon}
+                    accentColor={metric.accentColor}
+                    sparkline={<Sparkline data={getSparkValues(metric.sparklineKey)} color={badgeInfo.color} />}
                   />
-
-                  {/* CARD B3: ESTABILIDADE TÉRMICA */}
-                  <MetricCard
-                    title="B3 • ESTABILIDADE TÉRMICA"
-                    subtitle="Usa diretamente temp_value"
-                    value={b3_val.toFixed(1)}
-                    unit="°C"
-                    percent={b3_pct}
-                    level={b3_pct >= 90 ? "success" : b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={b3_status.badgeText}
-                    detail="Conserva a integridade funcional fora de refrigeração, ideal para ambulâncias."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('temperatura_c')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B4: TEMPO DE MEIA-VIDA CIRCULATÓRIA */}
-                  <MetricCard
-                    title="B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA"
-                    subtitle="Calculado via (gas_value × 0.6) + (temp_value × 0.4)"
-                    value={b4_val.toFixed(1)}
-                    unit="h"
-                    percent={b4_pct}
-                    level={b4_pct >= 90 ? "success" : b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={b4_status.badgeText}
-                    detail="Mantém a oxigenação até que o paciente chegue ao hospital."
-                    icon={Clock}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('meia_vida_h')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B5: TAXA DE EXTRAÇÃO TISSULAR DE O₂ */}
-                  <MetricCard
-                    title="B5 • TAXA DE EXTRAÇÃO TISSULAR DE O₂"
-                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
-                    value={b5_val.toFixed(1)}
-                    unit="%"
-                    percent={b5_pct}
-                    level={b5_pct >= 90 ? "success" : b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={b5_status.badgeText}
-                    detail="Facilidade com que o oxigênio se solta do composto para ir direto aos tecidos."
-                    icon={FlaskConical}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('extracao_o2_pct')} color="#02c39a" />}
-                  />
-                </>
-              ) : isTraumaActive ? (
-                <>
-                  {/* CARD B1: CAPACIDADE DE CARGA DE O₂ */}
-                  <MetricCard
-                    title="B1 • CAPACIDADE DE CARGA DE O₂"
-                    subtitle="Usa diretamente gas_value"
-                    value={t_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={t_b1_pct}
-                    level={t_b1_pct >= 90 ? "success" : t_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b1_status.badgeText}
-                    detail="Compensa rapidamente a perda massiva de volemia e glóbulos vermelhos."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#ff4d4d]"
-                    sparkline={<Sparkline data={getSparkValues('carga_o2_pct')} color="#ff4d4d" />}
-                  />
-
-                  {/* CARD B2: PRESSÃO ONCÓTICA */}
-                  <MetricCard
-                    title="B2 • PRESSÃO ONCÓTICA"
-                    subtitle="Usa diretamente flow_value"
-                    value={t_b2_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={t_b2_pct}
-                    level={t_b2_pct >= 90 ? "success" : t_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b2_status.badgeText}
-                    detail="Evita extravasamento de plasma e mantém a pressão arterial estável."
-                    icon={Waves}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('pressao_oncotica_mmhg')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B3: PERMUTABILIDADE GASOSA */}
-                  <MetricCard
-                    title="B3 • PERMUTABILIDADE GASOSA"
-                    subtitle="Usa diretamente gas_value ajustado à curva de desaturação"
-                    value={t_b3_val.toFixed(1)}
-                    unit="%"
-                    percent={t_b3_pct}
-                    level={t_b3_pct >= 90 ? "success" : t_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b3_status.badgeText}
-                    detail="Assegura rápida troca de O₂ e CO₂ nos alvéolos pulmonares."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('permutabilidade_gasosa_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: RESISTÊNCIA À COMPRESSÃO MECÂNICA */}
-                  <MetricCard
-                    title="B4 • RESISTÊNCIA À COMPRESSÃO MECÂNICA"
-                    subtitle="Usa diretamente flow_value sob vazão máxima"
-                    value={t_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={t_b4_pct}
-                    level={t_b4_pct >= 90 ? "success" : t_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b4_status.badgeText}
-                    detail="Suporta bombas de infusão rápida em ressuscitação volêmica."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('resistencia_compressao_pct')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: TAMPONAMENTO ÁCIDO-BÁSICO */}
-                  <MetricCard
-                    title="B5 • TAMPONAMENTO ÁCIDO-BÁSICO"
-                    subtitle="Calculado via (gas_value × 0.7) + (temp_value × 0.3)"
-                    value={t_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={t_b5_pct}
-                    level={t_b5_pct >= 90 ? "success" : t_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={t_b5_status.badgeText}
-                    detail="Previne acidose metabólica decorrente da hipoperfusão tecidual."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('tamponamento_ph')} color="#ffb703" />}
-                  />
-                </>
-              ) : isCirurgiaCardiacaActive ? (
-                <>
-                  {/* CARD B1: COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC) */}
-                  <MetricCard
-                    title="B1 • COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC)"
-                    subtitle="Calculado via (flow_value × 0.6) + (gas_value × 0.4)"
-                    value={c_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={c_b1_pct}
-                    level={c_b1_pct >= 90 ? "success" : c_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b1_status.badgeText}
-                    detail="Mantém a estabilidade molecular em circuitos de circulação extracorpórea."
-                    icon={Waves}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('compatibilidade_cec_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B2: TENSÃO DE CISAILHAMENTO */}
-                  <MetricCard
-                    title="B2 • TENSÃO DE CISAILHAMENTO"
-                    subtitle="Usa diretamente flow_value"
-                    value={c_b2_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={c_b2_pct}
-                    level={c_b2_pct >= 90 ? "success" : c_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b2_status.badgeText}
-                    detail="Previne degradação mecânica por bombas rotativas e oxigenadores."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('tensao_cisalhamento_cp')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B3: TEMPO DE MEIA-VIDA EXTENDED */}
-                  <MetricCard
-                    title="B3 • TEMPO DE MEIA-VIDA EXTENDED"
-                    subtitle="Calculado via (gas_value × 0.5) + (temp_value × 0.5)"
-                    value={c_b3_val.toFixed(1)}
-                    unit="h"
-                    percent={c_b3_pct}
-                    level={c_b3_pct >= 90 ? "success" : c_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b3_status.badgeText}
-                    detail="Suporta procedimentos cirúrgicos de longa duração sem perda funcional."
-                    icon={Clock}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('meia_vida_extended_h')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: TAMPONAMENTO DE LACTATO */}
-                  <MetricCard
-                    title="B4 • TAMPONAMENTO DE LACTATO"
-                    subtitle="Usa diretamente gas_value"
-                    value={c_b4_val.toFixed(1)}
-                    unit="%"
-                    percent={c_b4_pct}
-                    level={c_b4_pct >= 90 ? "success" : c_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b4_status.badgeText}
-                    detail="Minimiza acúmulo de metabólitos ácidos durante o clampeamento vascular."
-                    icon={Droplets}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('tamponamento_lactato_ph')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B5: VISCOSIDADE EM HYPOTHERMIA */}
-                  <MetricCard
-                    title="B5 • VISCOSIDADE EM HYPOTHERMIA"
-                    subtitle="Calculado via flow_value correlacionado com a queda em temp_value"
-                    value={c_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={c_b5_pct}
-                    level={c_b5_pct >= 90 ? "success" : c_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={c_b5_status.badgeText}
-                    detail="Preserva a fluidez hemodinâmica sob hipotermia cirúrgica induzida."
-                    icon={Thermometer}
-                    accentColor="bg-[#3a86ef]"
-                    sparkline={<Sparkline data={getSparkValues('viscosidade_hipotermia_cp')} color="#3a86ef" />}
-                  />
-                </>
-              ) : isAnemiaActive ? (
-                <>
-                  {/* CARD B1: EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50) */}
-                  <MetricCard
-                    title="B1 • EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50)"
-                    subtitle="Usa diretamente gas_value"
-                    value={a_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={a_b1_pct}
-                    level={a_b1_pct >= 90 ? "success" : a_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b1_status.badgeText}
-                    detail="Entrega oxigênio aos tecidos mesmo em baixas concentrações circulantes."
-                    icon={Waves}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('eficiencia_p50_mmhg')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B2: AUSÊNCIA DE RESPOSTA IMUNOGÊNICA */}
-                  <MetricCard
-                    title="B2 • AUSÊNCIA DE RESPOSTA IMUNOGÊNICA"
-                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
-                    value={a_b2_val.toFixed(1)}
-                    unit="%"
-                    percent={a_b2_pct}
-                    level={a_b2_pct >= 90 ? "success" : a_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b2_status.badgeText}
-                    detail="Reduz risco de reações alérgicas ou rejeição em transfusões crônicas."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('ausencia_imunogenica_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B3: ESTABILIDADE PLASMÁTICA */}
-                  <MetricCard
-                    title="B3 • ESTABILIDADE PLASMÁTICA"
-                    subtitle="Usa diretamente flow_value"
-                    value={a_b3_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={a_b3_pct}
-                    level={a_b3_pct >= 90 ? "success" : a_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b3_status.badgeText}
-                    detail="Evita flutuações na concentração de hemoglobina sintética."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_plasmatica_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: TOLERÂNCIA A INFUSÃO LENTA */}
-                  <MetricCard
-                    title="B4 • TOLERÂNCIA A INFUSÃO LENTA"
-                    subtitle="Usa diretamente flow_value em baixa rotação"
-                    value={a_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={a_b4_pct}
-                    level={a_b4_pct >= 90 ? "success" : a_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b4_status.badgeText}
-                    detail="Ideal para esquemas de administração gradual em pacientes debilitados."
-                    icon={Clock}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('tolerancia_infusao_lenta_h')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B5: RETENÇÃO VASCULAR */}
-                  <MetricCard
-                    title="B5 • RETENÇÃO VASCULAR"
-                    subtitle="Calculado via (flow_value × 0.6) + (temp_value × 0.4)"
-                    value={a_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={a_b5_pct}
-                    level={a_b5_pct >= 90 ? "success" : a_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={a_b5_status.badgeText}
-                    detail="Impede filtração glomerular precoce, prolongando o benefício terapêutico."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('retencao_vascular_h')} color="#a855f7" />}
-                  />
-                </>
-              ) : isOncologicoActive ? (
-                <>
-                  {/* CARD B1: COMPATIBILIDADE COM QUIMIOTERÁPICOS */}
-                  <MetricCard
-                    title="B1 • COMPATIBILIDADE COM QUIMIOTERÁPICOS"
-                    subtitle="Usa diretamente gas_value"
-                    value={o_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={o_b1_pct}
-                    level={o_b1_pct >= 90 ? "success" : o_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b1_status.badgeText}
-                    detail="Não reage nem degrada compostos citostáticos na corrente sanguínea."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('compatibilidade_quimioterapicos_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B2: PROTEÇÃO CONTRA ESTRESSE OXIDATIVO */}
-                  <MetricCard
-                    title="B2 • PROTEÇÃO CONTRA ESTRESSE OXIDATIVO"
-                    subtitle="Usa diretamente gas_value"
-                    value={o_b2_val.toFixed(1)}
-                    unit="%"
-                    percent={o_b2_pct}
-                    level={o_b2_pct >= 90 ? "success" : o_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b2_status.badgeText}
-                    detail="Neutraliza radicais livres gerados por tratamentos radioterápicos."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('protecao_estresse_oxidativo_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B3: PERMEABILIDADE EM MICROCIRCULAÇÃO */}
-                  <MetricCard
-                    title="B3 • PERMEABILIDADE EM MICROCIRCULAÇÃO"
-                    subtitle="Usa diretamente flow_value"
-                    value={o_b3_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "cP"}
-                    percent={o_b3_pct}
-                    level={o_b3_pct >= 90 ? "success" : o_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b3_status.badgeText}
-                    detail="Penetra redes capilares comprimidas por massas tumorais."
-                    icon={Waves}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('permeabilidade_microcirculacao_cp')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: ESTABILIDADE EM NEUTROPÉNICOS */}
-                  <MetricCard
-                    title="B4 • ESTABILIDADE EM NEUTROPÉNICOS"
-                    subtitle="Calculado via (temp_value × 0.5) + (flow_value × 0.5)"
-                    value={o_b4_val.toFixed(1)}
-                    unit="%"
-                    percent={o_b4_pct}
-                    level={o_b4_pct >= 90 ? "success" : o_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b4_status.badgeText}
-                    detail="Formulação livre de contaminantes que possam ameaçar imunodeprimidos."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_neutropenicos_pct')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: ÍNDICE DE PURIFICAÇÃO MOLECULAR */}
-                  <MetricCard
-                    title="B5 • ÍNDICE DE PURIFICAÇÃO MOLECULAR"
-                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
-                    value={o_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={o_b5_pct}
-                    level={o_b5_pct >= 90 ? "success" : o_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={o_b5_status.badgeText}
-                    detail="Minimiza a carga metabólica sobre fígado e rins fragilizados."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('purificacao_molecular_pct')} color="#ffb703" />}
-                  />
-                </>
-              ) : isPolitraumatizadosActive ? (
-                <>
-                  {/* CARD B1: SUPORTE MULTIORGÂNICO DE O₂ */}
-                  <MetricCard
-                    title="B1 • SUPORTE MULTIORGÂNICO DE O₂"
-                    subtitle="Usa diretamente gas_value"
-                    value={p_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={p_b1_pct}
-                    level={p_b1_pct >= 90 ? "success" : p_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b1_status.badgeText}
-                    detail="Garante perfusão simultânea de órgãos vitais em falência iminente."
-                    icon={Waves}
-                    accentColor="bg-[#ff9f1c]"
-                    sparkline={<Sparkline data={getSparkValues('suporte_multiorganico_o2_pct')} color="#ff9f1c" />}
-                  />
-
-                  {/* CARD B2: RESISTÊNCIA À ACIDOSE LÁCTICA */}
-                  <MetricCard
-                    title="B2 • RESISTÊNCIA À ACIDOSE LÁCTICA"
-                    subtitle="Usa diretamente gas_value"
-                    value={p_b2_val.toFixed(1)}
-                    unit="%"
-                    percent={p_b2_pct}
-                    level={p_b2_pct >= 90 ? "success" : p_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b2_status.badgeText}
-                    detail="Mantém a capacidade de transporte gasoso mesmo em pH sanguíneo reduzido."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('resistencia_acidose_lactica_ph')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B3: ESTABILIDADE EM INFUSÃO PRESSURIZADA */}
-                  <MetricCard
-                    title="B3 • ESTABILIDADE EM INFUSÃO PRESSURIZADA"
-                    subtitle="Usa diretamente flow_value"
-                    value={p_b3_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={p_b3_pct}
-                    level={p_b3_pct >= 90 ? "success" : p_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b3_status.badgeText}
-                    detail="Não sofre hemólise sintética quando injetado sob alta velocidade."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_infusao_pressurizada_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: CAPACIDADE EXPANSORA DE PLASMA */}
-                  <MetricCard
-                    title="B4 • CAPACIDADE EXPANSORA DE PLASMA"
-                    subtitle="Usa diretamente flow_value"
-                    value={p_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={p_b4_pct}
-                    level={p_b4_pct >= 90 ? "success" : p_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b4_status.badgeText}
-                    detail="Restabelece a pressão arterial em quadros de choque múltiplo."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('capacidade_expansora_plasma_mmhg')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: INTEGRIDADE EM VARIÂNCIA TÉRMICA */}
-                  <MetricCard
-                    title="B5 • INTEGRIDADE EM VARIÂNCIA TÉRMICA"
-                    subtitle="Usa diretamente temp_value"
-                    value={p_b5_val.toFixed(1)}
-                    unit={rawTemp > 10 ? "%" : "°C"}
-                    percent={p_b5_pct}
-                    level={p_b5_pct >= 90 ? "success" : p_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={p_b5_status.badgeText}
-                    detail="Funciona adequadamente em quadros de hipotermia por trauma."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('integridade_variancia_termica_c')} color="#ffb703" />}
-                  />
-                </>
-              ) : isDoacaoActive ? (
-                <>
-                  {/* CARD B1: ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE) */}
-                  <MetricCard
-                    title="B1 • ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE)"
-                    subtitle="Calculado via (gas_value × 0.5) + (flow_value × 0.5)"
-                    value={d_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={d_b1_pct}
-                    level={d_b1_pct >= 90 ? "success" : d_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b1_status.badgeText}
-                    detail="Ausência de antígenos A, B e Rh, permitindo transfusão sem reação hemolítica."
-                    icon={Waves}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('isencao_antigenica_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B2: PURIFICAÇÃO BIOLÓGICA */}
-                  <MetricCard
-                    title="B2 • PURIFICAÇÃO BIOLÓGICA"
-                    subtitle="Usa diretamente flow_value"
-                    value={d_b2_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={d_b2_pct}
-                    level={d_b2_pct >= 90 ? "success" : d_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b2_status.badgeText}
-                    detail="Totalmente livre de agentes patogênicos, vírus ou bactérias."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('purificacao_biologica_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B3: CONSERVABILIDADE EM ESTOQUE */}
-                  <MetricCard
-                    title="B3 • CONSERVABILIDADE EM ESTOQUE"
-                    subtitle="Usa diretamente temp_value"
-                    value={d_b3_val.toFixed(1)}
-                    unit={rawTemp > 10 ? "%" : "°C"}
-                    percent={d_b3_pct}
-                    level={d_b3_pct >= 90 ? "success" : d_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b3_status.badgeText}
-                    detail="Mantém propriedades funcionais por longos períodos sob refrigeração."
-                    icon={Clock}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('conservabilidade_estoque_dias')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: ESTABILIDADE OSMÓTICA */}
-                  <MetricCard
-                    title="B4 • ESTABILIDADE OSMÓTICA"
-                    subtitle="Calculado via (flow_value × 0.5) + (temp_value × 0.5)"
-                    value={d_b4_val.toFixed(1)}
-                    unit="%"
-                    percent={d_b4_pct}
-                    level={d_b4_pct >= 90 ? "success" : d_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b4_status.badgeText}
-                    detail="Mantém o volume e a estrutura molecular estáveis na bolsa de estocagem."
-                    icon={FlaskConical}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_osmotica_mosm')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B5: FLUIDEZ DE FRACIONAMENTO */}
-                  <MetricCard
-                    title="B5 • FLUIDEZ DE FRACIONAMENTO"
-                    subtitle="Usa diretamente flow_value"
-                    value={d_b5_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={d_b5_pct}
-                    level={d_b5_pct >= 90 ? "success" : d_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={d_b5_status.badgeText}
-                    detail="Facilita a mistura ou divisão em alíquotas para diferentes necessidades."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('fluidez_fracionamento_cp')} color="#a855f7" />}
-                  />
-                </>
-              ) : isColetaReservaActive ? (
-                <>
-                  {/* CARD B1: LONGEVIDADE DE ARMAZENAMENTO */}
-                  <MetricCard
-                    title="B1 • LONGEVIDADE DE ARMAZENAMENTO"
-                    subtitle="Calculado via (temp_value × 0.6) + (gas_value × 0.4)"
-                    value={cr_b1_val.toFixed(1)}
-                    unit="%"
-                    percent={cr_b1_pct}
-                    level={cr_b1_pct >= 90 ? "success" : cr_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b1_status.badgeText}
-                    detail="Formulado para suportar longos períodos em bancos de reserva sem degradação."
-                    icon={Clock}
-                    accentColor="bg-[#3a86ef]"
-                    sparkline={<Sparkline data={getSparkValues('longevidade_armazenamento_dias')} color="#3a86ef" />}
-                  />
-
-                  {/* CARD B2: RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA */}
-                  <MetricCard
-                    title="B2 • RESISTÊNCIA À CRISTALIZAÇÃO TÉRMICA"
-                    subtitle="Usa diretamente temp_value"
-                    value={cr_b2_val.toFixed(1)}
-                    unit={rawTemp > 10 ? "%" : "°C"}
-                    percent={cr_b2_pct}
-                    level={cr_b2_pct >= 90 ? "success" : cr_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b2_status.badgeText}
-                    detail="Previne danos moleculares sob congelamento ou refrigeração profunda."
-                    icon={Thermometer}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('resistencia_cristalizacao_termica_c')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B3: MANUTENÇÃO DE pH EM ESTOCAGEM */}
-                  <MetricCard
-                    title="B3 • MANUTENÇÃO DE pH EM ESTOCAGEM"
-                    subtitle="Usa diretamente gas_value"
-                    value={cr_b3_val.toFixed(1)}
-                    unit="%"
-                    percent={cr_b3_pct}
-                    level={cr_b3_pct >= 90 ? "success" : cr_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b3_status.badgeText}
-                    detail="Evita a acidificação da amostra durante o tempo de reserva."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('manutencao_ph_estocagem')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B4: INTEGRIDADE DA MEMBRANA SINTÉTICA */}
-                  <MetricCard
-                    title="B4 • INTEGRIDADE DA MEMBRANA SINTÉTICA"
-                    subtitle="Usa diretamente flow_value"
-                    value={cr_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={cr_b4_pct}
-                    level={cr_b4_pct >= 90 ? "success" : cr_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b4_status.badgeText}
-                    detail="Mantém a estrutura das micropartículas sem agregação ou precipitação."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('integridade_membrana_sintetica_pct')} color="#ffb703" />}
-                  />
-
-                  {/* CARD B5: REATIVIDADE PÓS-DESCONGELAMENTO */}
-                  <MetricCard
-                    title="B5 • REATIVIDADE PÓS-DESCONGELAMENTO"
-                    subtitle="Calculado via (temp_value × 0.5) + (gas_value × 0.5)"
-                    value={cr_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={cr_b5_pct}
-                    level={cr_b5_pct >= 90 ? "success" : cr_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={cr_b5_status.badgeText}
-                    detail="Retoma a capacidade total de transporte de O₂ após o aquecimento."
-                    icon={Waves}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('reatividade_pos_descongelamento_pct')} color="#a855f7" />}
-                  />
-                </>
-              ) : isTipagemCompatibilidadeActive ? (
-                <>
-                  {/* CARD B1: REATIVIDADE EM PROVA CRUZADA (CROSSMATCH) */}
-                  <MetricCard
-                    title="B1 • REATIVIDADE EM PROVA CRUZADA (CROSSMATCH)"
-                    subtitle="Usa diretamente flow_value"
-                    value={tc_b1_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={tc_b1_pct}
-                    level={tc_b1_pct >= 90 ? "success" : tc_b1_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b1_status.badgeText}
-                    detail="Zero aglutinação em contato com soro ou plasma de qualquer receptor."
-                    icon={ShieldCheck}
-                    accentColor="bg-[#00ff9d]"
-                    sparkline={<Sparkline data={getSparkValues('reatividade_crossmatch_pct')} color="#00ff9d" />}
-                  />
-
-                  {/* CARD B2: NEUTRALIDADE DE ANTICORPOS IRREGULARES */}
-                  <MetricCard
-                    title="B2 • NEUTRALIDADE DE ANTICORPOS IRREGULARES"
-                    subtitle="Usa diretamente gas_value"
-                    value={tc_b2_val.toFixed(1)}
-                    unit="%"
-                    percent={tc_b2_pct}
-                    level={tc_b2_pct >= 90 ? "success" : tc_b2_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b2_status.badgeText}
-                    detail="Não induz resposta imune em receptores multitransfundidos ou sensibilizados."
-                    icon={Waves}
-                    accentColor="bg-[#02c39a]"
-                    sparkline={<Sparkline data={getSparkValues('neutralidade_anticorpos_pct')} color="#02c39a" />}
-                  />
-
-                  {/* CARD B3: FIDELIDADE DE PADRÃO MOLECULAR */}
-                  <MetricCard
-                    title="B3 • FIDELIDADE DE PADRÃO MOLECULAR"
-                    subtitle="Calculado via (flow_value × 0.5) + (gas_value × 0.5)"
-                    value={tc_b3_val.toFixed(1)}
-                    unit="%"
-                    percent={tc_b3_pct}
-                    level={tc_b3_pct >= 90 ? "success" : tc_b3_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b3_status.badgeText}
-                    detail="Resposta uniforme e previsível em testes laboratoriais automatizados."
-                    icon={FlaskConical}
-                    accentColor="bg-[#00d8ff]"
-                    sparkline={<Sparkline data={getSparkValues('fidelidade_padrao_molecular_pct')} color="#00d8ff" />}
-                  />
-
-                  {/* CARD B4: ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO */}
-                  <MetricCard
-                    title="B4 • ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO"
-                    subtitle="Usa diretamente flow_value"
-                    value={tc_b4_val.toFixed(1)}
-                    unit={rawFlow > 10 ? "%" : "L/min"}
-                    percent={tc_b4_pct}
-                    level={tc_b4_pct >= 90 ? "success" : tc_b4_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b4_status.badgeText}
-                    detail="Mantém o comportamento inerte mesmo na presença de anticorpos raros."
-                    icon={Droplets}
-                    accentColor="bg-[#a855f7]"
-                    sparkline={<Sparkline data={getSparkValues('estabilidade_painel_pct')} color="#a855f7" />}
-                  />
-
-                  {/* CARD B5: LIMPIDEZ SPECTROFOTOMÉTRICA */}
-                  <MetricCard
-                    title="B5 • LIMPIDEZ ESPECTROFOTOMÉTRICA"
-                    subtitle="Usa diretamente gas_value"
-                    value={tc_b5_val.toFixed(1)}
-                    unit="%"
-                    percent={tc_b5_pct}
-                    level={tc_b5_pct >= 90 ? "success" : tc_b5_pct >= 70 ? "warning" : "error"}
-                    badgeText={tc_b5_status.badgeText}
-                    detail="Permite leitura óptica precisa sem interferir nos reagentes de tipagem."
-                    icon={Thermometer}
-                    accentColor="bg-[#ffb703]"
-                    sparkline={<Sparkline data={getSparkValues('limpidez_spectrofotometrica_pct')} color="#ffb703" />}
-                  />
-                </>
-              ) : (
-                <>
-                  {/* CARD 1: OXIGENAÇÃO */}
-                  <MetricCard
-                    title="Saturação de O₂"
-                    subtitle="Transporte de oxigênio do lote"
-                    value={(currentReading.oxigenacao_limpa * 100).toFixed(1)}
-                    unit="%"
-                    percent={currentReading.oxigenacao_limpa * 100}
-                    level={currentReading.oxigenacao_limpa < 0.90 ? 'critical' : 'success'}
-                    detail={currentReading.oxigenacao_limpa < 0.90 ? 'SATURAÇÃO BAIXA' : 'SpO₂ Equivalente Ideal'}
-                    icon={Waves}
-                    sparkline={<Sparkline data={getSparkValues('oxigenacao_limpa')} color={currentReading.oxigenacao_limpa < 0.90 ? '#ff2a42' : '#00e5a3'} />}
-                  />
-
-                  {/* CARD 2: TEMPERATURA */}
-                  <MetricCard
-                    title="Estabilidade Térmica"
-                    subtitle="Sensor DS18B20 em bancada"
-                    value={currentReading.temperatura_c.toFixed(1)}
-                    unit="°C"
-                    percent={Math.min(100, (currentReading.temperatura_c / 42) * 100)}
-                    level={currentReading.temperatura_c > 38.0 || currentReading.temperatura_c < 35.0 ? 'critical' : currentReading.temperatura_c > 37.5 ? 'warning' : 'success'}
-                    detail={currentReading.temperatura_c > 38.0 ? 'HIPERTERMIA CRÍTICA' : currentReading.temperatura_c < 35.0 ? 'HIPOTERMIA' : 'Faixa Fisiológica'}
-                    icon={Thermometer}
-                    sparkline={<Sparkline data={getSparkValues('temperatura_c')} color={currentReading.temperatura_c > 38.0 ? '#ff2a42' : '#f59e0b'} />}
-                  />
-
-                  {/* CARD 3: pH */}
-                  <MetricCard
-                    title="Potencial pH"
-                    subtitle="Equilíbrio ácido-base"
-                    value={currentReading.ph.toFixed(2)}
-                    unit="pH"
-                    percent={Math.min(100, (currentReading.ph / 8.5) * 100)}
-                    level={currentReading.ph < 7.35 || currentReading.ph > 7.45 ? 'warning' : 'success'}
-                    detail={currentReading.ph < 7.35 ? 'Tendência à Acidose' : currentReading.ph > 7.45 ? 'Tendência à Alcalose' : 'pH 7.40 Fisiológico'}
-                    icon={FlaskConical}
-                    sparkline={<Sparkline data={getSparkValues('ph')} color="#38bdf8" />}
-                  />
-
-                  {/* CARD 4: VISCOSIDADE */}
-                  <MetricCard
-                    title="Viscosidade"
-                    subtitle="Resistência ao fluxo"
-                    value={currentReading.viscosidade_cp.toFixed(1)}
-                    unit="cP"
-                    percent={Math.min(100, (currentReading.viscosidade_cp / 6) * 100)}
-                    level={currentReading.viscosidade_cp > 5.0 ? 'critical' : currentReading.viscosidade_cp < 3.2 ? 'warning' : 'success'}
-                    detail={currentReading.viscosidade_cp > 4.5 ? 'Composto Espesso' : 'Fluidez Adequada'}
-                    icon={Droplets}
-                    sparkline={<Sparkline data={getSparkValues('viscosidade_cp')} color="#a855f7" />}
-                  />
-                </>
-              )}
+                );
+              })}
             </div>
 
+<<<<<<< HEAD
             {/* Status do Hardware Arduino */}
             <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between gap-3 bg-slate-900/40 border-slate-800">
               <div className="flex items-center gap-2.5">
@@ -1752,26 +1970,142 @@ while True:
                 ) : (
                   <span className="text-[9px] text-amber-300 font-mono">USE CHROME + HTTPS</span>
                 )}
+=======
+            {/* Status do Hardware Arduino com Conexão Web Serial e Teste Rápido */}
+            <div className="glass-panel rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border-slate-800 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg border transition-colors ${arduinoData.isSerialConnected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}>
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">CONEXÃO ARDUINO SERIAL</p>
+                    {arduinoData.isSerialConnected ? (
+                      <span className="flex items-center gap-1 text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        ONLINE
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                        STANDBY
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-mono font-bold text-slate-200 mt-0.5">
+                    {arduinoData.baudRate} baud • {arduinoData.packetCount} pacotes rx
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                {/* Seletor de Baudrate */}
+                <select
+                  aria-label="Taxa de transmissão serial"
+                  value={arduinoData.baudRate}
+                  disabled={arduinoData.isSerialConnected}
+                  onChange={(e) => arduinoData.setBaudRate(Number(e.target.value))}
+                  className="text-[10px] bg-slate-800 text-slate-300 font-mono border border-slate-700 rounded px-2 py-1.5 focus:outline-none focus:border-cyan-500 disabled:opacity-60 cursor-pointer"
+                  title="Taxa de transmissão serial"
+                >
+                  <option value={115200}>115200 baud</option>
+                  <option value={9600}>9600 baud</option>
+                </select>
+
+                {/* Botão de Conexão Web Serial USB */}
+                {arduinoData.isSerialConnected ? (
+                  <Button
+                    type="button"
+                    onClick={arduinoData.disconnectSerial}
+                    size="sm"
+                    className="gap-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs font-mono px-3 py-1.5 h-auto transition-all shadow-sm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    DESCONECTAR
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => arduinoData.connectSerial()}
+                    size="sm"
+                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-semibold px-3 py-1.5 h-auto transition-all shadow-lg shadow-emerald-950/40 border border-emerald-400/30"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-emerald-200" />
+                    CONECTAR ARDUINO (USB)
+                  </Button>
+                )}
+
+                {/* Botão de Abrir Monitor Serial Estilo Arduino IDE */}
+                <Button
+                  type="button"
+                  onClick={() => setShowSerialMonitor(prev => !prev)}
+                  size="sm"
+                  variant="outline"
+                  title="Abre o Monitor Serial em tempo real idêntico ao da Arduino IDE"
+                  className={`gap-1.5 text-xs font-mono px-3 py-1.5 h-auto transition-all ${
+                    showSerialMonitor
+                      ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/50 shadow-sm'
+                      : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  }`}
+                >
+                  <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                  {showSerialMonitor ? "FECHAR MONITOR" : "MONITOR SERIAL IDE"}
+                </Button>
+
+                {/* Botão de Teste Rápido / Simulação Bancada */}
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const sampleGas = Number((96.0 + Math.random() * 3.5).toFixed(1));
+                    const sampleFlow = Number((4.6 + Math.random() * 0.4).toFixed(1));
+                    const sampleTemp = Number((21.5 + Math.random() * 1.5).toFixed(1));
+                    arduinoData.injectTestData({ gas: sampleGas, flow: sampleFlow, temp: sampleTemp });
+                  }}
+                  size="sm"
+                  variant="outline"
+                  title="Injeta leituras simuladas para validar a resposta dos campos B1..B5 na hora"
+                  className="gap-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700 text-[10px] font-mono px-2 py-1.5 h-auto"
+                >
+                  TESTAR
+                </Button>
+>>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
               </div>
             </div>
+
+            {/* Componente Monitor Serial Integrado da Arduino IDE */}
+            {showSerialMonitor && (
+              <div className="mt-1 transition-all">
+                <ArduinoSerialMonitor
+                  logs={arduinoData.rawSerialLogs}
+                  onClearLogs={arduinoData.clearSerialLogs}
+                  onSendData={arduinoData.sendSerialData}
+                  isSerialConnected={arduinoData.isSerialConnected}
+                  onConnect={arduinoData.connectSerial}
+                  onDisconnect={arduinoData.disconnectSerial}
+                  baudRate={arduinoData.baudRate}
+                  onBaudChange={arduinoData.setBaudRate}
+                  packetCount={arduinoData.packetCount}
+                  portInfo={arduinoData.portInfo}
+                />
+              </div>
+            )}
 
           </section>
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
-          <section className="lg:col-span-7 flex flex-col gap-4">
-            
+          <section className="lg:col-span-7 flex h-full flex-col gap-4">
+
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
-              currentReading.status === "CRÍTICO" 
-                ? 'bg-rose-950/30 border-rose-500/40' 
+              currentReading.status === "CRÍTICO"
+                ? 'bg-rose-950/30 ds-status-critical'
                 : currentReading.status === "ALERTA"
-                ? 'bg-amber-950/30 border-amber-500/40'
-                : 'bg-emerald-950/20 border-emerald-500/40'
+                ? 'bg-amber-950/30 ds-status-warning'
+                : 'bg-emerald-950/20 ds-status-ok'
             }`}>
               <div className="flex items-center gap-3.5">
                 <div className={`p-3 rounded-xl border bg-slate-950/80 ${
-                  currentReading.status === "CRÍTICO" ? 'text-rose-500 border-rose-500/40 glow-crimson' :
-                  currentReading.status === "ALERTA" ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-500/40 glow-neon'
+                  currentReading.status === "CRÍTICO" ? 'ds-status-critical glow-crimson' :
+                  currentReading.status === "ALERTA" ? 'ds-status-warning' : 'ds-status-ok glow-neon'
                 }`}>
                   {currentReading.status === "CRÍTICO" ? <XCircle className="w-6 h-6" /> :
                    currentReading.status === "ALERTA" ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
@@ -1803,51 +2137,180 @@ while True:
             </div>
 
             {/* Chatbot Conversacional com IA Explicável */}
-            <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl border-slate-800 min-h-[500px]">
-              
+            {isChatFullscreen && (
+              <div
+                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                onClick={() => setIsChatFullscreen(false)}
+                aria-hidden="true"
+              />
+            )}
+            <div
+              className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${
+                isChatFullscreen
+                  ? 'fixed top-1/2 left-1/2 z-[100] h-[85vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-[#0B0F19]'
+                  : 'relative flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0B0F19]'
+              }`}
+              role={isChatFullscreen ? 'dialog' : undefined}
+              aria-modal={isChatFullscreen || undefined}
+              aria-label={isChatFullscreen ? 'Chat da IA Flow expandido' : undefined}
+            >
+
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(255,255,255,0.01)_1px,_transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0" />
-              
+
               {/* Header do Chat */}
-              <div className="z-10 bg-slate-900/70 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+              <div className="z-10 flex-none h-12 px-4 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-rose-500 animate-pulse" />
                   <span className="text-xs font-bold font-mono tracking-widest text-slate-300">
-                    CAMADA 4: ASSISTENTE VIRTUAL FLOW
+                    IA FLOW
                   </span>
                 </div>
-                {arduinoData.isConnected ? (
-                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    ONLINE
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                    [AGUARDANDO LEITURA SERIAL]
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {arduinoData.isConnected ? (
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      ONLINE
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-[10px] text-amber-400 border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 rounded font-mono font-bold shadow-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                      [AGUARDANDO LEITURA SERIAL]
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsChatFullscreen((isFullscreen) => !isFullscreen)}
+                    title={isChatFullscreen ? 'Fechar Chat expandido' : 'Expandir Chat'}
+                    aria-label={isChatFullscreen ? 'Fechar Chat expandido' : 'Expandir Chat'}
+                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  >
+                    {isChatFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="z-10 flex-none border-b border-slate-800 bg-slate-950/80 px-4 py-2.5">
+                <p className="mx-auto w-fit rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1 text-center text-xs text-slate-400">
+                  Selecione uma opção rápida abaixo para iniciar a análise
+                </p>
               </div>
 
               {/* Mensagens do Chat */}
-              <div className="z-10 flex-1 max-h-[380px] overflow-y-auto scroll-smooth p-4 flex flex-col gap-3.5">
+              <div
+                ref={chatMessagesRef}
+                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'flex-1 px-5 pb-6 pt-4 sm:px-10' : 'h-[600px] flex-none'}`}
+              >
                 {messages.map((msg, index) => (
-                  <div 
+                  <div
                     key={index}
-                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
+                    onClick={() => {
+                      if (msg.role === 'assistant' && msg.showAnalysisCard) {
+                        setZoomedChatCard({
+                          eyebrow: 'Laudo clínico ampliado',
+                          title: `Laudo Clínico do Lote ${selectedLot}`,
+                          summary: currentReading?.alerta_mensagem || 'Leitura de telemetria ativa para o lote selecionado.',
+                          metrics: [
+                            { label: 'Oxigenação', value: `${b1_val.toFixed(0)}%`, progress: Math.min(100, b1_pct), color: 'bg-emerald-400', badgeClass: 'border-emerald-400/30 bg-emerald-500/5 text-emerald-200' },
+                            { label: 'Vazão', value: `${rawFlow.toFixed(1)} L/min`, progress: Math.min(100, (rawFlow / 6.5) * 100), color: 'bg-cyan-400', badgeClass: 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200' },
+                            { label: 'Temperatura', value: `${rawTemp.toFixed(1)}°C`, progress: Math.min(100, Math.max(0, ((rawTemp - 30) / 10) * 100)), color: 'bg-amber-400', badgeClass: 'border-amber-400/30 bg-amber-500/5 text-amber-200' },
+                            { label: 'Estabilidade', value: currentReading?.status || 'ESTÁVEL', progress: currentReading?.status === 'CRÍTICO' ? 35 : currentReading?.status === 'ALERTA' ? 65 : 100, color: 'bg-purple-400', badgeClass: 'border-purple-400/30 bg-purple-500/5 text-purple-200' },
+                          ],
+                        });
+                      }
+                    }}
+                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'} ${msg.showAnalysisCard ? 'cursor-zoom-in' : ''}`}
                   >
-                    <div 
-                      className={`p-3.5 rounded-2xl text-sm leading-relaxed ${
-                        msg.role === 'user' 
-                          ? 'bg-slate-800 text-slate-100 rounded-tr-none border border-slate-700/60' 
-                          : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border'
-                      }`}
-                    >
-                      <div className="whitespace-pre-line font-sans">{msg.content}</div>
-                    </div>
-                    
-                    <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
-                      {msg.role === 'user' ? 'Visitante' : 'Flow'}
-                    </span>
+                    {msg.content && (
+                      <>
+                        <div
+                          onClick={() => {
+                            if (msg.role === 'assistant') {
+                              setZoomedChatCard({
+                                eyebrow: 'Resposta da IA Flow',
+                                title: 'Resposta ampliada',
+                                summary: msg.content,
+                                metrics: [],
+                              });
+                            }
+                          }}
+                          className={`accessibility-zoom-target p-3 rounded-2xl text-sm leading-relaxed ${
+                            msg.role === 'user'
+                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-tr-none shadow-md'
+                              : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border cursor-zoom-in relative pr-11'
+                          }`}
+                        >
+                          {msg.role === 'assistant' && <Maximize2 className="absolute right-3 top-3 h-4 w-4 text-sky-400" />}
+                          <div className="whitespace-pre-line font-sans">{msg.content}</div>
+                        </div>
+
+                        <span className="text-[9px] text-slate-500 font-mono mt-1 px-1">
+                          {msg.role === 'user' ? 'Visitante' : 'Flow'}
+                        </span>
+                      </>
+                    )}
+
+                    {msg.role === 'assistant' && msg.responseCard && (
+                      <article
+                        onClick={() => setZoomedChatCard(msg.responseCard)}
+                        className={`mt-2.5 w-full cursor-zoom-in rounded-xl border p-3 shadow-2xl transition-transform duration-200 hover:scale-[1.01] ${msg.responseCard.conceptual ? 'border-cyan-500/30 bg-[#0F172A]' : 'border-sky-500/30 bg-slate-950/95'}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2.5">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/30 to-purple-500/20 text-cyan-200">
+                              <msg.responseCard.icon className="h-4.5 w-4.5" />
+                            </span>
+                            <p className="pt-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cyan-300">
+                              {msg.responseCard.eyebrow}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="rounded border border-cyan-400/40 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[8px] font-bold text-cyan-200">{msg.responseCard.conceptual ? 'CONCEITO CIENTÍFICO' : 'SINAL SERIAL'}</span>
+                            <Maximize2 className="h-4 w-4 text-sky-400" />
+                          </div>
+                        </div>
+                        <h4 className="mt-2 text-sm font-bold text-white">{msg.responseCard.title}</h4>
+                        {msg.responseCard.conceptual ? (
+                          <div className="mt-2 space-y-2">
+                            {msg.responseCard.conceptualBlocks.map((block) => {
+                              const BlockIcon = block.icon;
+                              return (
+                                <section key={block.title} className={`flex gap-3 rounded-xl border p-2 ${block.accent}`}>
+                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-current/30 bg-slate-950/30">
+                                    <BlockIcon className="h-4 w-4" />
+                                  </span>
+                                  <div>
+                                    <h5 className="text-sm font-bold text-slate-100">{block.title}</h5>
+                                    <p className="mt-0.5 text-sm leading-snug text-slate-300">{block.text}</p>
+                                  </div>
+                                </section>
+                              );
+                            })}
+                          </div>
+                        ) : <>
+                        <p className="mt-2 text-sm leading-snug text-slate-300">{msg.responseCard.summary}</p>
+                        <dl className="mt-2 grid grid-cols-2 gap-2">
+                          {msg.responseCard.metrics.map((metric) => {
+                            const MetricIcon = metric.icon;
+                            return (
+                            <div key={metric.label} className="rounded-lg border border-slate-700/80 bg-slate-900/70 px-2 py-2">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${metric.iconBackground} ${metric.iconColor}`}>
+                                  <MetricIcon className="h-3.5 w-3.5" />
+                                </span>
+                                <span className={`inline-flex items-center gap-1 rounded border px-1 py-0.5 font-mono text-[7px] ${metric.badgeClass}`}><Wifi className="h-2.5 w-2.5" />TELEMETRIA ATIVA</span>
+                              </div>
+                              <dt className="mt-1 font-mono text-[9px] uppercase tracking-wider text-slate-500">{metric.label}</dt>
+                              <dd className="mt-0.5 text-sm font-semibold text-slate-100">{metric.value}</dd>
+                              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-800">
+                                <div className={`h-full rounded-full ${metric.color}`} style={{ width: `${metric.progress}%` }} />
+                              </div>
+                            </div>
+                            );
+                          })}
+                        </dl>
+                        </>}
+                      </article>
+                    )}
 
                     {/* Card Estilizado Neon para Atendimento Pré-Hospitalar de Emergência (apenas no Status atual) */}
                     {msg.role === 'assistant' && msg.showAnalysisCard && isEmergenciaActive && (
@@ -1877,8 +2340,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${b1_pct}%` }}
                               />
                             </div>
@@ -1896,8 +2359,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${b2_pct}%` }}
                               />
                             </div>
@@ -1915,8 +2378,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${b3_pct}%` }}
                               />
                             </div>
@@ -1934,8 +2397,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${b4_pct}%` }}
                               />
                             </div>
@@ -1953,8 +2416,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500"
                                 style={{ width: `${b5_pct}%` }}
                               />
                             </div>
@@ -1996,8 +2459,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ff4d4d] shadow-[0_0_8px_#ff4d4d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${t_b1_pct}%` }}
                               />
                             </div>
@@ -2015,8 +2478,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${t_b2_pct}%` }}
                               />
                             </div>
@@ -2034,8 +2497,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${t_b3_pct}%` }}
                               />
                             </div>
@@ -2053,8 +2516,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${t_b4_pct}%` }}
                               />
                             </div>
@@ -2072,8 +2535,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
                                 style={{ width: `${t_b5_pct}%` }}
                               />
                             </div>
@@ -2115,8 +2578,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${c_b1_pct}%` }}
                               />
                             </div>
@@ -2134,8 +2597,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${c_b2_pct}%` }}
                               />
                             </div>
@@ -2153,8 +2616,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${c_b3_pct}%` }}
                               />
                             </div>
@@ -2172,8 +2635,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${c_b4_pct}%` }}
                               />
                             </div>
@@ -2191,8 +2654,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500"
                                 style={{ width: `${c_b5_pct}%` }}
                               />
                             </div>
@@ -2234,8 +2697,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${a_b1_pct}%` }}
                               />
                             </div>
@@ -2253,8 +2716,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${a_b2_pct}%` }}
                               />
                             </div>
@@ -2272,8 +2735,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${a_b3_pct}%` }}
                               />
                             </div>
@@ -2291,8 +2754,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${a_b4_pct}%` }}
                               />
                             </div>
@@ -2310,8 +2773,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
                                 style={{ width: `${a_b5_pct}%` }}
                               />
                             </div>
@@ -2353,8 +2816,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${o_b1_pct}%` }}
                               />
                             </div>
@@ -2372,8 +2835,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${o_b2_pct}%` }}
                               />
                             </div>
@@ -2391,8 +2854,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${o_b3_pct}%` }}
                               />
                             </div>
@@ -2410,8 +2873,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${o_b4_pct}%` }}
                               />
                             </div>
@@ -2429,8 +2892,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
                                 style={{ width: `${o_b5_pct}%` }}
                               />
                             </div>
@@ -2472,8 +2935,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ff9f1c] shadow-[0_0_8px_#ff9f1c] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${p_b1_pct}%` }}
                               />
                             </div>
@@ -2491,8 +2954,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${p_b2_pct}%` }}
                               />
                             </div>
@@ -2510,8 +2973,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${p_b3_pct}%` }}
                               />
                             </div>
@@ -2529,8 +2992,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${p_b4_pct}%` }}
                               />
                             </div>
@@ -2548,8 +3011,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
                                 style={{ width: `${p_b5_pct}%` }}
                               />
                             </div>
@@ -2591,8 +3054,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${d_b1_pct}%` }}
                               />
                             </div>
@@ -2610,8 +3073,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${d_b2_pct}%` }}
                               />
                             </div>
@@ -2629,8 +3092,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${d_b3_pct}%` }}
                               />
                             </div>
@@ -2648,8 +3111,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${d_b4_pct}%` }}
                               />
                             </div>
@@ -2667,8 +3130,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
                                 style={{ width: `${d_b5_pct}%` }}
                               />
                             </div>
@@ -2710,8 +3173,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#3a86ef] shadow-[0_0_8px_#3a86ef] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${cr_b1_pct}%` }}
                               />
                             </div>
@@ -2729,8 +3192,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${cr_b2_pct}%` }}
                               />
                             </div>
@@ -2748,8 +3211,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${cr_b3_pct}%` }}
                               />
                             </div>
@@ -2767,8 +3230,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${cr_b4_pct}%` }}
                               />
                             </div>
@@ -2786,8 +3249,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500"
                                 style={{ width: `${cr_b5_pct}%` }}
                               />
                             </div>
@@ -2829,8 +3292,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#00FFA3] transition-all duration-500"
                                 style={{ width: `${tc_b1_pct}%` }}
                               />
                             </div>
@@ -2848,8 +3311,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#02c39a] shadow-[0_0_8px_#02c39a] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-cyan-400 shadow-[0_0_8px_#00E5FF] transition-all duration-500"
                                 style={{ width: `${tc_b2_pct}%` }}
                               />
                             </div>
@@ -2867,8 +3330,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#00d8ff] shadow-[0_0_8px_#00d8ff] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-amber-400 shadow-[0_0_8px_#FFB800] transition-all duration-500"
                                 style={{ width: `${tc_b3_pct}%` }}
                               />
                             </div>
@@ -2886,8 +3349,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-purple-400 shadow-[0_0_8px_#A855F7] transition-all duration-500"
                                 style={{ width: `${tc_b4_pct}%` }}
                               />
                             </div>
@@ -2905,8 +3368,8 @@ while True:
                               </div>
                             </div>
                             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-                              <div 
-                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500" 
+                              <div
+                                className="h-full rounded-full bg-[#ffb703] shadow-[0_0_8px_#ffb703] transition-all duration-500"
                                 style={{ width: `${tc_b5_pct}%` }}
                               />
                             </div>
@@ -2932,7 +3395,7 @@ while True:
                             RISCO: {msg.explicabilidade.risco_degradacao_pct}%
                           </span>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                           <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-850">
                             <div className="flex justify-between text-[10px] font-mono mb-1">
@@ -2940,8 +3403,8 @@ while True:
                               <span className="text-white font-bold">{(msg.explicabilidade.valores_sensores.oxigenacao*100).toFixed(0)}%</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.oxigenacao < 0.90 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
+                              <div
+                                className="h-full rounded-full bg-emerald-400"
                                 style={{ width: `${msg.explicabilidade.valores_sensores.oxigenacao * 100}%` }}
                               />
                             </div>
@@ -2953,8 +3416,8 @@ while True:
                               <span className="text-white font-bold">{msg.explicabilidade.valores_sensores.temperatura.toFixed(1)}°C</span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${msg.explicabilidade.valores_sensores.temperatura > 38.0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}
+                              <div
+                                className="h-full rounded-full bg-amber-400"
                                 style={{ width: `${Math.min(100, (msg.explicabilidade.valores_sensores.temperatura / 45) * 100)}%` }}
                               />
                             </div>
@@ -2983,7 +3446,7 @@ while True:
                         <Activity className="w-3.5 h-3.5 text-rose-500 animate-heartbeat" />
                         <span>Analisando dados mais recentes do Arduino...</span>
                       </div>
-                      
+
                       <svg width="240" height="24" className="stroke-rose-500" fill="none">
                         <path
                           className="ecg-path"
@@ -2994,61 +3457,24 @@ while True:
                     </div>
                   </div>
                 )}
-                
-                <div ref={messagesEndRef} />
+
               </div>
 
-              {/* Botões de Ações Rápidas (Pills) */}
-              <div className="z-10 px-4 py-2 border-t border-slate-900 flex gap-2 overflow-x-auto bg-slate-950/40">
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Qual o status atual do lote?')}
-                  className="whitespace-nowrap text-[11px] text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 rounded-full hover:bg-emerald-500/10 transition-colors font-medium"
-                >
-                  Status atual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('O que é sangue artificial?')}
-                  className="whitespace-nowrap text-[11px] text-rose-400 border border-rose-500/30 bg-rose-500/5 px-3 py-1 rounded-full hover:bg-rose-500/10 transition-colors font-medium"
-                >
-                  O que é sangue artificial?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Por que o lote está em risco?')}
-                  className="whitespace-nowrap text-[11px] text-sky-400 border border-sky-500/30 bg-sky-500/5 px-3 py-1 rounded-full hover:bg-sky-500/10 transition-colors font-medium"
-                >
-                  Por que o lote está em risco?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage('Como funciona a limpeza de ruído e pH?')}
-                  className="whitespace-nowrap text-[11px] text-slate-400 border border-slate-700 bg-slate-800/40 px-3 py-1 rounded-full hover:bg-slate-800 transition-colors font-medium"
-                >
-                  Limpeza de Ruído & pH
-                </button>
+              {/* Rodapé fixo: ações rápidas */}
+              <div className="z-10 flex-none mt-auto border-t border-slate-800 p-4 bg-[#0B0F19]">
+                <div className="flex gap-2 overflow-x-auto px-3 pb-3">
+                  {QUICK_CHAT_ACTIONS.map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => handleSendMessage(action)}
+                      className="cursor-pointer whitespace-nowrap rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1 text-[11px] font-medium text-slate-300 transition-all duration-200 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+                    >
+                      {action}
+                    </button>
+                  ))}
+                </div>
               </div>
-
-              {/* Caixa de Entrada de Texto */}
-              <form 
-                onSubmit={(e) => { e.preventDefault(); handleSendMessage(inputValue); }}
-                className="z-10 bg-slate-900/80 border-t border-slate-800 px-4 py-3 flex gap-2 items-center"
-              >
-                <input 
-                  type="text" 
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Pergunte sobre os lotes, sensores ou previsões..."
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-rose-500/70 text-slate-100 placeholder-slate-500 transition-all font-sans"
-                />
-                <Button 
-                  type="submit"
-                  className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-2.5 rounded-xl h-10 w-10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
 
             </div>
 
@@ -3059,7 +3485,7 @@ while True:
       {/* ABA 2: PREVISÃO DE DEMANDA HOSPITALAR (LOVABLE RECHARTS) */}
       {activeTab === 'forecast' && (
         <main className="flex-1 max-w-[1480px] w-full mx-auto p-4 sm:p-6 z-10 space-y-6">
-          
+
           <div className="glass-panel rounded-2xl p-6 border-slate-800">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -3077,37 +3503,51 @@ while True:
               </div>
 
               <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-slate-400 bg-slate-900/60 border border-slate-800 px-3.5 py-1.5 rounded-xl">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 <span>Modelo Autônomo Ativo • Lead Time 18h</span>
               </div>
             </div>
 
-            <DemandChart />
+            <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/50 px-3.5 py-2.5">
+              <label htmlFor="forecast-lot" className="font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Selecionar lote:
+              </label>
+              <select
+                id="forecast-lot"
+                value={selectedLot || ""}
+                onChange={(event) => setSelectedLot(event.target.value)}
+                className="min-w-44 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs font-bold text-slate-100 outline-none focus:border-rose-500"
+              >
+                {safeLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.id}{lot.name ? ` • ${lot.name}` : ""}</option>)}
+              </select>
+            </div>
 
-            <div className="mt-5 rounded-xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-slate-900/50 to-emerald-950/30 px-5 py-4 text-xs text-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <DemandChart lotId={selectedLot} lot={activeLotObj} />
+
+            <button type="button" onClick={() => setForecastDetailModal({ title: "Diagnóstico preditivo", metric: `Ruptura estimada em ${forecastScenario.riscoDia}`, detail: `Sem intervenção, o estoque chega a ${forecastScenario.critical.estoqueSemAcao} unidades, abaixo do mínimo de ${forecastScenario.minimo}. A IA recomenda ${forecastScenario.recomendacao} para preservar ${forecastScenario.protectedStock} unidades seguras.` })} className="mt-5 flex cursor-pointer flex-col items-start justify-between gap-4 rounded-xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-slate-900/50 to-emerald-950/30 px-5 py-4 text-left text-xs text-slate-200 transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)] sm:flex-row sm:items-center">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400 shrink-0">
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
                   <p className="font-bold text-white text-xs">
-                    DIAGNÓSTICO PREDITIVO: Risco iminente de ruptura em D+3 (43 un &lt; 50 un mínimo).
+                    DIAGNÓSTICO PREDITIVO: risco de ruptura em {forecastScenario.riscoDia} ({forecastScenario.critical.estoqueSemAcao} un &lt; {forecastScenario.minimo} un mínimo).
                   </p>
                   <p className="text-slate-400 text-[11px] font-mono mt-0.5">
-                    Decisão IA recomendada: Disparar síntese do Lote SA-026 em D+1 para garantir 62 un em estoque seguro.
+                    Decisão IA recomendada para {selectedLot}: {forecastScenario.recomendacao}, garantindo {forecastScenario.protectedStock} un em estoque seguro.
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  IMPACTO: +44.2% RESILIÊNCIA
+                  IMPACTO: {forecastScenario.impacto.toUpperCase()}
                 </span>
               </div>
-            </div>
+            </button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="glass-panel rounded-xl p-5 border-slate-800">
+            <button type="button" onClick={() => setForecastDetailModal({ title: "Capacidade de produção", metric: "120 unidades por dia", detail: "A capacidade considera o turno de esterilização e síntese de PFCs. Ela limita o volume que pode ser programado pela recomendação preditiva." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)]">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Capacidade de Produção
               </p>
@@ -3115,9 +3555,9 @@ while True:
                 120 <span className="text-xs text-slate-400 font-sans">unid/dia</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Turno de esterilização e síntese de PFCs</p>
-            </div>
+            </button>
 
-            <div className="glass-panel rounded-xl p-5 border-slate-800">
+            <button type="button" onClick={() => setForecastDetailModal({ title: "Lead time de reposição", metric: "18 horas", detail: "Tempo médio entre a decisão, a validação biológica e a entrega. A janela ideal é calculada para respeitar esse intervalo." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,229,255,0.25)]">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Lead Time de Reposição
               </p>
@@ -3125,9 +3565,9 @@ while True:
                 18 <span className="text-xs text-slate-400 font-sans">horas</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Tempo médio de validação biológica e entrega</p>
-            </div>
+            </button>
 
-            <div className="glass-panel rounded-xl p-5 border-slate-800">
+            <button type="button" onClick={() => setForecastDetailModal({ title: "Acurácia do modelo", metric: "94,8%", detail: "Score R² baseado nas séries temporais do sistema. Ele indica a aderência da projeção aos padrões de demanda observados." })} className="glass-panel cursor-pointer rounded-xl border border-slate-800 p-5 text-left transition-all duration-300 ease-in-out hover:scale-[1.02] hover:border-rose-500 hover:shadow-[0_0_15px_rgba(244,63,94,0.25)]">
               <p className="font-mono text-[11px] uppercase tracking-widest text-slate-400">
                 Acurácia do Modelo
               </p>
@@ -3135,141 +3575,107 @@ while True:
                 94.8<span className="text-xs text-slate-400 font-sans">%</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">Score R² com base em séries temporais</p>
-            </div>
+            </button>
           </div>
 
         </main>
       )}
 
-      {/* ABA 3: CONSOLE TÉCNICO & AUDITORIA */}
-      {activeTab === 'tecnico' && (
-        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* COLUNA ESQUERDA: SCRIPT PYTHON E ENDPOINT */}
-          <section className="flex flex-col gap-4">
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 flex-1 border-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2">
-                  <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-                  SCRIPT DE SUPORTE: PONTE PYTHON (ARDUINO PARA API)
-                </h2>
-                <button 
-                  onClick={copyToClipboard}
-                  className="text-[10px] text-emerald-400 border border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-all font-mono flex items-center gap-1.5"
-                >
-                  <Copy className="w-3 h-3" />
-                  {copiedScript ? "COPIADO!" : "COPIAR SCRIPT"}
-                </button>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                Rode este script Python no computador do estande conectado ao Arduino. O script lê as leituras da porta serial e faz requisições HTTP POST para a API do site, alimentando o painel em tempo real.
-              </p>
-              
-              <div className="flex-1 bg-slate-950 border border-slate-900 rounded-xl p-3.5 overflow-auto max-h-[320px]">
-                <pre className="text-[11px] text-slate-300 font-mono select-text">{pythonScript}</pre>
-              </div>
-            </div>
 
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
-              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-rose-500" />
-                DOCUMENTAÇÃO DO ENDPOINT DE TELEMETRIA
-              </h2>
-              
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded font-mono font-bold">POST</span>
-                  <span className="text-xs font-mono text-white">/api/sensor-data</span>
-                </div>
-                <p className="text-xs text-slate-400 font-sans leading-relaxed">
-                  O Arduino ou ponte envia leituras brutas em JSON. O backend limpa erros de digitação e calcula as variáveis secundárias.
-                </p>
-                <div className="bg-slate-950 border border-slate-900 rounded-xl p-3 mt-1">
-                  <p className="text-[9px] text-slate-500 font-mono mb-1">PAYLOAD DE ENTRADA EXIGIDO:</p>
-                  <pre className="text-[10px] text-slate-400 font-mono select-text">{JSON.stringify({
-                    "lote_id": "SA-025",
-                    "oxigenacao": "95%",
-                    "temperatura": "36.8C",
-                    "vazao": "4.8"
-                  }, null, 2)}</pre>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* COLUNA DIREITA: ARQUITETURA E AUDITORIA */}
-          <section className="flex flex-col gap-4">
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800">
-              <h2 className="text-xs font-bold tracking-widest text-slate-400 border-b border-slate-800 pb-2 flex items-center gap-2">
-                <Cpu className="w-3.5 h-3.5 text-sky-400" />
-                FLUXO OPERACIONAL DE 4 CAMADAS
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px] font-mono mt-1">
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                  <span className="block font-bold text-emerald-400">1. DADOS</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Coleta e armazena</span>
-                </div>
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                  <span className="block font-bold text-sky-400">2. PROCESS.</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Limpa e normaliza</span>
-                </div>
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                  <span className="block font-bold text-amber-400">3. IA EXPL.</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Inferência de risco</span>
-                </div>
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                  <span className="block font-bold text-rose-500">4. INTERM.</span>
-                  <span className="text-[9px] text-slate-400 block mt-1">Chat de conversa</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Trilha de Auditoria */}
-            <div className="glass-panel rounded-xl p-5 flex flex-col gap-3 border-slate-800 flex-1">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 flex items-center gap-2 uppercase">
-                  <Database className="w-3.5 h-3.5 text-rose-500" />
-                  CAMADA 1: LOGS DE AUDITORIA E RASTREABILIDADE
-                </h2>
-                <RefreshCw className="w-3.5 h-3.5 text-slate-400 cursor-pointer hover:text-white transition-colors" onClick={fetchAudits} />
-              </div>
-
-              <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[380px]">
-                {audits.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-500">
-                    Nenhum log de auditoria pendente no banco local.
-                  </div>
-                ) : (
-                  audits.map((a, index) => (
-                    <div
-                      key={a.id || index}
-                      className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs flex flex-col gap-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-300 font-bold font-mono">[{a.action}]</span>
-                        <span className="text-slate-500 font-mono text-[10px]">
-                          {a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : "--:--"}
-                        </span>
-                      </div>
-                      <p className="text-slate-300 text-xs font-sans">{a.details}</p>
-                      <div className="flex items-center gap-1 text-[9px] text-slate-500 font-mono">
-                        <span>Operador:</span>
-                        <span className="text-slate-400 font-bold">{a.operator || "SISTEMA"}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </section>
-        </main>
-      )}
 
       {/* ABA 4: SIMULADOR DE URGÊNCIA COM IA */}
       {activeTab === 'emergency' && (
         <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10">
           <EmergencySimulator />
         </main>
+      )}
+
+      {forecastDetailModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md" role="presentation" onClick={() => setForecastDetailModal(null)}>
+          <section role="dialog" aria-modal="true" aria-labelledby="forecast-detail-title" className="relative w-full max-w-xl rounded-2xl border border-cyan-400/40 bg-slate-950 p-6 shadow-[0_0_45px_rgba(0,229,255,0.2)] sm:p-7" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setForecastDetailModal(null)} aria-label="Fechar detalhes da previsão" className="absolute right-4 top-4 rounded-lg border border-slate-700 p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"><X className="h-5 w-5" /></button>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-400">Previsão de demanda</p>
+            <h2 id="forecast-detail-title" className="mt-2 pr-10 text-2xl font-bold text-white">{forecastDetailModal.title}</h2>
+            <div className="mt-5 rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-4"><p className="font-mono text-[10px] uppercase tracking-wider text-cyan-300">Métrica</p><p className="mt-1 text-lg font-bold text-white">{forecastDetailModal.metric}</p></div>
+            <p className="mt-5 text-sm leading-6 text-slate-300">{forecastDetailModal.detail}</p>
+          </section>
+        </div>
+      )}
+
+      {zoomedChatCard && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+          role="presentation"
+          onClick={() => setZoomedChatCard(null)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="chat-card-modal-title"
+            className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-sky-400/30 bg-slate-950 p-6 shadow-[0_0_50px_rgba(34,211,238,0.18)] sm:p-8"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setZoomedChatCard(null)}
+              aria-label="Fechar resposta ampliada"
+              className="absolute right-4 top-4 rounded-lg border border-slate-700 p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="pr-12 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-400">
+              {zoomedChatCard.eyebrow}
+            </p>
+            <h2 id="chat-card-modal-title" className="mt-2 pr-12 text-2xl font-bold text-white sm:text-3xl">
+              {zoomedChatCard.title}
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
+              {zoomedChatCard.summary}
+            </p>
+            {zoomedChatCard.conceptualBlocks?.length > 0 && (
+              <div className="mt-6 space-y-3">
+                {zoomedChatCard.conceptualBlocks.map((block) => {
+                  const BlockIcon = block.icon;
+                  return (
+                    <section key={block.title} className={`flex gap-4 rounded-xl border p-4 ${block.accent}`}>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current/30 bg-slate-950/30">
+                        <BlockIcon className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <h3 className="font-semibold text-white">{block.title}</h3>
+                        <p className="mt-1.5 text-sm leading-6 text-slate-300">{block.text}</p>
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            )}
+            {zoomedChatCard.metrics?.length > 0 && (
+              <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+                {zoomedChatCard.metrics.map((metric) => (
+                  <div key={metric.label} className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="font-mono text-[10px] uppercase tracking-widest text-slate-400">{metric.label}</dt>
+                      <span className={`rounded border px-1.5 py-0.5 font-mono text-[8px] font-bold ${metric.badgeClass || 'border-cyan-400/30 bg-cyan-500/5 text-cyan-200'}`}>TELEMETRIA ATIVA</span>
+                    </div>
+                    <dd className="mt-2 text-lg font-semibold text-white">{metric.value}</dd>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                      <div className={`h-full rounded-full transition-all duration-500 ${metric.color}`} style={{ width: `${metric.progress}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* ABA 4: PROGRAMAR ARDUINO (IDE WEB) */}
+      {activeTab === 'arduino-ide' && (
+        <ArduinoIDE
+          arduinoData={arduinoData}
+          onNavigateToDashboard={() => setActiveTab('dashboard')}
+        />
       )}
 
       {/* Modal de Criação de Novo Lote */}
@@ -3371,7 +3777,7 @@ while True:
               </Button>
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-medium text-xs gap-1.5 shadow-lg shadow-rose-500/20"
+                className="ds-primary-action text-xs gap-1.5 font-medium"
               >
                 <Plus className="h-4 w-4" />
                 Confirmar e Cadastrar Lote

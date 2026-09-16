@@ -16,7 +16,7 @@ except ImportError:
 # Configurações padrão
 DEFAULT_API_URL = "http://localhost:8000/api/sensor-data"
 DEFAULT_PORT = "COM3"
-DEFAULT_BAUD = 9600
+DEFAULT_BAUD = 115200
 
 def gerar_dados_simulados(t, lote_id="SA-023", finalidade=""):
     """
