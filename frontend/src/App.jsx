@@ -845,7 +845,7 @@ export default function App() {
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime] = useState(null);
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
-  const [showSerialMonitor, setShowSerialMonitor] = useState(false);
+  const [showSerialMonitor, setShowSerialMonitor] = useState(true);
   const [zoomedChatCard, setZoomedChatCard] = useState(null);
   const [forecastDetailModal, setForecastDetailModal] = useState(null);
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
