@@ -1,103 +1,127 @@
 /*
  * ==============================================================================
  * PROJETO SANGUE ARTIFICIAL - FECART (FLOWTIFICIAL)
- * Firmware de Telemetria Serial Arduino -> Dashboard Web
+ * Firmware de Telemetria Multisensores (DS18B20, YF-S201, MQ-135)
  * ==============================================================================
  * 
- * Este sketch faz a leitura contínua dos sensores biomédicos físicos (ou potenciômetros
- * de teste) e transmite os dados para a porta Serial USB a 115200 baud.
- * O site (Flowtificial) se conecta diretamente a este Arduino pelo navegador
- * via Web Serial API (Google Chrome / Microsoft Edge).
+ * Este sketch faz a leitura contínua dos 3 sensores biomédicos físicos:
+ *  - DS18B20 (Digital via OneWire / DallasTemperature no Pino 2) -> Temperatura em °C
+ *  - YF-S201 (Pulsos de Vazão por Interrupção no Pino 3) -> Vazão (L/min) e Volume Acumulado (L)
+ *  - MQ-135 (Analógico no Pino A0) -> Qualidade do Ar / Gás bruto (0 a 1023)
  *
- * ⚠️ AVISO IMPORTANTE:
- * Antes de clicar em "CONECTAR ARDUINO" no site, FECHE o "Monitor Serial" da
- * Arduino IDE (Ctrl+Shift+M), pois o Windows não permite que dois programas
- * acessem a mesma porta COM simultaneamente.
+ * Transmite os dados para a porta Serial USB a 115200 baud em formato JSON por linha.
+ * O site FLOWTIFICIAL se conecta diretamente via Web Serial API ou ponte local.
  * ==============================================================================
  */
 
-// --- CONFIGURAÇÃO DE PINOS DOS SENSORES ---
-// Caso não tenha os sensores específicos conectados, você pode conectar
-// potenciômetros comuns nestes pinos para simular as variações na feira.
-const int PINO_SENSOR_GAS_O2    = A0; // Sensor de Oxigenação / Gás (ex: MAX30102 ou Potenciômetro)
-const int PINO_SENSOR_FLUXO     = A1; // Sensor de Vazão / Fluxo (ex: YF-S201 ou Potenciômetro)
-const int PINO_SENSOR_TEMP      = A2; // Sensor de Temperatura (ex: LM35, NTC ou Potenciômetro)
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-// Taxa de atualização (em milissegundos)
-const unsigned long INTERVALO_ENVIO_MS = 1000; // Envia a cada 1 segundo
-unsigned long ultimoEnvio = 0;
+// --- MAPEAMENTO DE PINOS DOS SENSORES ---
+#define PINO_ONE_WIRE          2   // Pino Digital para o sensor DS18B20 (com resistor pull-up 4.7k)
+#define PINO_SENSOR_FLUXO      3   // Pino Digital de Interrupção para o YF-S201
+#define PINO_MQ135             A0  // Pino Analógico para o sensor MQ-135
 
-// Modo de simulação inteligente caso nenhum sensor esteja conectado (pinos flutuando)
-const bool MODO_DEMO_BANCADA = false; // Mude para true se quiser gerar dados automáticos
+// Configuração do barramento OneWire e DallasTemperature
+OneWire oneWire(PINO_ONE_WIRE);
+DallasTemperature sensorTemperatura(&oneWire);
+
+// Variáveis de controle de vazão (YF-S201)
+volatile unsigned long contadorPulsos = 0;
+float vazaoLmin = 0.0;
+float volumeTotalLitros = 0.0;
+float fatorCalibracaoYF = 7.5; // Fator padrão do sensor YF-S201: 7.5 Hz por L/min
+
+// Intervalo de transmissão (em milissegundos)
+const unsigned long INTERVALO_LEITURA_MS = 1000;
+unsigned long ultimoTempoLeitura = 0;
+
+// Modo de simulação inteligente caso o hardware físico esteja desconectado ou em teste
+bool MODO_SIMULADO = false;
+
+// Interrupção ativada na borda de subida do pulso do YF-S201
+void IRAM_ATTR contaPulso() {
+  contadorPulsos++;
+}
 
 void setup() {
-  // Inicialização da porta serial em 115200 bps (alta velocidade e estabilidade)
+  // Inicialização serial de alta velocidade (115200 bps)
   Serial.begin(115200);
-  
-  // Aguarda a estabilização da conexão serial
-  delay(1000);
-  
-  // Mensagem inicial de identificação do hardware
-  Serial.println(F("{\"status\": \"HARDWARE_ONLINE\", \"dispositivo\": \"ARDUINO_FLOWTIFICIAL\"}"));
+  delay(500);
+
+  // Inicializa o sensor DS18B20
+  sensorTemperatura.begin();
+
+  // Configura pino do sensor de fluxo com pull-up interno e interrupção
+  pinMode(PINO_SENSOR_FLUXO, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PINO_SENSOR_FLUXO), contaPulso, RISING);
+
+  // Configura pino analógico do MQ-135
+  pinMode(PINO_MQ135, INPUT);
+
+  // Mensagem inicial de handshaking JSON
+  Serial.println(F("{\"status\":\"HARDWARE_ONLINE\",\"dispositivo\":\"FLOWTIFICIAL_MULTISENSOR\",\"sensores\":[\"DS18B20\",\"YF-S201\",\"MQ-135\"]}"));
 }
 
 void loop() {
   unsigned long tempoAtual = millis();
 
-  // Executa o ciclo de leitura e transmissão no intervalo definido
-  if (tempoAtual - ultimoEnvio >= INTERVALO_ENVIO_MS) {
-    ultimoEnvio = tempoAtual;
+  if (tempoAtual - ultimoTempoLeitura >= INTERVALO_LEITURA_MS) {
+    unsigned long deltaTempoMs = tempoAtual - ultimoTempoLeitura;
+    ultimoTempoLeitura = tempoAtual;
 
-    float gas_val = 0.0;
-    float flow_val = 0.0;
-    float temp_val = 0.0;
+    // 1. LEITURA DE TEMPERATURA (DS18B20)
+    sensorTemperatura.requestTemperatures();
+    float tempC = sensorTemperatura.getTempCByIndex(0);
 
-    if (MODO_DEMO_BANCADA) {
-      // Gera pequenas variações realistas em torno dos valores ideais clínicos
-      gas_val = 97.0 + (random(-10, 15) / 10.0);   // 96.0% a 98.5%
-      flow_val = 4.8 + (random(-3, 3) / 10.0);     // 4.5 a 5.1 L/min
-      temp_val = 22.0 + (random(-8, 8) / 10.0);    // 21.2°C a 22.8°C
-    } else {
-      // Leitura dos pinos analógicos (0 a 1023)
-      int rawGas = analogRead(PINO_SENSOR_GAS_O2);
-      int rawFlow = analogRead(PINO_SENSOR_FLUXO);
-      int rawTemp = analogRead(PINO_SENSOR_TEMP);
+    // Se o DS18B20 retornar valor inválido (-127.0 ou 85.0 de erro de inicialização), ativa fallback
+    bool tempValida = (tempC > -55.0 && tempC < 125.0 && tempC != 85.0);
 
-      // Mapeamento para unidades clínicas do projeto:
-      // Oxigenação / Carga gasosa: 70.0% a 100.0%
-      gas_val = mapFloat(rawGas, 0, 1023, 70.0, 100.0);
+    // 2. CÁLCULO DE VAZÃO E VOLUME (YF-S201)
+    // Desativa interrupções momentaneamente para leitura atômica
+    noInterrupts();
+    unsigned long pulsos = contadorPulsos;
+    contadorPulsos = 0;
+    interrupts();
 
-      // Vazão / Resistência de fluxo: 0.0 a 6.0 L/min
-      flow_val = mapFloat(rawFlow, 0, 1023, 1.0, 6.0);
+    // Vazão em L/min = (Pulsos / Fator) * (1000ms / DeltaTempo)
+    vazaoLmin = ((float)pulsos / fatorCalibracaoYF) * (1000.0 / (float)deltaTempoMs);
+    
+    // Volume acumulado em Litros = Litros nesta janela
+    float volumeJanela = (vazaoLmin / 60.0) * ((float)deltaTempoMs / 1000.0);
+    volumeTotalLitros += volumeJanela;
 
-      // Temperatura biomédica: 15.0°C a 40.0°C
-      temp_val = mapFloat(rawTemp, 0, 1023, 15.0, 40.0);
+    // 3. LEITURA DE GÁS / QUALIDADE DO AR (MQ-135)
+    int rawMQ135 = analogRead(PINO_MQ135);
+
+    // 4. VERIFICAÇÃO E MONTAGEM DE DADOS FÍSICOS OU SIMULADOS
+    bool ehSimulado = MODO_SIMULADO || (!tempValida && pulsos == 0 && rawMQ135 < 10);
+
+    float finalTemp = tempC;
+    float finalVazao = vazaoLmin;
+    float finalVolume = volumeTotalLitros;
+    int finalMQ135 = rawMQ135;
+
+    if (ehSimulado) {
+      // Gera dados biomédicos simulados e consistentes para testes sem placa física
+      finalTemp = 36.5 + (random(-10, 10) / 10.0);
+      finalVazao = 4.8 + (random(-4, 4) / 10.0);
+      finalVolume += (finalVazao / 60.0);
+      finalMQ135 = 320 + random(-20, 20);
     }
 
-    // =========================================================================
-    // TRANSMISSÃO SERIAL: Formato JSON Compatível com o Dashboard Flowtificial
-    // =========================================================================
-    // O site aceita tanto este JSON quanto CSV simples: Serial.println("98.5,4.8,22.0");
-    Serial.print(F("{\"gas_value\": "));
-    Serial.print(gas_val, 1);
-    Serial.print(F(", \"flow_value\": "));
-    Serial.print(flow_val, 1);
-    Serial.print(F(", \"temp_value\": "));
-    Serial.print(temp_val, 1);
+    // 5. TRANSMISSÃO EM FORMATO JSON POR LINHA (LINE-DELIMITED JSON)
+    Serial.print(F("{\"temp\":"));
+    Serial.print(finalTemp, 1);
+    Serial.print(F(",\"flow_rate\":"));
+    Serial.print(finalVazao, 1);
+    Serial.print(F(",\"volume\":"));
+    Serial.print(finalVolume, 2);
+    Serial.print(F(",\"mq135_raw\":"));
+    Serial.print(finalMQ135);
+    Serial.print(F(",\"is_simulated\":"));
+    Serial.print(ehSimulado ? F("true") : F("false"));
+    Serial.print(F(",\"lote_id\":\"SA-023\""));
     Serial.println(F("}"));
-
-    // Opcional: Para visualização limpa também no formato CSV, descomente a linha abaixo:
-    // Serial.println(String(gas_val, 1) + "," + String(flow_val, 1) + "," + String(temp_val, 1));
   }
-}
-
-/**
- * Função utilitária para mapeamento proporcional com precisão em ponto flutuante (float).
- */
-float mapFloat(float x, float in_min, float in_max, float out_min, float out_max) {
-  if (in_max == in_min) return out_min;
-  float resultado = (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-  if (resultado < out_min) resultado = out_min;
-  if (resultado > out_max) resultado = out_max;
-  return resultado;
 }

@@ -11,6 +11,7 @@ from .processing import processar_leituras
 from .ai_model import analisar_risco_ia
 from .translator import responder_pergunta_cientifica
 from .triage_engine import executar_triagem_emergencia, OPCOES_VALIDAS
+from .arduino_compiler import compile_arduino_sketch
 
 app = FastAPI(title="Flowtificial API - Sangue Artificial Inteligente")
 
@@ -42,6 +43,10 @@ class SensorDataInput(BaseModel):
     oxigenacao: str
     temperatura: str
     vazao: str
+
+class ArduinoCompileInput(BaseModel):
+    code: str
+    board: Optional[str] = "arduino:avr:uno"
 
 import datetime
 
@@ -75,6 +80,24 @@ class TriageInput(BaseModel):
 @app.get("/")
 def read_root():
     return {"status": "online", "message": "FastAPI Biomédico Flowtificial Ativo"}
+
+@app.get("/api/arduino/boards")
+def get_arduino_boards():
+    return [
+        {"id": "arduino:avr:uno", "name": "Arduino Uno (ATmega328P)", "baudRate": 115200, "bootloaderBaud": 115200},
+        {"id": "arduino:avr:nano", "name": "Arduino Nano (ATmega328P)", "baudRate": 115200, "bootloaderBaud": 57600},
+        {"id": "arduino:avr:nano:cpu=atmega328old", "name": "Arduino Nano (Old Bootloader)", "baudRate": 115200, "bootloaderBaud": 57600},
+        {"id": "arduino:avr:mega", "name": "Arduino Mega 2560", "baudRate": 115200, "bootloaderBaud": 115200},
+        {"id": "esp32:esp32:esp32", "name": "ESP32 Dev Module", "baudRate": 115200, "bootloaderBaud": 921600}
+    ]
+
+@app.post("/api/arduino/compile")
+def compile_sketch_endpoint(payload: ArduinoCompileInput):
+    if not payload.code or not payload.code.strip():
+        raise HTTPException(status_code=400, detail="O código do sketch não pode estar vazio.")
+    
+    result = compile_arduino_sketch(code=payload.code, fqbn=payload.board or "arduino:avr:uno")
+    return result
 
 @app.get("/api/triage/options")
 def get_triage_options():

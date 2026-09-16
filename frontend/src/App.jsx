@@ -24,7 +24,8 @@ import {
   MousePointer2,
   Accessibility,
   Wifi,
-  Terminal
+  Terminal,
+  Code
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/MetricCard';
@@ -33,6 +34,7 @@ import { DemandChart, getForecastScenario } from '@/components/DemandChart';
 import { LandingPage } from '@/components/LandingPage';
 import { ProjectEvaluationModal } from '@/components/QuickEntryModal';
 import { EmergencySimulator } from '@/components/EmergencySimulator';
+import { ArduinoIDE } from '@/components/ArduinoIDE';
 import {
   Dialog,
   DialogContent,
@@ -1701,6 +1703,20 @@ export default function App() {
             <span>Simulador de Urgência</span>
             <span className="hidden md:inline-block text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1 py-0.2 rounded font-mono font-bold">
               IA
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('arduino-ide')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'arduino-ide'
+                ? 'bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 font-semibold shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Code className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Programar Arduino</span>
+            <span className="hidden lg:inline-block text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1 py-0.2 rounded font-mono font-bold">
+              IDE
             </span>
           </button>
         </div>
@@ -3610,6 +3626,14 @@ export default function App() {
             )}
           </section>
         </div>
+      )}
+
+      {/* ABA 4: PROGRAMAR ARDUINO (IDE WEB) */}
+      {activeTab === 'arduino-ide' && (
+        <ArduinoIDE
+          arduinoData={arduinoData}
+          onNavigateToDashboard={() => setActiveTab('dashboard')}
+        />
       )}
 
       {/* Modal de Criação de Novo Lote */}
