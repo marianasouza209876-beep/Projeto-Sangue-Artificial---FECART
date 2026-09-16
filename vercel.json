@@ -7,7 +7,7 @@
       "runtime": "python3.12"
     }
   },
-  "rewrites": [
+  "routes": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
