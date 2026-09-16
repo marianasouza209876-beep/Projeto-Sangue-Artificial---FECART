@@ -1,9 +1,14 @@
 import datetime
+import os
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
-DATABASE_URL = "sqlite:///./flowtificial.db"
+DATABASE_URL = (
+    "sqlite:////tmp/flowtificial.db"
+    if os.getenv("VERCEL")
+    else "sqlite:///./flowtificial.db"
+)
 
 engine = create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False}
