@@ -551,7 +551,10 @@ export function ArduinoIDE({
           ) : (
             <Button
               type="button"
-              onClick={() => arduinoData.connectSerial()}
+              onClick={async () => {
+                const connected = await arduinoData.connectSerial();
+                if (connected) setActiveConsoleTab('serial');
+              }}
               size="sm"
               className="gap-1.5 bg-amber-600 hover:bg-amber-500 text-white font-mono text-xs font-semibold px-3 py-2 h-auto shadow-md border border-amber-400/30"
             >
@@ -734,6 +737,11 @@ export function ArduinoIDE({
         {/* Conteúdo da Aba 3: Monitor Serial */}
         {activeConsoleTab === 'serial' && (
           <div className="flex-1 p-3 bg-[#050811] overflow-y-auto font-mono text-xs space-y-1 select-text">
+            {!arduinoData.webSerialSupported && (
+              <div className="mb-2 rounded border border-amber-500/30 bg-amber-500/10 p-2 text-amber-300">
+                O Monitor Serial precisa ser aberto no Google Chrome ou Microsoft Edge, em uma página HTTPS ou localhost.
+              </div>
+            )}
             {arduinoData.rawSerialLogs.map((logItem) => (
               <div
                 key={logItem.id}
