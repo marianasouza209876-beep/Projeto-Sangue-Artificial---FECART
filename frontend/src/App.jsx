@@ -1290,21 +1290,10 @@ export default function App() {
   const arduinoData = useArduinoData(currentReading || null, safeHistory, lastPacketTime);
   const activeLotTelemetry = activeLotObj?.telemetry || currentReading;
 
-<<<<<<< HEAD
-  const handleConnectArduino = async () => {
-    await arduinoData.connectSerial();
-  };
-
-  // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) para Atendimento Pré-Hospitalar de Emergência
-  const rawGas = arduinoData.gas_value || (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
-  const rawFlow = arduinoData.flow_value || currentReading?.vazao_l_min || 4.8;
-  const rawTemp = arduinoData.temp_value || currentReading?.temperatura_c || 22.0;
-=======
   // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) do Arduino ou fallback
   const rawGas = arduinoData.gas_value ?? (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
   const rawFlow = arduinoData.flow_value ?? currentReading?.vazao_l_min ?? 4.8;
   const rawTemp = arduinoData.temp_value ?? currentReading?.temperatura_c ?? 22.0;
->>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
 
   // B1: Saturação de O₂ (usa diretamente gas_value)
   const b1_val = rawGas;
@@ -1943,34 +1932,6 @@ export default function App() {
               })}
             </div>
 
-<<<<<<< HEAD
-            {/* Status do Hardware Arduino */}
-            <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between gap-3 bg-slate-900/40 border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <Cpu className="w-4 h-4 text-emerald-400" />
-                <div>
-                  <p className="text-[10px] text-slate-400 font-mono">CONEXÃO ARDUINO SERIAL</p>
-                  <p className="text-xs font-mono font-bold text-slate-200">{arduinoData.baudRate} baud • {packetCount} pacotes rx</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="hidden sm:inline text-[9px] bg-slate-800 border border-slate-700 text-slate-300 font-mono px-2.5 py-1 rounded-md font-semibold">
-                  DRIVER: CH340G / USB
-                </span>
-                {arduinoData.webSerialSupported ? (
-                  <Button
-                    type="button"
-                    onClick={handleConnectArduino}
-                    size="sm"
-                    variant="outline"
-                    className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-[10px] font-mono"
-                  >
-                    {arduinoData.isSerialConnected ? 'ARDUINO CONECTADO' : 'CONECTAR ARDUINO'}
-                  </Button>
-                ) : (
-                  <span className="text-[9px] text-amber-300 font-mono">USE CHROME + HTTPS</span>
-                )}
-=======
             {/* Status do Hardware Arduino com Conexão Web Serial e Teste Rápido */}
             <div className="glass-panel rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border-slate-800 shadow-lg">
               <div className="flex items-center gap-3">
@@ -2067,7 +2028,6 @@ export default function App() {
                 >
                   TESTAR
                 </Button>
->>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
               </div>
             </div>
 

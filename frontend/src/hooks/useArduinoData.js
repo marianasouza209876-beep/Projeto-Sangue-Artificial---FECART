@@ -72,18 +72,6 @@ export function getStatusBadge(porcentagem, isConnected = true) {
 }
 
 /**
-<<<<<<< HEAD
- * Hook global `useArduinoData` para captura contínua de leituras da Serial USB Arduino,
- * processamento dos 3 sensores físicos (gas_value, flow_value, temp_value) e gestão do estado serial.
- */
-export function useArduinoData(currentReading, history, lastPacketTime) {
-  const [serialState, setSerialState] = useState({
-    port: null,
-    isSerialConnected: false,
-    baudRate: SERIAL_BAUD_RATE,
-    webSerialSupported: typeof navigator !== 'undefined' && 'serial' in navigator
-  });
-=======
  * Parser resiliente multi-formato para dados vindos da porta serial do Arduino.
  * Suporta:
  * 1. JSON: {"gas_value": 98.0, "flow_value": 4.8, "temp_value": 22.0} ou {"b1": 97.0, "b2": 4.8, ...}
@@ -207,7 +195,6 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
   const portRef = useRef(null);
   const readerRef = useRef(null);
   const keepReadingRef = useRef(false);
->>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
 
   const [sensorValues, setSensorValues] = useState({
     gas_value: 98.0,
@@ -225,11 +212,6 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
     lastUpdate: null
   });
 
-<<<<<<< HEAD
-  // Conexão Web Serial USB direta via navegador
-  const connectSerial = useCallback(async () => {
-    if (!serialState.webSerialSupported) return false;
-=======
   const webSerialSupported = typeof navigator !== 'undefined' && 'serial' in navigator;
 
   // Limpar logs do Monitor Serial
@@ -244,7 +226,6 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
       return false;
     }
 
->>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
     try {
       const encoder = new TextEncoder();
       const writer = portRef.current.writable.getWriter();
@@ -317,12 +298,7 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
       }
 
       const port = await navigator.serial.requestPort();
-<<<<<<< HEAD
-      await port.open({ baudRate: SERIAL_BAUD_RATE });
-      setSerialState(prev => ({ ...prev, port, isSerialConnected: true }));
-=======
       await port.open({ baudRate: Number(selectedBaud) });
->>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
       
       portRef.current = port;
       keepReadingRef.current = true;
@@ -501,13 +477,8 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
     const temp_value = parseFloat(currentReading.temp_value ?? currentReading.temperatura_c ?? 0);
 
     const now = Date.now();
-<<<<<<< HEAD
-    const isRecent = serialState.isSerialConnected || Boolean(lastPacketTime && now - lastPacketTime < 15000);
-    const activeConnection = Boolean(isRecent);
-=======
     const hasRecentPacket = Boolean(lastPacketTimeProp && (now - lastPacketTimeProp < 15000));
     const activeConnection = hasRecentPacket;
->>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
 
     const b1 = currentReading.b1 ?? (gas_value || 97.0);
     const b2 = currentReading.b2 ?? (flow_value || 4.8);
@@ -538,10 +509,6 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
   return {
     ...sensorValues,
     connectSerial,
-<<<<<<< HEAD
-    baudRate: SERIAL_BAUD_RATE,
-    webSerialSupported: serialState.webSerialSupported
-=======
     disconnectSerial,
     injectTestData,
     packetCount,
@@ -554,6 +521,5 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
     rawSerialLogs,
     clearSerialLogs,
     sendSerialData
->>>>>>> 98d485a11792006af8fcd20e36f28805ae5a922d
   };
 }
