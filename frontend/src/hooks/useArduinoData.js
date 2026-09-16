@@ -87,8 +87,8 @@ function parseSerialLine(line) {
     try {
       const json = JSON.parse(trimmed);
       return {
-        gas: parseFloat(json.gas_value ?? json.gas ?? json.oxigenacao ?? json.ox ?? 0),
-        flow: parseFloat(json.flow_value ?? json.flow ?? json.vazao ?? 0),
+        gas: parseFloat(json.gas_value ?? json.gas ?? json.mq135_raw ?? json.oxigenacao ?? json.ox ?? 0),
+        flow: parseFloat(json.flow_value ?? json.flow ?? json.flow_rate ?? json.vazao ?? 0),
         temp: parseFloat(json.temp_value ?? json.temp ?? json.temperatura ?? 0),
         b1: json.b1 !== undefined ? parseFloat(json.b1) : undefined,
         b2: json.b2 !== undefined ? parseFloat(json.b2) : undefined,
@@ -177,7 +177,7 @@ function getFormattedTimestamp() {
  * processamento resiliente de pacotes, sincronização de dados e logs estilo Monitor Serial da Arduino IDE.
  */
 export function useArduinoData(currentReading, history, lastPacketTimeProp) {
-  const [baudRate, setBaudRate] = useState(115200);
+  const [baudRate, setBaudRate] = useState(SERIAL_BAUD_RATE);
   const [isSerialConnected, setIsSerialConnected] = useState(false);
   const [packetCount, setPacketCount] = useState(1420);
   const [portInfo, setPortInfo] = useState("COM3 (CH340G)");

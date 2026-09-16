@@ -58,12 +58,12 @@ float fatorCalibracaoYF = 7.5;
 const unsigned long INTERVALO_LEITURA_MS = 1000;
 unsigned long ultimoTempoLeitura = 0;
 
-void IRAM_ATTR contaPulso() {
+void contaPulso() {
   contadorPulsos++;
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   delay(500);
 
   sensorTemperatura.begin();

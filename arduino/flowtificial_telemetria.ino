@@ -5,11 +5,11 @@
  * ==============================================================================
  * 
  * Este sketch faz a leitura contínua dos 3 sensores biomédicos físicos:
- *  - DS18B20 (Digital via OneWire / DallasTemperature no Pino 2) -> Temperatura em °C
+ *  - DS18B20 (Digital via OneWire / DallasTemperature no Pino 7) -> Temperatura em °C
  *  - YF-S201 (Pulsos de Vazão por Interrupção no Pino 3) -> Vazão (L/min) e Volume Acumulado (L)
  *  - MQ-135 (Analógico no Pino A0) -> Qualidade do Ar / Gás bruto (0 a 1023)
  *
- * Transmite os dados para a porta Serial USB a 115200 baud em formato JSON por linha.
+ * Transmite os dados para a porta Serial USB a 9600 baud em formato JSON por linha.
  * O site FLOWTIFICIAL se conecta diretamente via Web Serial API ou ponte local.
  * ==============================================================================
  */
@@ -18,7 +18,7 @@
 #include <DallasTemperature.h>
 
 // --- MAPEAMENTO DE PINOS DOS SENSORES ---
-#define PINO_ONE_WIRE          2   // Pino Digital para o sensor DS18B20 (com resistor pull-up 4.7k)
+#define PINO_ONE_WIRE          7   // Pino Digital para o sensor DS18B20 (com resistor pull-up 4.7k)
 #define PINO_SENSOR_FLUXO      3   // Pino Digital de Interrupção para o YF-S201
 #define PINO_MQ135             A0  // Pino Analógico para o sensor MQ-135
 
@@ -40,13 +40,13 @@ unsigned long ultimoTempoLeitura = 0;
 bool MODO_SIMULADO = false;
 
 // Interrupção ativada na borda de subida do pulso do YF-S201
-void IRAM_ATTR contaPulso() {
+void contaPulso() {
   contadorPulsos++;
 }
 
 void setup() {
   // Inicialização serial de alta velocidade (115200 bps)
-  Serial.begin(115200);
+  Serial.begin(9600);
   delay(500);
 
   // Inicializa o sensor DS18B20
