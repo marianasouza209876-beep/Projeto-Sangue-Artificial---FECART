@@ -214,6 +214,8 @@ export default function App() {
 
   useEffect(() => {
     fetchHistory();
+    const interval = setInterval(fetchHistory, 2000);
+    return () => clearInterval(interval);
   }, [selectedLot]);
 
   useEffect(() => {
@@ -512,6 +514,10 @@ Aqui no FLOWTIFICIAL, nosso papel é monitorar os parâmetros desse sangue (como
 
   // Hook global de dados do Arduino (B1, B2, B3, B4, B5 e conectividade serial)
   const arduinoData = useArduinoData(currentReading, history, lastPacketTime);
+
+  const handleConnectArduino = async () => {
+    await arduinoData.connectSerial();
+  };
 
   // Leituras dinâmicas em tempo real dos sensores (gas_value, flow_value, temp_value) para Atendimento Pré-Hospitalar de Emergência
   const rawGas = arduinoData.gas_value || (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
@@ -1721,17 +1727,32 @@ while True:
             </div>
 
             {/* Status do Hardware Arduino */}
-            <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between bg-slate-900/40 border-slate-800">
+            <div className="glass-panel rounded-xl p-3.5 flex items-center justify-between gap-3 bg-slate-900/40 border-slate-800">
               <div className="flex items-center gap-2.5">
                 <Cpu className="w-4 h-4 text-emerald-400" />
                 <div>
                   <p className="text-[10px] text-slate-400 font-mono">CONEXÃO ARDUINO SERIAL</p>
-                  <p className="text-xs font-mono font-bold text-slate-200">115200 baud • {packetCount} pacotes rx</p>
+                  <p className="text-xs font-mono font-bold text-slate-200">{arduinoData.baudRate} baud • {packetCount} pacotes rx</p>
                 </div>
               </div>
-              <span className="text-[9px] bg-slate-800 border border-slate-700 text-emerald-400 font-mono px-2.5 py-1 rounded-md font-semibold">
-                DRIVER: CH340G / COM3
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline text-[9px] bg-slate-800 border border-slate-700 text-slate-300 font-mono px-2.5 py-1 rounded-md font-semibold">
+                  DRIVER: CH340G / USB
+                </span>
+                {arduinoData.webSerialSupported ? (
+                  <Button
+                    type="button"
+                    onClick={handleConnectArduino}
+                    size="sm"
+                    variant="outline"
+                    className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-[10px] font-mono"
+                  >
+                    {arduinoData.isSerialConnected ? 'ARDUINO CONECTADO' : 'CONECTAR ARDUINO'}
+                  </Button>
+                ) : (
+                  <span className="text-[9px] text-amber-300 font-mono">USE CHROME + HTTPS</span>
+                )}
+              </div>
             </div>
 
           </section>

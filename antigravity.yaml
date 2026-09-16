@@ -27,4 +27,5 @@ services:
       - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
-    restart: always
+    restart: always 
+    

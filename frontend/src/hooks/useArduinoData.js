@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
+const SERIAL_BAUD_RATE = Number(import.meta.env.VITE_ARDUINO_BAUD || 9600);
+
 /**
  * Calcula dinamicamente a porcentagem em relação a um valor ideal/referência.
  */
@@ -70,14 +72,14 @@ export function getStatusBadge(porcentagem, isConnected = true) {
 }
 
 /**
- * Hook global `useArduinoData` para captura contínua de leituras da Serial USB Arduino (Baud Rate 115200),
+ * Hook global `useArduinoData` para captura contínua de leituras da Serial USB Arduino,
  * processamento dos 3 sensores físicos (gas_value, flow_value, temp_value) e gestão do estado serial.
  */
 export function useArduinoData(currentReading, history, lastPacketTime) {
   const [serialState, setSerialState] = useState({
     port: null,
     isSerialConnected: false,
-    baudRate: 115200,
+    baudRate: SERIAL_BAUD_RATE,
     webSerialSupported: typeof navigator !== 'undefined' && 'serial' in navigator
   });
 
@@ -96,12 +98,12 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
     lastUpdate: null
   });
 
-  // Conexão Web Serial USB direta via navegador (Baud Rate 115200)
+  // Conexão Web Serial USB direta via navegador
   const connectSerial = useCallback(async () => {
     if (!serialState.webSerialSupported) return false;
     try {
       const port = await navigator.serial.requestPort();
-      await port.open({ baudRate: 115200 });
+      await port.open({ baudRate: SERIAL_BAUD_RATE });
       setSerialState(prev => ({ ...prev, port, isSerialConnected: true }));
       
       const decoder = new TextDecoderStream();
@@ -223,7 +225,7 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
 
     // Validação da transmissão serial ativa (últimos 15 segundos)
     const now = Date.now();
-    const isRecent = serialState.isSerialConnected || (lastPacketTime ? (now - lastPacketTime < 15000) : (history && history.length > 0));
+    const isRecent = serialState.isSerialConnected || Boolean(lastPacketTime && now - lastPacketTime < 15000);
     const activeConnection = Boolean(isRecent);
 
     const mainPct = isNaN(gas_value) ? (isNaN(b1) ? 0 : b1) : gas_value;
@@ -249,7 +251,7 @@ export function useArduinoData(currentReading, history, lastPacketTime) {
   return {
     ...sensorValues,
     connectSerial,
-    baudRate: 115200,
+    baudRate: SERIAL_BAUD_RATE,
     webSerialSupported: serialState.webSerialSupported
   };
 }
