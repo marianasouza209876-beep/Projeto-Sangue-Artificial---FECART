@@ -95,9 +95,21 @@ def get_arduino_boards():
 def compile_sketch_endpoint(payload: ArduinoCompileInput):
     if not payload.code or not payload.code.strip():
         raise HTTPException(status_code=400, detail="O código do sketch não pode estar vazio.")
-    
-    result = compile_arduino_sketch(code=payload.code, fqbn=payload.board or "arduino:avr:uno")
-    return result
+
+    try:
+        return compile_arduino_sketch(code=payload.code, fqbn=payload.board or "arduino:avr:uno")
+    except Exception as exc:
+        return {
+            "success": False,
+            "cli_installed": False,
+            "stdout": "",
+            "stderr": (
+                "A compilação Arduino não está disponível neste servidor. "
+                "Use o Arduino CLI localmente ou conecte a placa via Web Serial. "
+                f"Detalhe técnico: {exc}"
+            ),
+            "errors": [{"line": 1, "column": 1, "message": str(exc)}]
+        }
 
 @app.get("/api/triage/options")
 def get_triage_options():

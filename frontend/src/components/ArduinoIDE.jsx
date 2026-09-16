@@ -295,11 +295,17 @@ export function ArduinoIDE({
         })
       });
 
-      if (!res.ok) {
-        throw new Error(`Erro na API de compilação (HTTP ${res.status})`);
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(`Erro na API de compilação (HTTP ${res.status}): ${responseText.slice(0, 240)}`);
       }
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || data.stderr || `Erro na API de compilação (HTTP ${res.status})`);
+      }
 
       if (data.success) {
         setCompilerOutput(
