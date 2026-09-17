@@ -86,8 +86,9 @@ function parseSerialLine(line) {
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
     try {
       const json = JSON.parse(trimmed);
+      const mq135Raw = json.mq135_raw;
       return {
-        gas: parseFloat(json.gas_value ?? json.gas ?? json.mq135_raw ?? json.oxigenacao ?? json.ox ?? 0),
+        gas: parseFloat(json.gas_value ?? json.gas ?? (mq135Raw !== undefined ? (Number(mq135Raw) / 1023) * 100 : json.oxigenacao ?? json.ox ?? 0)),
         flow: parseFloat(json.flow_value ?? json.flow ?? json.flow_rate ?? json.vazao ?? 0),
         temp: parseFloat(json.temp_value ?? json.temp ?? json.temperatura ?? 0),
         b1: json.b1 !== undefined ? parseFloat(json.b1) : undefined,

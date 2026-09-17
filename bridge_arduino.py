@@ -284,6 +284,29 @@ def validar_e_sanitizar_payload(payload, lote_padrao="SA-026"):
     payload["lote_id"] = lote_id
     return payload
 
+def converter_telemetria_serial_para_api(payload, lote_id):
+    """Converte o JSON emitido pelo firmware para o contrato da API."""
+    if not isinstance(payload, dict):
+        return None
+
+    if "oxigenacao" in payload and "temperatura" in payload and "vazao" in payload:
+        payload.setdefault("lote_id", lote_id)
+        return payload
+
+    try:
+        temperatura = float(payload.get("temp", payload.get("temperatura", 0)))
+        vazao = float(payload.get("flow_rate", payload.get("flow", payload.get("vazao", 0))))
+        mq135 = float(payload.get("mq135_raw", payload.get("gas_value", payload.get("gas", 0))))
+    except (TypeError, ValueError):
+        return None
+
+    return {
+        "lote_id": payload.get("lote_id", lote_id),
+        "oxigenacao": f"{(mq135 / 1023.0) * 100:.1f}%" if "mq135_raw" in payload else f"{mq135:.1f}%",
+        "temperatura": f"{temperatura:.1f}C",
+        "vazao": f"{vazao:.1f} L/min"
+    }
+
 def enviar_dados(url, payload):
     """
     Dispara o JSON sanitizado para a API do site.
@@ -399,7 +422,7 @@ def main():
                     payload = None
                     if linha.startswith("{") and linha.endswith("}"):
                         try:
-                            payload = json.loads(linha)
+                            payload = converter_telemetria_serial_para_api(json.loads(linha), args.lote)
                         except json.JSONDecodeError:
                             pass
                     else:

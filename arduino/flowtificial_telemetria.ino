@@ -46,7 +46,7 @@ void contaPulso() {
 
 void setup() {
   // Inicialização serial de alta velocidade (115200 bps)
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(500);
 
   // Inicializa o sensor DS18B20

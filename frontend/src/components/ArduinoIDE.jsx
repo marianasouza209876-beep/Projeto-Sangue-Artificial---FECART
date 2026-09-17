@@ -63,7 +63,7 @@ void contaPulso() {
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(500);
 
   sensorTemperatura.begin();
