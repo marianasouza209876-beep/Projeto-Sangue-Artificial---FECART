@@ -92,6 +92,8 @@ function parseSerialLine(line) {
         gas: parseFloat(json.gas_value ?? json.gas ?? (gasRaw !== undefined ? (Number(gasRaw) / 1023) * 100 : json.oxigenacao ?? json.ox ?? 0)),
         flow: parseFloat(json.flow_value ?? json.flow ?? json.water_flow_l_min ?? json.flow_rate ?? json.vazao ?? 0),
         temp: parseFloat(json.temp_value ?? json.temp ?? json.temperatura ?? 0),
+        waterPulses: json.water_pulses !== undefined ? Number(json.water_pulses) : undefined,
+        waterVolume: json.water_volume_l !== undefined ? Number(json.water_volume_l) : undefined,
         b1: json.b1 !== undefined ? parseFloat(json.b1) : undefined,
         b2: json.b2 !== undefined ? parseFloat(json.b2) : undefined,
         b3: json.b3 !== undefined ? parseFloat(json.b3) : undefined,
@@ -200,7 +202,7 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
   const portRef = useRef(null);
   const readerRef = useRef(null);
   const keepReadingRef = useRef(false);
-  const serialSnapshotRef = useRef({ gas: null, flow: null, temp: null });
+  const serialSnapshotRef = useRef({ gas: null, flow: null, temp: null, waterPulses: 0, waterVolume: 0 });
 
   const [sensorValues, setSensorValues] = useState({
     gas_value: 98.0,
@@ -362,9 +364,11 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
                   const gas = Number.isFinite(parsed.gas) ? parsed.gas : snapshot.gas;
                   const flow = Number.isFinite(parsed.flow) ? parsed.flow : snapshot.flow;
                   const temp = Number.isFinite(parsed.temp) ? parsed.temp : snapshot.temp;
+                  const waterPulses = Number.isFinite(parsed.waterPulses) ? parsed.waterPulses : snapshot.waterPulses;
+                  const waterVolume = Number.isFinite(parsed.waterVolume) ? parsed.waterVolume : snapshot.waterVolume;
 
                   if (!Number.isFinite(gas) && !Number.isFinite(flow)) continue;
-                  serialSnapshotRef.current = { gas, flow, temp };
+                  serialSnapshotRef.current = { gas, flow, temp, waterPulses, waterVolume };
 
                   const safeGas = Number.isFinite(gas) ? gas : (snapshot.gas ?? 0);
                   const safeFlow = Number.isFinite(flow) ? flow : (snapshot.flow ?? 0);
@@ -386,6 +390,8 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
                     gas_value: safeGas,
                     flow_value: safeFlow,
                     temp_value: safeTemp,
+                    water_pulses: waterPulses,
+                    water_volume_l: waterVolume,
                     b1: parseFloat(b1.toFixed(1)),
                     b2: parseFloat(b2.toFixed(1)),
                     b3: parseFloat(b3.toFixed(1)),

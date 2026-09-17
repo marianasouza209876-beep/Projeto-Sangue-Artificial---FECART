@@ -1294,6 +1294,8 @@ export default function App() {
   const rawGas = arduinoData.gas_value ?? (currentReading?.oxigenacao_limpa ? currentReading.oxigenacao_limpa * 100 : 98.0);
   const rawFlow = arduinoData.flow_value ?? currentReading?.vazao_l_min ?? 4.8;
   const rawTemp = arduinoData.temp_value ?? currentReading?.temperatura_c ?? 22.0;
+  const rawWaterPulses = arduinoData.water_pulses ?? 0;
+  const rawWaterVolume = arduinoData.water_volume_l ?? 0;
 
   // B1: Saturação de O₂ (usa diretamente gas_value)
   const b1_val = rawGas;
@@ -1310,15 +1312,15 @@ export default function App() {
   const b3_pct = Math.min(100, Math.max(0, b3_val));
   const b3_status = getStatusBadge(b3_pct, arduinoData.isConnected);
 
-  // B4: indicador de circulação baseado no fluxo de água
-  const b4_val = rawFlow;
-  const b4_pct = Math.min(100, Math.max(0, b4_val));
+  // B4: volume total de sangue que passou pelo sensor de água
+  const b4_val = rawWaterVolume;
+  const b4_pct = Math.min(100, Math.max(0, b4_val * 100));
   const b4_status = getStatusBadge(b4_pct, arduinoData.isConnected);
 
-  // B5: Taxa de extração combinando gás e fluxo de água
+  // B5: pulsos registrados pelo sensor de fluxo de água
   const flow_pct_for_b5 = rawFlow > 10 ? rawFlow : (rawFlow / 5) * 100;
-  const b5_val = (rawGas * 0.5) + (flow_pct_for_b5 * 0.5);
-  const b5_pct = Math.min(100, Math.max(0, b5_val));
+  const b5_val = rawWaterPulses;
+  const b5_pct = Math.min(100, Math.max(0, rawWaterPulses));
   const b5_status = getStatusBadge(b5_pct, arduinoData.isConnected);
 
   // Leituras dinâmicas em tempo real dos sensores para Trauma e Hemorragia Grave
@@ -2348,9 +2350,9 @@ export default function App() {
                           {/* B4: Fluxo de Água */}
                           <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                              <span className="text-slate-300 font-semibold">B4 • Fluxo de Água</span>
+                              <span className="text-slate-300 font-semibold">B4 • Volume Total de Sangue</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{b4_val.toFixed(1)} L/min</span>
+                                <span className="text-white font-bold font-mono">{b4_val.toFixed(3)} L</span>
                                 <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${b4_status.bgColor} ${b4_status.borderColor} ${b4_status.textColor}`}>
                                   {b4_status.badgeText}
                                 </span>
@@ -2364,12 +2366,12 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* B5: Taxa de Extração Tissular de O₂ */}
+                          {/* B5: Pulsos do Sensor de Água */}
                           <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                              <span className="text-slate-300 font-semibold">B5 • Taxa de Extração Tissular de O₂</span>
+                              <span className="text-slate-300 font-semibold">B5 • Pulsos do Sensor de Água</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{b5_val.toFixed(1)}%</span>
+                                <span className="text-white font-bold font-mono">{b5_val.toFixed(0)} pulsos</span>
                                 <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${b5_status.bgColor} ${b5_status.borderColor} ${b5_status.textColor}`}>
                                   {b5_status.badgeText}
                                 </span>
