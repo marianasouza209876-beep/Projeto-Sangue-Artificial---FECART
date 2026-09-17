@@ -87,9 +87,10 @@ function parseSerialLine(line) {
     try {
       const json = JSON.parse(trimmed);
       const mq135Raw = json.mq135_raw;
-      return {
-        gas: parseFloat(json.gas_value ?? json.gas ?? (mq135Raw !== undefined ? (Number(mq135Raw) / 1023) * 100 : json.oxigenacao ?? json.ox ?? 0)),
-        flow: parseFloat(json.flow_value ?? json.flow ?? json.flow_rate ?? json.vazao ?? 0),
+      const gasRaw = json.gas_raw ?? mq135Raw;
+      const parsed = {
+        gas: parseFloat(json.gas_value ?? json.gas ?? (gasRaw !== undefined ? (Number(gasRaw) / 1023) * 100 : json.oxigenacao ?? json.ox ?? 0)),
+        flow: parseFloat(json.flow_value ?? json.flow ?? json.water_flow_l_min ?? json.flow_rate ?? json.vazao ?? 0),
         temp: parseFloat(json.temp_value ?? json.temp ?? json.temperatura ?? 0),
         b1: json.b1 !== undefined ? parseFloat(json.b1) : undefined,
         b2: json.b2 !== undefined ? parseFloat(json.b2) : undefined,
@@ -97,6 +98,9 @@ function parseSerialLine(line) {
         b4: json.b4 !== undefined ? parseFloat(json.b4) : undefined,
         b5: json.b5 !== undefined ? parseFloat(json.b5) : undefined,
       };
+      return Number.isFinite(parsed.gas) && Number.isFinite(parsed.flow) && Number.isFinite(parsed.temp)
+        ? parsed
+        : null;
     } catch {
       // continua para outros formatos
     }
@@ -128,11 +132,11 @@ function parseSerialLine(line) {
       }
     }
 
-    if (matchedAny) {
+    if (matchedAny && ('gas' in result || 'flow' in result || 'temp' in result)) {
       return {
-        gas: result.gas ?? 98.0,
-        flow: result.flow ?? 4.8,
-        temp: result.temp ?? 22.0,
+        gas: result.gas,
+        flow: result.flow,
+        temp: result.temp,
         b1: result.b1,
         b2: result.b2,
         b3: result.b3,
@@ -196,6 +200,7 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
   const portRef = useRef(null);
   const readerRef = useRef(null);
   const keepReadingRef = useRef(false);
+  const serialSnapshotRef = useRef({ gas: null, flow: null, temp: null });
 
   const [sensorValues, setSensorValues] = useState({
     gas_value: 98.0,
@@ -355,9 +360,13 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
                 if (parsed) {
                   setPacketCount(c => c + 1);
 
-                  const gas = parsed.gas;
-                  const flow = parsed.flow;
-                  const temp = parsed.temp;
+                  const snapshot = serialSnapshotRef.current;
+                  const gas = parsed.gas ?? snapshot.gas;
+                  const flow = parsed.flow ?? snapshot.flow;
+                  const temp = parsed.temp ?? snapshot.temp;
+
+                  if (![gas, flow, temp].every(Number.isFinite)) continue;
+                  serialSnapshotRef.current = { gas, flow, temp };
 
                   // Calcular B1 a B5 se não vierem explícitos
                   const flow_pct = flow > 10 ? flow : (flow / 5) * 100;

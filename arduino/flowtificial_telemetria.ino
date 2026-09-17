@@ -45,8 +45,7 @@ void contaPulso() {
 }
 
 void setup() {
-  // Inicialização serial de alta velocidade (115200 bps)
-  Serial.begin(115200);
+  Serial.begin(9600);
   delay(500);
 
   // Inicializa o sensor DS18B20
@@ -54,7 +53,8 @@ void setup() {
 
   // Configura pino do sensor de fluxo com pull-up interno e interrupção
   pinMode(PINO_SENSOR_FLUXO, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PINO_SENSOR_FLUXO), contaPulso, RISING);
+  // O YF-S201 normalmente fecha a saída para GND durante o pulso.
+  attachInterrupt(digitalPinToInterrupt(PINO_SENSOR_FLUXO), contaPulso, FALLING);
 
   // Configura pino analógico do MQ-135
   pinMode(PINO_MQ135, INPUT);
@@ -113,11 +113,13 @@ void loop() {
     // 5. TRANSMISSÃO EM FORMATO JSON POR LINHA (LINE-DELIMITED JSON)
     Serial.print(F("{\"temp\":"));
     Serial.print(finalTemp, 1);
-    Serial.print(F(",\"flow_rate\":"));
+    Serial.print(F(",\"water_flow_l_min\":"));
     Serial.print(finalVazao, 1);
-    Serial.print(F(",\"volume\":"));
+    Serial.print(F(",\"water_volume_l\":"));
     Serial.print(finalVolume, 2);
-    Serial.print(F(",\"mq135_raw\":"));
+    Serial.print(F(",\"water_pulses\":"));
+    Serial.print(pulsos);
+    Serial.print(F(",\"gas_raw\":"));
     Serial.print(finalMQ135);
     Serial.print(F(",\"is_simulated\":"));
     Serial.print(ehSimulado ? F("true") : F("false"));

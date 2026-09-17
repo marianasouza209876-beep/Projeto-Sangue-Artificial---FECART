@@ -63,12 +63,12 @@ void contaPulso() {
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   delay(500);
 
   sensorTemperatura.begin();
   pinMode(PINO_SENSOR_FLUXO, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PINO_SENSOR_FLUXO), contaPulso, RISING);
+  attachInterrupt(digitalPinToInterrupt(PINO_SENSOR_FLUXO), contaPulso, FALLING);
   pinMode(PINO_MQ135, INPUT);
 
   Serial.println(F("{\\"status\\":\\"HARDWARE_ONLINE\\",\\"dispositivo\\":\\"FLOWTIFICIAL_MULTISENSOR\\"}"));
@@ -107,11 +107,13 @@ void loop() {
     // Transmissão JSON por Linha
     Serial.print(F("{\\"temp\\":"));
     Serial.print(finalTemp, 1);
-    Serial.print(F(",\\"flow_rate\\":"));
+    Serial.print(F(",\\"water_flow_l_min\\":"));
     Serial.print(finalVazao, 1);
-    Serial.print(F(",\\"volume\\":"));
+    Serial.print(F(",\\"water_volume_l\\":"));
     Serial.print(volumeTotalLitros, 2);
-    Serial.print(F(",\\"mq135_raw\\":"));
+    Serial.print(F(",\\"water_pulses\\":"));
+    Serial.print(pulsos);
+    Serial.print(F(",\\"gas_raw\\":"));
     Serial.print(finalMQ135);
     Serial.print(F(",\\"is_simulated\\":"));
     Serial.print(ehSimulado ? F("true") : F("false"));
@@ -202,7 +204,7 @@ export function ArduinoIDE({
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // Estados de Console
-  const [activeConsoleTab, setActiveConsoleTab] = useState('compiler'); // 'compiler' | 'flasher' | 'serial'
+  const [activeConsoleTab, setActiveConsoleTab] = useState('serial'); // 'compiler' | 'flasher' | 'serial'
   const [compilerOutput, setCompilerOutput] = useState('');
   const [compilerErrors, setCompilerErrors] = useState([]);
   const [compiledHex, setCompiledHex] = useState(null);
@@ -316,6 +318,10 @@ export function ArduinoIDE({
         );
         setCompiledHex(data.hex);
         setCompilerErrors([]);
+      } else if (!data.cli_installed) {
+        setCompilerOutput('Monitor Serial ativo. A compilação online não está disponível neste ambiente.');
+        setCompilerErrors([]);
+        setCompiledHex(null);
       } else {
         setCompilerOutput(
           `❌ FALHA DE COMPILAÇÃO!\n\n` +

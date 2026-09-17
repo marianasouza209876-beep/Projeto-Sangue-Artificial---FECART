@@ -41,7 +41,7 @@ export function ArduinoSerialMonitor({
     if (autoScroll && logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
-  }, [logs, autoScroll]);
+  }, [logs, autoScroll, isExpanded]);
 
   const handleSend = (e) => {
     e?.preventDefault();
