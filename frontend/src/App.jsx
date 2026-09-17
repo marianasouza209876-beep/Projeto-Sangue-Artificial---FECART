@@ -1305,17 +1305,17 @@ export default function App() {
   const b2_pct = rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100));
   const b2_status = getStatusBadge(b2_pct, arduinoData.isConnected);
 
-  // B3: Estabilidade Térmica (usa diretamente temp_value)
-  const b3_val = rawTemp;
-  const b3_pct = rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100);
+  // B3: indicador provisório baseado no gás enquanto o sensor térmico está indisponível
+  const b3_val = rawGas;
+  const b3_pct = Math.min(100, Math.max(0, b3_val));
   const b3_status = getStatusBadge(b3_pct, arduinoData.isConnected);
 
-  // B4: Tempo de Meia-Vida Circulatória = (gas_value * 0.6) + (temp_value * 0.4)
-  const b4_val = (rawGas * 0.6) + (rawTemp * 0.4);
+  // B4: indicador de circulação baseado no fluxo de água
+  const b4_val = rawFlow;
   const b4_pct = Math.min(100, Math.max(0, b4_val));
   const b4_status = getStatusBadge(b4_pct, arduinoData.isConnected);
 
-  // B5: Taxa de Extração Tissular de O₂ = (gas_value * 0.5) + (flow_value * 0.5)
+  // B5: Taxa de extração combinando gás e fluxo de água
   const flow_pct_for_b5 = rawFlow > 10 ? rawFlow : (rawFlow / 5) * 100;
   const b5_val = (rawGas * 0.5) + (flow_pct_for_b5 * 0.5);
   const b5_pct = Math.min(100, Math.max(0, b5_val));
@@ -2326,12 +2326,12 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* B3: Estabilidade Térmica */}
+                          {/* B3: Qualidade do Gás */}
                           <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                              <span className="text-slate-300 font-semibold">B3 • Estabilidade Térmica</span>
+                              <span className="text-slate-300 font-semibold">B3 • Qualidade do Gás</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{b3_val.toFixed(1)} °C</span>
+                                <span className="text-white font-bold font-mono">{b3_val.toFixed(1)}%</span>
                                 <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${b3_status.bgColor} ${b3_status.borderColor} ${b3_status.textColor}`}>
                                   {b3_status.badgeText}
                                 </span>
@@ -2345,12 +2345,12 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* B4: Tempo de Meia-Vida Circulatória */}
+                          {/* B4: Fluxo de Água */}
                           <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800/60">
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                              <span className="text-slate-300 font-semibold">B4 • Tempo de Meia-Vida Circulatória</span>
+                              <span className="text-slate-300 font-semibold">B4 • Fluxo de Água</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{b4_val.toFixed(1)} h</span>
+                                <span className="text-white font-bold font-mono">{b4_val.toFixed(1)} L/min</span>
                                 <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${b4_status.bgColor} ${b4_status.borderColor} ${b4_status.textColor}`}>
                                   {b4_status.badgeText}
                                 </span>

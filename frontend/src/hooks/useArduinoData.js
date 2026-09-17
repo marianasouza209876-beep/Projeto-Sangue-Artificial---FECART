@@ -325,10 +325,8 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
         }
       ]);
 
-      const decoder = new TextDecoderStream();
-      port.readable.pipeTo(decoder.writable);
-      const inputStream = decoder.readable;
-      const reader = inputStream.getReader();
+      const decoder = new TextDecoder();
+      const reader = port.readable.getReader();
       readerRef.current = reader;
 
       (async () => {
@@ -337,7 +335,7 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
           while (keepReadingRef.current) {
             const { value, done } = await reader.read();
             if (done) break;
-            buffer += value;
+            buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
             buffer = lines.pop();
 
@@ -361,29 +359,33 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
                   setPacketCount(c => c + 1);
 
                   const snapshot = serialSnapshotRef.current;
-                  const gas = parsed.gas ?? snapshot.gas;
-                  const flow = parsed.flow ?? snapshot.flow;
-                  const temp = parsed.temp ?? snapshot.temp;
+                  const gas = Number.isFinite(parsed.gas) ? parsed.gas : snapshot.gas;
+                  const flow = Number.isFinite(parsed.flow) ? parsed.flow : snapshot.flow;
+                  const temp = Number.isFinite(parsed.temp) ? parsed.temp : snapshot.temp;
 
-                  if (![gas, flow, temp].every(Number.isFinite)) continue;
+                  if (!Number.isFinite(gas) && !Number.isFinite(flow)) continue;
                   serialSnapshotRef.current = { gas, flow, temp };
 
-                  // Calcular B1 a B5 se não vierem explícitos
-                  const flow_pct = flow > 10 ? flow : (flow / 5) * 100;
-                  const temp_pct = temp > 10 ? (temp <= 40 ? (temp / 40) * 100 : Math.min(100, temp)) : Math.min(100, (temp / 40) * 100);
+                  const safeGas = Number.isFinite(gas) ? gas : (snapshot.gas ?? 0);
+                  const safeFlow = Number.isFinite(flow) ? flow : (snapshot.flow ?? 0);
+                  const safeTemp = Number.isFinite(temp) ? temp : (snapshot.temp ?? 0);
 
-                  const b1 = parsed.b1 !== undefined ? parsed.b1 : (flow_pct * 0.6) + (gas * 0.4);
-                  const b2 = parsed.b2 !== undefined ? parsed.b2 : flow;
-                  const b3 = parsed.b3 !== undefined ? parsed.b3 : (gas * 0.5) + (temp_pct * 0.5);
-                  const b4 = parsed.b4 !== undefined ? parsed.b4 : gas;
+                  // Calcular B1 a B5 se não vierem explícitos
+                  const flow_pct = safeFlow > 10 ? safeFlow : (safeFlow / 5) * 100;
+                  const temp_pct = safeTemp > 10 ? (safeTemp <= 40 ? (safeTemp / 40) * 100 : Math.min(100, safeTemp)) : Math.min(100, (safeTemp / 40) * 100);
+
+                  const b1 = parsed.b1 !== undefined ? parsed.b1 : safeGas;
+                  const b2 = parsed.b2 !== undefined ? parsed.b2 : safeFlow;
+                  const b3 = parsed.b3 !== undefined ? parsed.b3 : safeGas;
+                  const b4 = parsed.b4 !== undefined ? parsed.b4 : safeFlow;
                   const b5 = parsed.b5 !== undefined ? parsed.b5 : (flow_pct * 0.6) + (temp_pct * 0.4);
 
                   const badge = getStatusBadge(b1, true);
 
                   setSensorValues({
-                    gas_value: gas,
-                    flow_value: flow,
-                    temp_value: temp,
+                    gas_value: safeGas,
+                    flow_value: safeFlow,
+                    temp_value: safeTemp,
                     b1: parseFloat(b1.toFixed(1)),
                     b2: parseFloat(b2.toFixed(1)),
                     b3: parseFloat(b3.toFixed(1)),
@@ -401,6 +403,15 @@ export function useArduinoData(currentReading, history, lastPacketTimeProp) {
           }
         } catch (readErr) {
           console.warn("Leitura serial encerrada:", readErr);
+          setRawSerialLogs(prev => [
+            ...prev.slice(-400),
+            {
+              id: Date.now() + Math.random(),
+              timestamp: getFormattedTimestamp(),
+              text: `[SISTEMA] Leitura serial interrompida: ${readErr.message || readErr}`,
+              type: "system"
+            }
+          ]);
         } finally {
           try {
             reader.releaseLock();
