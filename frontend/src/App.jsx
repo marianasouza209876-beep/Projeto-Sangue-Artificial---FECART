@@ -2149,7 +2149,7 @@ export default function App() {
           </section>
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
-          <section className="lg:col-span-7 flex h-full min-w-0 flex-col gap-4">
+          <section className="lg:col-span-7 flex h-full flex-col gap-4">
 
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
@@ -2202,7 +2202,7 @@ export default function App() {
               />
             )}
             <div
-              className={`flex w-full min-w-0 max-w-full flex-col overflow-x-hidden shadow-2xl transition-all duration-200 ${
+              className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${
                 isChatFullscreen
                   ? 'fixed top-1/2 left-1/2 z-[100] h-[85vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-[#0B0F19]'
                   : 'relative flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0B0F19]'
@@ -2247,7 +2247,7 @@ export default function App() {
               </div>
 
               <div className="z-10 flex-none border-b border-slate-800 bg-slate-950/80 px-4 py-2.5">
-                <p className="mx-auto w-fit max-w-full break-words rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1 text-center text-xs text-slate-400 [overflow-wrap:anywhere]">
+                <p className="mx-auto w-fit rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1 text-center text-xs text-slate-400">
                   Selecione uma opção rápida abaixo para iniciar a análise
                 </p>
               </div>
@@ -2255,7 +2255,7 @@ export default function App() {
               {/* Mensagens do Chat */}
               <div
                 ref={chatMessagesRef}
-                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 box-border flex min-h-0 w-full min-w-0 max-w-full flex-col space-y-4 overflow-x-hidden overflow-y-auto px-3 pb-4 pt-4 ${isChatFullscreen ? 'flex-1 px-5 pb-6 pt-4 sm:px-10' : 'h-[600px] flex-none sm:px-4'}`}
+                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'flex-1 px-5 pb-6 pt-4 sm:px-10' : 'h-[600px] flex-none'}`}
               >
                 {messages.map((msg, index) => (
                   <div
@@ -2275,7 +2275,7 @@ export default function App() {
                         });
                       }
                     }}
-                    className={`flex w-full min-w-0 max-w-[85%] flex-col break-words [overflow-wrap:anywhere] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'} ${msg.showAnalysisCard ? 'cursor-zoom-in' : ''}`}
+                    className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'} ${msg.showAnalysisCard ? 'cursor-zoom-in' : ''}`}
                   >
                     {msg.content && (
                       <>
@@ -2290,7 +2290,7 @@ export default function App() {
                               });
                             }
                           }}
-                          className={`accessibility-zoom-target max-w-full break-words p-3 rounded-2xl text-sm leading-relaxed [overflow-wrap:anywhere] ${
+                          className={`accessibility-zoom-target p-3 rounded-2xl text-sm leading-relaxed ${
                             msg.role === 'user'
                               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-tr-none shadow-md'
                               : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border cursor-zoom-in relative pr-11'
@@ -2309,7 +2309,7 @@ export default function App() {
                     {msg.role === 'assistant' && msg.responseCard && (
                       <article
                         onClick={() => setZoomedChatCard(msg.responseCard)}
-                        className={`mt-2.5 w-full min-w-0 max-w-full cursor-zoom-in break-words rounded-xl border p-3 shadow-2xl transition-transform duration-200 hover:scale-[1.01] [overflow-wrap:anywhere] ${msg.responseCard.conceptual ? 'border-cyan-500/30 bg-[#0F172A]' : 'border-sky-500/30 bg-slate-950/95'}`}
+                        className={`mt-2.5 w-full cursor-zoom-in rounded-xl border p-3 shadow-2xl transition-transform duration-200 hover:scale-[1.01] ${msg.responseCard.conceptual ? 'border-cyan-500/30 bg-[#0F172A]' : 'border-sky-500/30 bg-slate-950/95'}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-2.5">
@@ -3497,14 +3497,14 @@ export default function App() {
 
                 {/* Loading Heartbeat */}
                 {isTyping && (
-                  <div className="flex w-full min-w-0 max-w-[85%] flex-col self-start items-start">
-                    <div className="flex w-full min-w-0 max-w-full flex-col gap-2 break-words rounded-2xl rounded-tl-none border border-slate-800 bg-slate-900 p-3.5 text-slate-200 [overflow-wrap:anywhere]">
+                  <div className="flex flex-col max-w-[85%] self-start items-start">
+                    <div className="p-3.5 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none flex flex-col gap-2 min-w-[280px]">
                       <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
                         <Activity className="w-3.5 h-3.5 text-rose-500 animate-heartbeat" />
                         <span>Analisando dados mais recentes do Arduino...</span>
                       </div>
 
-                      <svg width="240" height="24" className="max-w-full stroke-rose-500" fill="none">
+                      <svg width="240" height="24" className="stroke-rose-500" fill="none">
                         <path
                           className="ecg-path"
                           strokeWidth="2"
@@ -3518,8 +3518,8 @@ export default function App() {
               </div>
 
               {/* Rodapé fixo: ações rápidas */}
-              <div className="z-10 mt-auto flex-none border-t border-slate-800 bg-[#0B0F19] p-3 sm:p-4">
-                <div className="flex w-full min-w-0 flex-wrap gap-2">
+              <div className="z-10 flex-none mt-auto border-t border-slate-800 p-4 bg-[#0B0F19]">
+                <div className="flex gap-2 overflow-x-auto px-3 pb-3">
                   {QUICK_CHAT_ACTIONS.map((action) => (
                     <button
                       key={action}
