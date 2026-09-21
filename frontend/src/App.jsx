@@ -3427,7 +3427,7 @@ export default function App() {
 
               {/* Rodapé fixo: ações rápidas */}
               <div className="z-10 mt-auto shrink-0 border-t border-slate-800 p-4 bg-[#0B0F19]">
-                <div className="flex gap-2 overflow-x-auto px-3 pb-3">
+                <div className="flex gap-2 overflow-x-auto px-3 pb-4">
                   {QUICK_CHAT_ACTIONS.map((action) => (
                     <button
                       key={action}
