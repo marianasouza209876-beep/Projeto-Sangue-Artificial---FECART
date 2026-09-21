@@ -3433,7 +3433,7 @@ export default function App() {
                       key={action}
                       type="button"
                       onClick={() => handleSendMessage(action)}
-                      className="cursor-pointer whitespace-nowrap rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1 text-[11px] font-medium text-slate-300 transition-all duration-200 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+                      className="cursor-pointer whitespace-nowrap rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 text-[0.95rem] font-medium text-slate-100 transition-all duration-200 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(6,182,212,0.3)]"
                     >
                       {action}
                     </button>
