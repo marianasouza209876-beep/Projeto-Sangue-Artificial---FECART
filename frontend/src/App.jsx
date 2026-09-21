@@ -1973,13 +1973,13 @@ export default function App() {
                       onClick={() => setSelectedLot(l.id)}
                       className={`w-full p-2.5 rounded-xl border text-center font-mono transition-all ${
                         selectedLot === l.id
-                          ? 'bg-slate-800/90 border-rose-400 text-rose-100 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
+                          ? 'bg-slate-800/90 border-rose-500 text-rose-400 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
                           : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                       }`}
                     >
                       <span className="block text-xs font-bold">{l.id}</span>
-                      <span className={`block text-[9px] truncate mt-0.5 ${selectedLot === l.id ? 'text-slate-100' : 'text-slate-500'}`}>{l.name || 'Lote Biológico'}</span>
-                      <span className={`block text-[8px] truncate mt-0.5 ${selectedLot === l.id ? 'text-sky-200' : 'text-sky-400/80'}`}>{l.destino || 'Fisiológico'}</span>
+                      <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote Biológico'}</span>
+                      <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
                     </button>
 
                     {safeLots.length > 1 && (
@@ -2200,7 +2200,7 @@ export default function App() {
                           }}
                           className={`accessibility-zoom-target p-3 rounded-2xl text-sm leading-relaxed ${
                             msg.role === 'user'
-                              ? 'border border-fuchsia-300/40 bg-gradient-to-r from-fuchsia-500/70 to-indigo-500/70 text-white rounded-tr-none shadow-[0_0_10px_rgba(217,70,239,0.22)]'
+                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-tr-none shadow-md'
                               : 'bg-slate-900/95 text-slate-200 border border-slate-800 rounded-tl-none glow-neon-border cursor-zoom-in relative pr-11'
                           }`}
                         >
@@ -3427,7 +3427,7 @@ export default function App() {
 
               {/* Rodapé fixo: ações rápidas */}
               <div className="z-10 mt-auto shrink-0 border-t border-slate-800 p-4 bg-[#0B0F19]">
-                <div className="flex gap-2 overflow-x-auto px-3 pb-[14px]">
+                <div className="flex gap-2 overflow-x-auto px-3 pb-3">
                   {QUICK_CHAT_ACTIONS.map((action) => (
                     <button
                       key={action}
