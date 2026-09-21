@@ -1945,7 +1945,7 @@ export default function App() {
 
       {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
       {activeTab === 'dashboard' && (
-        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 items-stretch lg:grid-cols-12 gap-6">
+        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 items-start lg:grid-cols-12 gap-6">
 
           {/* COLUNA ESQUERDA (MÉTRICAS & LOTES - 5/12) */}
           <section className="lg:col-span-5 flex h-full flex-col gap-4">
@@ -2149,7 +2149,7 @@ export default function App() {
           </section>
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
-          <section className="lg:col-span-7 flex h-full flex-col gap-4">
+          <section className="lg:col-span-7 flex min-h-0 flex-col gap-4 lg:h-[760px] lg:self-start">
 
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
@@ -2255,7 +2255,7 @@ export default function App() {
               {/* Mensagens do Chat */}
               <div
                 ref={chatMessagesRef}
-                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'flex-1 px-5 pb-6 pt-4 sm:px-10' : 'h-[600px] flex-none'}`}
+                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'px-5 pb-6 pt-4 sm:px-10' : ''}`}
               >
                 {messages.map((msg, index) => (
                   <div
@@ -3518,7 +3518,7 @@ export default function App() {
               </div>
 
               {/* Rodapé fixo: ações rápidas */}
-              <div className="z-10 flex-none mt-auto border-t border-slate-800 p-4 bg-[#0B0F19]">
+              <div className="z-10 mt-auto shrink-0 border-t border-slate-800 p-4 bg-[#0B0F19]">
                 <div className="flex gap-2 overflow-x-auto px-3 pb-3">
                   {QUICK_CHAT_ACTIONS.map((action) => (
                     <button
