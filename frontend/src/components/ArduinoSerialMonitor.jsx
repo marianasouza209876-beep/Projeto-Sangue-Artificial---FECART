@@ -26,7 +26,8 @@ export function ArduinoSerialMonitor({
   baudRate = 115200,
   onBaudChange,
   packetCount = 0,
-  portInfo = "COM3"
+  portInfo = "COM3",
+  fillHeight = false
 }) {
   const [inputText, setInputText] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
@@ -66,7 +67,7 @@ export function ArduinoSerialMonitor({
 
   return (
     <div className={`glass-panel rounded-xl overflow-hidden border border-slate-800 bg-[#0B0F19] shadow-2xl flex flex-col transition-all duration-300 ${
-      isExpanded ? 'fixed inset-4 sm:inset-10 z-50 h-auto' : 'w-full'
+      isExpanded ? 'fixed inset-4 sm:inset-10 z-50 h-auto' : fillHeight ? 'w-full h-full min-h-[20rem]' : 'w-full'
     }`}>
       {/* HEADER DO MONITOR SERIAL (Estilo Arduino IDE 2.0) */}
       <div className="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
@@ -173,7 +174,7 @@ export function ArduinoSerialMonitor({
       <div
         ref={logsContainerRef}
         className={`bg-[#050811] p-3 overflow-y-auto font-mono text-xs space-y-1 scrollbar-thin scrollbar-thumb-slate-800 select-text ${
-          isExpanded ? 'flex-1 min-h-[400px]' : 'h-48'
+          isExpanded || fillHeight ? 'flex-1 min-h-[12rem]' : 'h-48'
         }`}
       >
         {filteredLogs.length === 0 ? (

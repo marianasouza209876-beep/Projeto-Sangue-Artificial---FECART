@@ -2029,7 +2029,7 @@ export default function App() {
               })}
             </div>
 
-            {/* Status do Hardware Arduino com Conexão Web Serial e Teste Rápido */}
+            {/* O painel de conexão permanece alinhado aos cards; o monitor abre no grid lateral abaixo. */}
             <div className="glass-panel rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-x-auto bg-slate-900/60 border-slate-800 shadow-lg">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg border transition-colors ${arduinoData.isSerialConnected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}>
@@ -2127,24 +2127,6 @@ export default function App() {
                 </Button>
               </div>
             </div>
-
-            {/* Componente Monitor Serial Integrado da Arduino IDE */}
-            {showSerialMonitor && (
-              <div className="mt-1 transition-all">
-                <ArduinoSerialMonitor
-                  logs={arduinoData.rawSerialLogs}
-                  onClearLogs={arduinoData.clearSerialLogs}
-                  onSendData={arduinoData.sendSerialData}
-                  isSerialConnected={arduinoData.isSerialConnected}
-                  onConnect={arduinoData.connectSerial}
-                  onDisconnect={arduinoData.disconnectSerial}
-                  baudRate={arduinoData.baudRate}
-                  onBaudChange={arduinoData.setBaudRate}
-                  packetCount={arduinoData.packetCount}
-                  portInfo={arduinoData.portInfo}
-                />
-              </div>
-            )}
 
           </section>
 
@@ -3536,6 +3518,28 @@ export default function App() {
             </div>
 
           </section>
+
+          {/* Área inferior: o monitor ocupa a coluna direita, sem empilhar os cards da esquerda. */}
+          {showSerialMonitor && (
+            <section className="lg:col-span-12 grid grid-cols-1 gap-6 lg:grid-cols-12">
+              <div className="lg:col-span-5" />
+              <div className="min-h-[20rem] lg:col-span-7 lg:col-start-6">
+                <ArduinoSerialMonitor
+                  logs={arduinoData.rawSerialLogs}
+                  onClearLogs={arduinoData.clearSerialLogs}
+                  onSendData={arduinoData.sendSerialData}
+                  isSerialConnected={arduinoData.isSerialConnected}
+                  onConnect={arduinoData.connectSerial}
+                  onDisconnect={arduinoData.disconnectSerial}
+                  baudRate={arduinoData.baudRate}
+                  onBaudChange={arduinoData.setBaudRate}
+                  packetCount={arduinoData.packetCount}
+                  portInfo={arduinoData.portInfo}
+                  fillHeight
+                />
+              </div>
+            </section>
+          )}
         </main>
       )}
 
