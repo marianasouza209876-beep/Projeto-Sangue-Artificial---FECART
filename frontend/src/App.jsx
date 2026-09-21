@@ -1935,7 +1935,7 @@ export default function App() {
             </div>
 
             {/* Status do Hardware Arduino com Conexão Web Serial e Teste Rápido */}
-            <div className="glass-panel rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border-slate-800 shadow-lg">
+            <div className="glass-panel rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-x-auto bg-slate-900/60 border-slate-800 shadow-lg">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg border transition-colors ${arduinoData.isSerialConnected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}>
                   <Cpu className="w-5 h-5" />
