@@ -792,6 +792,9 @@ const LOTES_DEMONSTRACAO = [
   }
 ];
 
+const LOTES_PADRAO_LEGADOS = new Set(["SA-023", "SA-024", "SA-025"]);
+const LOTES_DEMONSTRACAO_IDS = new Set(LOTES_DEMONSTRACAO.map((lot) => lot.id));
+
 // Protocolos Clínicos Médicos
 const PROTOCOLOS_CLINICOS = {
   "Simulação Fisiológica Humana": {
@@ -879,14 +882,14 @@ export default function App() {
     }));
   };
 
-  // Carrega lotes cadastrados
+  // Carrega somente lotes cadastrados; os antigos dados demonstrativos não participam do monitoramento.
   const fetchLots = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/lots`);
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setLots(data);
+        if (Array.isArray(data)) {
+          setLots(data.filter((lot) => !LOTES_PADRAO_LEGADOS.has(lot?.id)));
         }
       }
     } catch (err) {
@@ -1021,7 +1024,7 @@ export default function App() {
       const match = String(l.id).match(/SA-(\d+)/i);
       return match ? parseInt(match[1], 10) : 0;
     });
-    const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 24) : 25;
+    const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 0) : 0;
     const nextNum = maxNum + 1;
     const autoCode = `SA-${String(nextNum).padStart(3, '0')}`;
 
@@ -1057,7 +1060,7 @@ export default function App() {
       return;
     }
 
-    const finalCode = newLotCode.trim() || `SA-${String((lots?.length || 0) + 25).padStart(3, '0')}`;
+    const finalCode = newLotCode.trim() || `SA-${String((lots?.length || 0) + 1).padStart(3, '0')}`;
     const finalName = newLotName.trim();
     const finalCreatedAt = newLotCreatedAt || new Date().toLocaleString('pt-BR');
     const finalFinalidade = newLotFinalidade;
@@ -1074,7 +1077,8 @@ export default function App() {
       responsaveis: "Mariana Vicente, Julia Santana e Vitória Barreto",
       intervaloLeitura: "5s",
       protocolo: finalProtocolo,
-      status: "ESTÁVEL"
+      status: "ESTÁVEL",
+      origem: "manual"
     };
 
     setLots(prev => [...prev, newLotObj]);
@@ -1123,14 +1127,15 @@ export default function App() {
       responsaveis: "Demonstração Flowtificial",
       intervaloLeitura: "5s",
       protocolo: PROTOCOLOS_CLINICOS[demoLot.finalidade] || PROTOCOLOS_CLINICOS["Simulação Fisiológica Humana"],
-      status: "ESTÁVEL"
+      status: "ESTÁVEL",
+      origem: "finalidade"
     };
 
     setLots((previousLots) => {
-      const currentLots = previousLots || [];
-      return currentLots.some((lot) => lot?.id === demoLot.id)
-        ? currentLots
-        : [...currentLots, newLot];
+      const registeredLots = (previousLots || []).filter(
+        (lot) => !LOTES_DEMONSTRACAO_IDS.has(lot?.id)
+      );
+      return [...registeredLots, newLot];
     });
     setSelectedLot(demoLot.id);
     setActiveTab('dashboard');
@@ -1205,7 +1210,7 @@ export default function App() {
   const forecastScenario = getForecastScenario(selectedLot, activeLotObj);
   const activeFinalidade = activeLotObj?.finalidade || activeLotObj?.destino || "";
 
-  const isEmergenciaActive = activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar") || selectedLot === "SA-023";
+  const isEmergenciaActive = activeFinalidade.includes("Pré-Hospitalar") || activeFinalidade.includes("Pre-Hospitalar");
   const isTraumaActive = activeFinalidade.includes("Trauma") || activeFinalidade.includes("Hemorragia");
   const isCirurgiaCardiacaActive = activeFinalidade.includes("Cirurgia") || activeFinalidade.includes("Cardíaca") || activeFinalidade.includes("Cardiaca") || activeFinalidade.includes("Cardiovascular");
   const isAnemiaActive = activeFinalidade.includes("Anemias") || activeFinalidade.includes("Anemia");
