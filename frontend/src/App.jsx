@@ -795,13 +795,37 @@ const LOTES_DEMONSTRACAO = [
 const LOTES_PADRAO_LEGADOS = new Set(["SA-023", "SA-024", "SA-025"]);
 const LOTES_DEMONSTRACAO_IDS = new Set(LOTES_DEMONSTRACAO.map((lot) => lot.id));
 const ACTIVE_LOT_STORAGE_KEY = "flow-active-lot";
+const LOTS_STORAGE_KEY = "flow-lots";
+const DELETED_LOT_IDS_STORAGE_KEY = "flow-deleted-lot-ids";
+
+const getDeletedLotIds = () => {
+  try {
+    const deletedLotIds = JSON.parse(localStorage.getItem(DELETED_LOT_IDS_STORAGE_KEY));
+    return new Set(Array.isArray(deletedLotIds) ? deletedLotIds : []);
+  } catch {
+    return new Set();
+  }
+};
 
 const getStoredActiveLot = () => {
   try {
     const storedLot = JSON.parse(localStorage.getItem(ACTIVE_LOT_STORAGE_KEY));
-    return storedLot?.id && !LOTES_PADRAO_LEGADOS.has(storedLot.id) ? storedLot : null;
+    return storedLot?.id && !LOTES_PADRAO_LEGADOS.has(storedLot.id) && !getDeletedLotIds().has(storedLot.id)
+      ? storedLot
+      : null;
   } catch {
     return null;
+  }
+};
+
+const getStoredLots = () => {
+  try {
+    const storedLots = JSON.parse(localStorage.getItem(LOTS_STORAGE_KEY));
+    return Array.isArray(storedLots)
+      ? storedLots.filter((lot) => lot?.id && !LOTES_PADRAO_LEGADOS.has(lot.id) && !getDeletedLotIds().has(lot.id))
+      : [];
+  } catch {
+    return [];
   }
 };
 
@@ -854,7 +878,10 @@ export default function App() {
   const [selectedLot, setSelectedLot] = useState(() => getStoredActiveLot()?.id || null);
   const [lots, setLots] = useState(() => {
     const storedActiveLot = getStoredActiveLot();
-    return storedActiveLot ? [storedActiveLot] : [];
+    const storedLots = getStoredLots();
+    return storedActiveLot && !storedLots.some((lot) => lot.id === storedActiveLot.id)
+      ? [...storedLots, storedActiveLot]
+      : storedLots;
   });
   const [history, setHistory] = useState([]);
   const [typingLotId, setTypingLotId] = useState(null);
@@ -902,12 +929,15 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          const registeredLots = data.filter((lot) => !LOTES_PADRAO_LEGADOS.has(lot?.id));
+          const deletedLotIds = getDeletedLotIds();
+          const registeredLots = data.filter(
+            (lot) => !LOTES_PADRAO_LEGADOS.has(lot?.id) && !deletedLotIds.has(lot?.id)
+          );
           setLots((currentLots) => {
-            const activeLot = currentLots.find((lot) => lot?.id === selectedLot) || getStoredActiveLot();
-            return activeLot && !registeredLots.some((lot) => lot?.id === activeLot.id)
-              ? [...registeredLots, activeLot]
-              : registeredLots;
+            const retainedLots = [...currentLots, ...getStoredLots(), ...registeredLots];
+            return retainedLots.filter(
+              (lot, index, allLots) => lot?.id && allLots.findIndex((candidate) => candidate.id === lot.id) === index
+            );
           });
         }
       }
@@ -952,6 +982,14 @@ export default function App() {
       // A seleção continua ativa na sessão se o armazenamento estiver indisponível.
     }
   }, [lots, selectedLot]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOTS_STORAGE_KEY, JSON.stringify(lots));
+    } catch {
+      // Os lotes continuam disponíveis na sessão se o armazenamento estiver indisponível.
+    }
+  }, [lots]);
 
   useEffect(() => {
     fetchHistory();
@@ -1113,6 +1151,14 @@ export default function App() {
       origem: "manual"
     };
 
+    try {
+      const deletedLotIds = getDeletedLotIds();
+      deletedLotIds.delete(finalCode);
+      localStorage.setItem(DELETED_LOT_IDS_STORAGE_KEY, JSON.stringify([...deletedLotIds]));
+    } catch {
+      // O novo lote permanece disponível nesta sessão se o armazenamento estiver indisponível.
+    }
+    setActiveTab('dashboard');
     setLots(prev => [...prev, newLotObj]);
     setSelectedLot(finalCode);
     setIsModalOpen(false);
@@ -1140,6 +1186,13 @@ export default function App() {
   // Deletar lote
   const handleDeleteLot = (lotIdToDelete) => {
     const remainingLots = (lots || []).filter(lot => lot?.id !== lotIdToDelete);
+    try {
+      const deletedLotIds = getDeletedLotIds();
+      deletedLotIds.add(lotIdToDelete);
+      localStorage.setItem(DELETED_LOT_IDS_STORAGE_KEY, JSON.stringify([...deletedLotIds]));
+    } catch {
+      // A remoção do lote continua válida na sessão se o armazenamento estiver indisponível.
+    }
     setLots(remainingLots);
     if (selectedLot === lotIdToDelete) {
       try {
