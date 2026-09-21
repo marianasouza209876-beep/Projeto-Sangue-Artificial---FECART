@@ -3423,8 +3423,8 @@ export default function App() {
           {/* Área inferior: o monitor ocupa a coluna direita, sem empilhar os cards da esquerda. */}
           <section className="lg:col-span-12 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
               <div className="lg:col-span-5">
-                <div className="glass-panel w-full rounded-xl border-slate-800 bg-slate-900/60 p-3.5 shadow-lg">
-                  <div className="flex flex-col gap-3">
+                <div className="glass-panel w-full overflow-x-auto rounded-xl border-slate-800 bg-slate-900/60 p-3.5 shadow-lg">
+                  <div className="flex min-w-max flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg border transition-colors ${arduinoData.isSerialConnected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}>
                         <Cpu className="w-5 h-5" />
