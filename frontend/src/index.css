@@ -193,6 +193,14 @@ html {
   background: #475569;
 }
 
+/* Impede que respostas extensas e cards internos ultrapassem a área do chat. */
+.flow-chat-messages,
+.flow-chat-messages * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 /* Glassmorphism Panel style */
 .glass-panel {
   background: var(--gradient-surface);
