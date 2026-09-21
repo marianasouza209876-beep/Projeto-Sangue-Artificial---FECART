@@ -888,7 +888,7 @@ export default function App() {
   const [packetCount, setPacketCount] = useState(1420);
   const [lastPacketTime] = useState(null);
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
-  const [showSerialMonitor, setShowSerialMonitor] = useState(true);
+  const [showSerialMonitor, setShowSerialMonitor] = useState(false);
   const [zoomedChatCard, setZoomedChatCard] = useState(null);
   const [forecastDetailModal, setForecastDetailModal] = useState(null);
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
@@ -3456,24 +3456,47 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              {showSerialMonitor && (
-              <div className="min-h-[20rem] self-start lg:col-span-7 lg:col-start-6">
-                <ArduinoSerialMonitor
-                  logs={arduinoData.rawSerialLogs}
-                  onClearLogs={arduinoData.clearSerialLogs}
-                  onSendData={arduinoData.sendSerialData}
-                  isSerialConnected={arduinoData.isSerialConnected}
-                  onConnect={arduinoData.connectSerial}
-                  onDisconnect={arduinoData.disconnectSerial}
-                  baudRate={arduinoData.baudRate}
-                  onBaudChange={arduinoData.setBaudRate}
-                  packetCount={arduinoData.packetCount}
-                  portInfo={arduinoData.portInfo}
-                  fillHeight
-                />
-              </div>
-              )}
             </section>
+
+            {showSerialMonitor && (
+              <>
+                <div
+                  className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
+                  onClick={() => setShowSerialMonitor(false)}
+                  aria-hidden="true"
+                />
+                <section
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Monitor Serial Arduino IDE"
+                  className="fixed left-1/2 top-1/2 z-[9999] flex h-[min(82vh,44rem)] w-[min(94vw,72rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-slate-700 bg-[#0B0F19] p-1 shadow-2xl"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setShowSerialMonitor(false)}
+                    aria-label="Fechar Monitor Serial"
+                    title="Fechar Monitor Serial"
+                    className="absolute right-3 top-3 z-10 rounded-lg border border-slate-600 bg-slate-900/95 p-1.5 text-slate-300 shadow-lg transition-colors hover:border-rose-400 hover:bg-rose-600 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <ArduinoSerialMonitor
+                    logs={arduinoData.rawSerialLogs}
+                    onClearLogs={arduinoData.clearSerialLogs}
+                    onSendData={arduinoData.sendSerialData}
+                    isSerialConnected={arduinoData.isSerialConnected}
+                    onConnect={arduinoData.connectSerial}
+                    onDisconnect={arduinoData.disconnectSerial}
+                    baudRate={arduinoData.baudRate}
+                    onBaudChange={arduinoData.setBaudRate}
+                    packetCount={arduinoData.packetCount}
+                    portInfo={arduinoData.portInfo}
+                    fillHeight
+                    showFullscreenToggle={false}
+                  />
+                </section>
+              </>
+            )}
         </main>
       )}
 

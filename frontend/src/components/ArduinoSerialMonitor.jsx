@@ -27,7 +27,8 @@ export function ArduinoSerialMonitor({
   onBaudChange,
   packetCount = 0,
   portInfo = "COM3",
-  fillHeight = false
+  fillHeight = false,
+  showFullscreenToggle = true
 }) {
   const [inputText, setInputText] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
@@ -157,16 +158,18 @@ export function ArduinoSerialMonitor({
             <span className="hidden md:inline">Limpar</span>
           </Button>
 
-          <Button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-            title={isExpanded ? "Reduzir" : "Expandir para tela cheia"}
-          >
-            {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-          </Button>
+          {showFullscreenToggle && (
+            <Button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+              title={isExpanded ? "Reduzir" : "Expandir para tela cheia"}
+            >
+              {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </Button>
+          )}
         </div>
       </div>
 
