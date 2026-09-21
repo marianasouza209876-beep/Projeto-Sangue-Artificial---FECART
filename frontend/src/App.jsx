@@ -794,6 +794,16 @@ const LOTES_DEMONSTRACAO = [
 
 const LOTES_PADRAO_LEGADOS = new Set(["SA-023", "SA-024", "SA-025"]);
 const LOTES_DEMONSTRACAO_IDS = new Set(LOTES_DEMONSTRACAO.map((lot) => lot.id));
+const ACTIVE_LOT_STORAGE_KEY = "flow-active-lot";
+
+const getStoredActiveLot = () => {
+  try {
+    const storedLot = JSON.parse(localStorage.getItem(ACTIVE_LOT_STORAGE_KEY));
+    return storedLot?.id && !LOTES_PADRAO_LEGADOS.has(storedLot.id) ? storedLot : null;
+  } catch {
+    return null;
+  }
+};
 
 // Protocolos Clínicos Médicos
 const PROTOCOLOS_CLINICOS = {
@@ -841,8 +851,11 @@ export default function App() {
   }, []);
 
   // Estados da Aplicação
-  const [selectedLot, setSelectedLot] = useState(null);
-  const [lots, setLots] = useState([]);
+  const [selectedLot, setSelectedLot] = useState(() => getStoredActiveLot()?.id || null);
+  const [lots, setLots] = useState(() => {
+    const storedActiveLot = getStoredActiveLot();
+    return storedActiveLot ? [storedActiveLot] : [];
+  });
   const [history, setHistory] = useState([]);
   const [typingLotId, setTypingLotId] = useState(null);
   const [packetCount, setPacketCount] = useState(1420);
@@ -889,7 +902,13 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          setLots(data.filter((lot) => !LOTES_PADRAO_LEGADOS.has(lot?.id)));
+          const registeredLots = data.filter((lot) => !LOTES_PADRAO_LEGADOS.has(lot?.id));
+          setLots((currentLots) => {
+            const activeLot = currentLots.find((lot) => lot?.id === selectedLot) || getStoredActiveLot();
+            return activeLot && !registeredLots.some((lot) => lot?.id === activeLot.id)
+              ? [...registeredLots, activeLot]
+              : registeredLots;
+          });
         }
       }
     } catch (err) {
@@ -920,6 +939,19 @@ export default function App() {
   useEffect(() => {
     fetchLots();
   }, []);
+
+  useEffect(() => {
+    if (!selectedLot) return;
+
+    const activeLot = lots.find((lot) => lot?.id === selectedLot);
+    if (!activeLot) return;
+
+    try {
+      localStorage.setItem(ACTIVE_LOT_STORAGE_KEY, JSON.stringify(activeLot));
+    } catch {
+      // A seleção continua ativa na sessão se o armazenamento estiver indisponível.
+    }
+  }, [lots, selectedLot]);
 
   useEffect(() => {
     fetchHistory();
@@ -1110,6 +1142,11 @@ export default function App() {
     const remainingLots = (lots || []).filter(lot => lot?.id !== lotIdToDelete);
     setLots(remainingLots);
     if (selectedLot === lotIdToDelete) {
+      try {
+        localStorage.removeItem(ACTIVE_LOT_STORAGE_KEY);
+      } catch {
+        // A remoção do lote continua válida mesmo se o armazenamento estiver indisponível.
+      }
       setSelectedLot(remainingLots[0]?.id || null);
     }
   };
