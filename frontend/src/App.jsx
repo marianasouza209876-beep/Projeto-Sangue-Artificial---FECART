@@ -2057,7 +2057,7 @@ export default function App() {
           </section>
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
-          <section className="lg:col-span-7 flex min-h-0 flex-col gap-4 lg:h-[760px]">
+          <section className="lg:col-span-7 flex min-h-0 flex-col gap-4 lg:self-stretch">
 
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
@@ -2163,7 +2163,7 @@ export default function App() {
               {/* Mensagens do Chat */}
               <div
                 ref={chatMessagesRef}
-                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'px-5 pb-6 pt-4 sm:px-10' : ''}`}
+                className={`flow-chat-messages scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-500/30 hover:scrollbar-thumb-cyan-400/50 scrollbar-thumb-rounded-full z-10 min-h-0 flex-1 basis-0 overflow-y-auto px-4 pb-4 pt-4 pr-2 flex flex-col space-y-4 ${isChatFullscreen ? 'px-5 pb-6 pt-4 sm:px-10' : ''}`}
               >
                 {messages.map((msg, index) => (
                   <div
