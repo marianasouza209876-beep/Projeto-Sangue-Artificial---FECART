@@ -1945,7 +1945,7 @@ export default function App() {
 
       {/* ABA 1: MONITOR CLÍNICO / DASHBOARD */}
       {activeTab === 'dashboard' && (
-        <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 items-start lg:grid-cols-12 gap-6">
+        <main className="flex-1 min-h-0 max-w-[1680px] w-full mx-auto p-4 sm:p-6 z-10 grid grid-cols-1 items-start lg:grid-cols-12 lg:items-stretch gap-6">
 
           {/* COLUNA ESQUERDA (MÉTRICAS & LOTES - 5/12) */}
           <section className="lg:col-span-5 flex h-full flex-col gap-4">
@@ -2030,8 +2030,9 @@ export default function App() {
             </div>
 
             {/* Status do Hardware Arduino com Conexão Web Serial e Teste Rápido */}
-            <div className="glass-panel rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-x-auto bg-slate-900/60 border-slate-800 shadow-lg">
-              <div className="flex items-center gap-3">
+            <div className="glass-panel w-full rounded-xl bg-slate-900/60 border-slate-800 p-3 shadow-lg">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
                 <div className={`p-2 rounded-lg border transition-colors ${arduinoData.isSerialConnected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse' : 'bg-slate-800/80 border-slate-700 text-slate-400'}`}>
                   <Cpu className="w-5 h-5" />
                 </div>
@@ -2049,20 +2050,20 @@ export default function App() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-mono font-bold text-slate-200 mt-0.5">
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-mono font-bold text-slate-200">
                     {arduinoData.baudRate} baud • {arduinoData.packetCount} pacotes rx
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
                 {/* Seletor de Baudrate */}
                 <select
                   aria-label="Taxa de transmissão serial"
                   value={arduinoData.baudRate}
                   disabled={arduinoData.isSerialConnected}
                   onChange={(e) => arduinoData.setBaudRate(Number(e.target.value))}
-                  className="text-[10px] bg-slate-800 text-slate-300 font-mono border border-slate-700 rounded px-2 py-1.5 focus:outline-none focus:border-cyan-500 disabled:opacity-60 cursor-pointer"
+                  className="shrink-0 text-[10px] bg-slate-800 text-slate-300 font-mono border border-slate-700 rounded px-2 py-1.5 focus:outline-none focus:border-cyan-500 disabled:opacity-60 cursor-pointer"
                   title="Taxa de transmissão serial"
                 >
                   <option value={115200}>115200 baud</option>
@@ -2075,7 +2076,7 @@ export default function App() {
                     type="button"
                     onClick={arduinoData.disconnectSerial}
                     size="sm"
-                    className="gap-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs font-mono px-3 py-1.5 h-auto transition-all shadow-sm"
+                    className="shrink-0 gap-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-[10px] font-mono px-2.5 py-1.5 h-auto transition-all shadow-sm"
                   >
                     <X className="w-3.5 h-3.5" />
                     DESCONECTAR
@@ -2085,7 +2086,7 @@ export default function App() {
                     type="button"
                     onClick={() => arduinoData.connectSerial()}
                     size="sm"
-                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-semibold px-3 py-1.5 h-auto transition-all shadow-lg shadow-emerald-950/40 border border-emerald-400/30"
+                    className="shrink-0 gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-mono font-semibold px-2.5 py-1.5 h-auto transition-all shadow-lg shadow-emerald-950/40 border border-emerald-400/30"
                   >
                     <Zap className="w-3.5 h-3.5 text-emerald-200" />
                     CONECTAR ARDUINO (USB)
@@ -2099,14 +2100,14 @@ export default function App() {
                   size="sm"
                   variant="outline"
                   title="Abre o Monitor Serial em tempo real idêntico ao da Arduino IDE"
-                  className={`gap-1.5 text-xs font-mono px-3 py-1.5 h-auto transition-all ${
+                  className={`shrink-0 gap-1.5 text-xs font-mono px-2 py-1.5 h-auto transition-all ${
                     showSerialMonitor
                       ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/50 shadow-sm'
                       : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700'
                   }`}
                 >
                   <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-                  {showSerialMonitor ? "FECHAR MONITOR" : "MONITOR SERIAL IDE"}
+                  <span className="hidden 2xl:inline">{showSerialMonitor ? "FECHAR MONITOR" : "MONITOR SERIAL IDE"}</span>
                 </Button>
 
                 {/* Botão de Teste Rápido / Simulação Bancada */}
@@ -2121,10 +2122,11 @@ export default function App() {
                   size="sm"
                   variant="outline"
                   title="Injeta leituras simuladas para validar a resposta dos campos B1..B5 na hora"
-                  className="gap-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700 text-[10px] font-mono px-2 py-1.5 h-auto"
+                  className="shrink-0 gap-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700 text-[10px] font-mono px-2 py-1.5 h-auto"
                 >
                   TESTAR
                 </Button>
+                </div>
               </div>
             </div>
 
@@ -2149,7 +2151,7 @@ export default function App() {
           </section>
 
           {/* COLUNA DIREITA (VEREDITO GERAL & CHATBOT - 7/12) */}
-          <section className="lg:col-span-7 flex min-h-0 flex-col gap-4 lg:h-[760px] lg:self-start">
+          <section className="lg:col-span-7 flex min-h-0 flex-col gap-4 lg:h-full">
 
             {/* Veredito Geral Semáforo */}
             <div className={`glass-panel rounded-xl p-4 flex items-center justify-between border transition-all duration-300 ${
@@ -2205,7 +2207,7 @@ export default function App() {
               className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 ${
                 isChatFullscreen
                   ? 'fixed top-1/2 left-1/2 z-[100] h-[85vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-[#0B0F19]'
-                  : 'relative flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0B0F19]'
+                  : 'relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0B0F19]'
               }`}
               role={isChatFullscreen ? 'dialog' : undefined}
               aria-modal={isChatFullscreen || undefined}
