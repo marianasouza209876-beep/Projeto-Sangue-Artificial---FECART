@@ -2031,25 +2031,25 @@ export default function App() {
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-cyan-400" />
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">CONEXÃO ARDUINO SERIAL</p>
-                    <p className="mt-1 text-xs font-mono font-bold text-slate-200">{arduinoData.baudRate} baud • {arduinoData.packetCount} pacotes rx</p>
+                    <p className="font-mono text-[13px] font-semibold uppercase tracking-[0.18em] text-slate-400">CONEXÃO ARDUINO SERIAL</p>
+                    <p className="mt-1 text-sm font-mono font-bold text-slate-200">{arduinoData.baudRate} baud • {arduinoData.packetCount} pacotes rx</p>
                   </div>
                   <span className={`rounded-lg border p-2 ${arduinoData.isSerialConnected ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 bg-slate-800/80 text-slate-400'}`}>
                     <Cpu className="h-4 w-4" />
                   </span>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <select aria-label="Taxa de transmissão serial" value={arduinoData.baudRate} disabled={arduinoData.isSerialConnected} onChange={(e) => arduinoData.setBaudRate(Number(e.target.value))} className="min-w-0 rounded border border-slate-700 bg-slate-800 px-2 py-1.5 font-mono text-[10px] text-slate-300 focus:border-cyan-500 focus:outline-none disabled:opacity-60">
+                  <select aria-label="Taxa de transmissão serial" value={arduinoData.baudRate} disabled={arduinoData.isSerialConnected} onChange={(e) => arduinoData.setBaudRate(Number(e.target.value))} className="min-w-0 rounded border border-slate-700 bg-slate-800 px-2 py-1.5 font-mono text-xs text-slate-300 focus:border-cyan-500 focus:outline-none disabled:opacity-60">
                     <option value={115200}>115200 baud</option>
                     <option value={9600}>9600 baud</option>
                   </select>
                   {arduinoData.isSerialConnected ? (
-                    <Button type="button" onClick={arduinoData.disconnectSerial} size="sm" className="min-w-0 gap-1 border border-rose-500/40 bg-rose-600/20 px-2 py-1.5 font-mono text-[9px] text-rose-300 hover:bg-rose-600/30"><X className="h-3.5 w-3.5" />DESCONECTAR</Button>
+                    <Button type="button" onClick={arduinoData.disconnectSerial} size="sm" className="min-w-0 gap-1 border border-rose-500/40 bg-rose-600/20 px-2 py-1.5 font-mono text-xs text-rose-300 hover:bg-rose-600/30"><X className="h-3.5 w-3.5" />DESCONECTAR</Button>
                   ) : (
-                    <Button type="button" onClick={() => arduinoData.connectSerial()} size="sm" className="min-w-0 gap-1 border border-emerald-400/30 bg-emerald-600 px-2 py-1.5 font-mono text-[9px] text-white hover:bg-emerald-500"><Zap className="h-3.5 w-3.5" />CONECTAR USB</Button>
+                    <Button type="button" onClick={() => arduinoData.connectSerial()} size="sm" className="min-w-0 gap-1 border border-emerald-400/30 bg-emerald-600 px-2 py-1.5 font-mono text-xs text-white hover:bg-emerald-500"><Zap className="h-3.5 w-3.5" />CONECTAR USB</Button>
                   )}
-                  <Button type="button" onClick={() => setShowSerialMonitor((current) => !current)} size="sm" variant="outline" className={`min-w-0 gap-1 px-2 py-1.5 font-mono text-[9px] ${showSerialMonitor ? 'border-cyan-500/50 bg-cyan-950/80 text-cyan-300' : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700'}`}><Terminal className="h-3.5 w-3.5" />{showSerialMonitor ? 'FECHAR MONITOR' : 'MONITOR SERIAL'}</Button>
-                  <Button type="button" onClick={() => { const sampleGas = Number((96.0 + Math.random() * 3.5).toFixed(1)); const sampleFlow = Number((4.6 + Math.random() * 0.4).toFixed(1)); const sampleTemp = Number((21.5 + Math.random() * 1.5).toFixed(1)); arduinoData.injectTestData({ gas: sampleGas, flow: sampleFlow, temp: sampleTemp }); }} size="sm" variant="outline" className="gap-1 border-slate-700 bg-slate-800/80 px-2 py-1.5 font-mono text-[9px] text-slate-300 hover:bg-slate-700">TESTAR</Button>
+                  <Button type="button" onClick={() => setShowSerialMonitor((current) => !current)} size="sm" variant="outline" className={`min-w-0 gap-1 px-2 py-1.5 font-mono text-xs ${showSerialMonitor ? 'border-cyan-500/50 bg-cyan-950/80 text-cyan-300' : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700'}`}><Terminal className="h-3.5 w-3.5" />{showSerialMonitor ? 'FECHAR MONITOR' : 'MONITOR SERIAL'}</Button>
+                  <Button type="button" onClick={() => { const sampleGas = Number((96.0 + Math.random() * 3.5).toFixed(1)); const sampleFlow = Number((4.6 + Math.random() * 0.4).toFixed(1)); const sampleTemp = Number((21.5 + Math.random() * 1.5).toFixed(1)); arduinoData.injectTestData({ gas: sampleGas, flow: sampleFlow, temp: sampleTemp }); }} size="sm" variant="outline" className="gap-1 border-slate-700 bg-slate-800/80 px-2 py-1.5 font-mono text-xs text-slate-300 hover:bg-slate-700">TESTAR</Button>
                 </div>
               </article>
             </div>
