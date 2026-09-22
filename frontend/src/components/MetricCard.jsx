@@ -94,11 +94,11 @@ export function MetricCard({
         />
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="text-xs text-slate-400 truncate">{detail}</p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <p className="min-w-0 flex-[1_1_8rem] truncate text-xs text-slate-300" title={detail}>{detail}</p>
         <span
           className={cn(
-            "rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-wider shrink-0",
+            "rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-wide shrink-0 max-w-full whitespace-normal break-words",
             s.bg,
             s.ring,
             s.text

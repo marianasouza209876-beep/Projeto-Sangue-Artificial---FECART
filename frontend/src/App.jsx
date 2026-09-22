@@ -234,7 +234,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B1",
         title: "B1 • SATURAÇÃO DE O₂ (OXIGENAÇÃO)",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -246,7 +246,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B2",
         title: "B2 • RESISTÊNCIA DE FLUXO",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -258,7 +258,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B3",
         title: "B3 • ESTABILIDADE TÉRMICA",
-        subtitle: "Usa diretamente temp_value",
+        subtitle: "Leitura do sensor de temperatura",
         getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
         getUnit: () => "°C",
         getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
@@ -270,7 +270,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B4",
         title: "B4 • TEMPO DE MEIA-VIDA CIRCULATÓRIA",
-        subtitle: "(gas_value * 0.6) + (temp_value * 0.4)",
+        subtitle: "Índice ponderado de estabilidade",
         getValue: (rawGas, rawFlow, rawTemp) => (rawGas * 0.6) + (rawTemp * 0.4),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -282,7 +282,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B5",
         title: "B5 • TAXA DE EXTRAÇÃO TISSULAR DE O₂",
-        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        subtitle: "Índice ponderado de fluxo e oxigenação",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -299,7 +299,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B1",
         title: "B1 • CAPACIDADE DE CARGA DE O₂",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -311,7 +311,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B2",
         title: "B2 • PRESSÃO ONCÓTICA",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -323,7 +323,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B3",
         title: "B3 • PERMUTABILIDADE GASEIRA",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -335,7 +335,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B4",
         title: "B4 • RESISTÊNCIA À COMPRESSÃO MECÂNICA",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -347,7 +347,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B5",
         title: "B5 • TAMPONAMENTO ÁCIDO-BÁSICO",
-        subtitle: "(gas_value * 0.7) + (temp_value * 0.3)",
+        subtitle: "Índice ponderado de estabilidade",
         getValue: (rawGas, rawFlow, rawTemp) => (rawGas * 0.7) + (rawTemp * 0.3),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -364,7 +364,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B1",
         title: "B1 • COMPATIBILIDADE COM PERFUSÃO MECÂNICA (CEC)",
-        subtitle: "(flow_value * 0.6) + (gas_value * 0.4)",
+        subtitle: "Índice ponderado de fluxo e oxigenação",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (flow_pct * 0.6) + (rawGas * 0.4),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -376,9 +376,9 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B2",
         title: "B2 • TENSÃO DE CISAILHAMENTO",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Vazão usada como indicador de cisalhamento",
         getValue: (rawGas, rawFlow) => rawFlow,
-        getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
+        getUnit: () => "L/min",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
         detail: "Resistência contra lise molecular sob elevadas forças de cisalhamento em oxigenadores.",
         icon: Droplets,
@@ -388,7 +388,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B3",
         title: "B3 • TEMPO DE MEIA-VIDA EXTENDED",
-        subtitle: "(gas_value * 0.5) + (temp_value * 0.5)",
+        subtitle: "Índice ponderado de estabilidade",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (rawGas * 0.5) + (temp_pct * 0.5),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -400,7 +400,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B4",
         title: "B4 • TAMPONAMENTO DE LACTATO",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -412,7 +412,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B5",
         title: "B5 • VISCOSIDADE EM HYPOTHERMIA",
-        subtitle: "Relação entre flow_value e variação de temp_value",
+        subtitle: "Índice ponderado de fluxo e temperatura",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.6) + (temp_pct * 0.4),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -429,7 +429,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B1",
         title: "B1 • EFICIÊNCIA DE LIBERAÇÃO DE O₂ (P50)",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -441,7 +441,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B2",
         title: "B2 • AUSÊNCIA DE RESPOSTA IMUNOGÊNICA",
-        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        subtitle: "Índice ponderado de fluxo e oxigenação",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -453,7 +453,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B3",
         title: "B3 • ESTABILIDADE PLASMÁTICA",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -465,7 +465,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B4",
         title: "B4 • TOLERÂNCIA A INFUSÃO LENTA",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -477,7 +477,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B5",
         title: "B5 • RETENÇÃO VASCULAR",
-        subtitle: "(flow_value * 0.6) + (temp_value * 0.4)",
+        subtitle: "Índice ponderado de fluxo e temperatura",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.6) + (temp_pct * 0.4),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -494,7 +494,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B1",
         title: "B1 • COMPATIBILIDADE COM QUIMIOTERÁPICOS",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -506,7 +506,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B2",
         title: "B2 • PROTEÇÃO CONTRA ESTRESSE OXIDATIVO",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -518,7 +518,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B3",
         title: "B3 • PERMEABILIDADE EM MICROCIRCULAÇÃO",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -530,7 +530,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B4",
         title: "B4 • ESTABILIDADE EM NEUTROPÊNICOS",
-        subtitle: "(temp_value * 0.5) + (flow_value * 0.5)",
+        subtitle: "Índice ponderado de fluxo e temperatura",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (temp_pct * 0.5) + (flow_pct * 0.5),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -542,7 +542,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B5",
         title: "B5 • ÍNDICE DE PURIFICAÇÃO MOLECULAR",
-        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        subtitle: "Índice ponderado de fluxo e oxigenação",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -559,7 +559,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B1",
         title: "B1 • SUPORTE MULTIORGÂNICO DE O₂",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -571,7 +571,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B2",
         title: "B2 • RESISTÊNCIA À ACIDOSE LÁCTICA",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -583,7 +583,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B3",
         title: "B3 • ESTABILIDADE EM INFUSÃO PRESSURIZADA",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -595,7 +595,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B4",
         title: "B4 • CAPACIDADE EXPANSORA DE PLASMA",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -607,7 +607,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B5",
         title: "B5 • INTEGRIDADE EM VARIÂNCIA TÉRMICA",
-        subtitle: "Usa diretamente temp_value",
+        subtitle: "Leitura do sensor de temperatura",
         getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
         getUnit: () => "°C",
         getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
@@ -624,7 +624,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B1",
         title: "B1 • ISENÇÃO ANTIGÊNICA (UNIVERSALIDADE)",
-        subtitle: "(gas_value * 0.5) + (flow_value * 0.5)",
+        subtitle: "Índice ponderado de fluxo e oxigenação",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (rawGas * 0.5) + (flow_pct * 0.5),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -636,7 +636,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B2",
         title: "B2 • PURIFICAÇÃO BIOLÓGICA",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -648,7 +648,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B3",
         title: "B3 • CONSERVABILIDADE EM ESTOQUE",
-        subtitle: "Usa diretamente temp_value",
+        subtitle: "Leitura do sensor de temperatura",
         getValue: (rawGas, rawFlow, rawTemp) => rawTemp,
         getUnit: () => "°C",
         getPercent: (val, rawFlow, rawTemp) => rawTemp > 10 ? (rawTemp <= 40 ? (rawTemp / 40) * 100 : Math.min(100, rawTemp)) : Math.min(100, (rawTemp / 40) * 100),
@@ -660,7 +660,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B4",
         title: "B4 • ESTABILIDADE OSMÓTICA",
-        subtitle: "(flow_value * 0.5) + (temp_value * 0.5)",
+        subtitle: "Índice ponderado de fluxo e temperatura",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct, temp_pct) => (flow_pct * 0.5) + (temp_pct * 0.5),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -672,7 +672,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B5",
         title: "B5 • FLUIDEZ DE FRACIONAMENTO",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -689,7 +689,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B1",
         title: "B1 • REATIVIDADE EM PROVA CRUZADA (CROSSMATCH)",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -701,7 +701,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B2",
         title: "B2 • NEUTRALIDADE DE ANTICORPOS IRREGULARES",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -713,7 +713,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B3",
         title: "B3 • FIDELIDADE DE PADRÃO MOLECULAR",
-        subtitle: "(flow_value * 0.5) + (gas_value * 0.5)",
+        subtitle: "Índice ponderado de fluxo e oxigenação",
         getValue: (rawGas, rawFlow, rawTemp, flow_pct) => (flow_pct * 0.5) + (rawGas * 0.5),
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -725,7 +725,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B4",
         title: "B4 • ESTABILIDADE EM PAINEL IMUNO-HEMATOLÓGICO",
-        subtitle: "Usa diretamente flow_value",
+        subtitle: "Leitura do sensor de fluxo",
         getValue: (rawGas, rawFlow) => rawFlow,
         getUnit: (rawFlow) => rawFlow > 10 ? "%" : "cP",
         getPercent: (val, rawFlow) => rawFlow > 10 ? Math.min(100, Math.max(0, rawFlow)) : Math.min(100, Math.max(0, (rawFlow / 5) * 100)),
@@ -737,7 +737,7 @@ const getMetricasConfigByFinalidade = (finalidadeName = "") => {
       {
         id: "B5",
         title: "B5 • LIMPIDEZ ESPECTROFOTOMÉTRICA",
-        subtitle: "Usa diretamente gas_value",
+        subtitle: "Leitura do sensor de gases",
         getValue: (rawGas) => rawGas,
         getUnit: () => "%",
         getPercent: (val) => Math.min(100, Math.max(0, val)),
@@ -1971,15 +1971,16 @@ export default function App() {
                   <div key={l.id} className="relative group">
                     <button
                       onClick={() => setSelectedLot(l.id)}
+                      aria-pressed={selectedLot === l.id}
                       className={`w-full p-2.5 rounded-xl border text-center font-mono transition-all ${
                         selectedLot === l.id
-                          ? 'bg-slate-800/90 border-rose-500 text-rose-400 font-bold shadow-lg shadow-rose-500/10 ring-1 ring-rose-500/30'
-                          : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          ? 'bg-rose-950/60 border-rose-400 text-rose-200 font-bold shadow-lg shadow-rose-500/20 ring-2 ring-rose-400/60'
+                          : 'bg-slate-900/70 border-slate-700 text-slate-200 hover:border-slate-500 hover:text-white'
                       }`}
                     >
                       <span className="block text-xs font-bold">{l.id}</span>
-                      <span className="block text-[9px] text-slate-500 truncate mt-0.5">{l.name || 'Lote Biológico'}</span>
-                      <span className="block text-[8px] text-sky-400/80 truncate mt-0.5">{l.destino || 'Fisiológico'}</span>
+                      <span className="block text-[11px] text-slate-200 truncate mt-1">{l.name || 'Lote Biológico'}</span>
+                      <span className="block text-[10px] text-sky-200 truncate mt-1">{l.destino || 'Fisiológico'}</span>
                     </button>
 
                     {safeLots.length > 1 && (
@@ -2555,7 +2556,7 @@ export default function App() {
                             <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                               <span className="text-slate-300 font-semibold">B2 • Tensão de Cisalhamento</span>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-white font-bold font-mono">{c_b2_val.toFixed(1)} {rawFlow > 10 ? "%" : "cP"}</span>
+                                <span className="text-white font-bold font-mono">{c_b2_val.toFixed(1)} L/min</span>
                                 <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${c_b2_status.bgColor} ${c_b2_status.borderColor} ${c_b2_status.textColor}`}>
                                   {c_b2_status.badgeText}
                                 </span>
